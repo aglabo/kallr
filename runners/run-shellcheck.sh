@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# src: ./runners/run-shellcheck.sh
+# @(#) : shellcheck runner
+#
+# Copyright (c) 2026- atsushifx <https://github.com/atsushifx>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+# shellcheck disable=SC1091
+
+set -euo pipefail
+
+# Initialize variables and change to the project root directory
+. "$(dirname "${BASH_SOURCE[0]}")/libs/init-vars.lib.sh"
+cd "${SCRIPT_ROOT}/.."
+
+SHELLCHECKRC="${SHELLCHECKRC:-${SCRIPT_ROOT}/../configs/shellcheckrc}"
+main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --rcfile | -r)
+      SHELLCHECKRC="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "Unknown option: $1" >&2
+      return 1
+      ;;
+    *) break ;;
+    esac
+  done
+  local -a targets=("$@")
+  if [[ ${#targets[@]} -eq 0 ]]; then
+    targets=(".")
+  fi
+  targets=("${targets[@]//\\//}")
+  # Unit test spec files (*.spec.sh) are skipped, both in directory scans and when given explicitly
+  local -a files=()
+  for target in "${targets[@]}"; do
+    if [[ -d $target ]]; then
+      while IFS= read -r -d '' f; do
+        files+=("$f")
+      done < <(find "$target" -mindepth 1 \( -name node_modules -o -name .tools \) -prune -o -name "*.sh" ! -name "*.spec.sh" -print0)
+    elif [[ $target != *.spec.sh ]]; then
+      files+=("$target")
+    fi
+  done
+  if [[ ${#files[@]} -eq 0 ]]; then
+    echo "No .sh files found." >&2
+    return 0
+  fi
+  (shellcheck --rcfile="$SHELLCHECKRC" "${files[@]}")
+}
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  main "$@"
+fi

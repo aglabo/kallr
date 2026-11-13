@@ -1,0 +1,17 @@
+# src: pubspec.yaml
+# @(#) : Dart pub workspace root for keneek
+#
+# Copyright (c) 2026- atsushifx <http://github.com/atsushifx>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+name: keneek_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.14.0
+
+# Members must declare `resolution: workspace` in their own pubspec.yaml.
+workspace:
+  - apps/keneek

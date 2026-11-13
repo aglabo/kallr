@@ -1,0 +1,33 @@
+# src: packages/.gitignore
+# @(#) : ignore settings for Dart / Flutter library packages (packages/<pkg>/)
+#
+# Copyright (c) 2026- atsushifx <http://github.com/atsushifx>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+## Dart / Pub
+*/.dart_tool/
+*/.packages
+*/.pub/
+*/.pub-cache/
+# libraries never commit lock files (workspace root pubspec.lock is the source of truth)
+*/pubspec.lock
+
+## Build / generated
+*/build/
+*/coverage/
+*/.flutter-plugins
+*/.flutter-plugins-dependencies
+*/doc/api/
+
+## Platform generated files (plugin example apps)
+*/example/build/
+*/example/.dart_tool/
+*/example/pubspec.lock
+
+## IDE (IntelliJ / Android Studio)
+*/.idea/
+*/*.iml
+*/*.ipr
+*/*.iws

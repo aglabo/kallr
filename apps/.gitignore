@@ -1,0 +1,48 @@
+# src: apps/.gitignore
+# @(#) : ignore settings for Flutter applications (apps/<app>/)
+#
+# Copyright (c) 2026- atsushifx <http://github.com/atsushifx>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+## Dart / Pub
+*/.dart_tool/
+*/.packages
+*/.pub/
+*/.pub-cache/
+# dependencies are locked by the workspace root pubspec.lock
+*/pubspec.lock
+
+## Flutter build / generated
+*/build/
+*/coverage/
+*/.flutter-plugins
+*/.flutter-plugins-dependencies
+*/.widget_preview/
+*/doc/api/
+
+## Platform generated files (created by `flutter create --platforms=...`)
+*/windows/flutter/ephemeral/
+*/linux/flutter/ephemeral/
+*/macos/Flutter/ephemeral/
+*/macos/Flutter/GeneratedPluginRegistrant.swift
+*/ios/Flutter/ephemeral/
+*/ios/Flutter/.last_build_id
+*/ios/Flutter/Generated.xcconfig
+*/ios/Flutter/flutter_export_environment.sh
+*/android/local.properties
+*/android/.gradle/
+*/android/app/debug/
+*/android/app/profile/
+*/android/app/release/
+
+## Symbolication / obfuscation maps
+*/app.*.symbols
+*/app.*.map.json
+
+## IDE (IntelliJ / Android Studio)
+*/.idea/
+*/*.iml
+*/*.ipr
+*/*.iws

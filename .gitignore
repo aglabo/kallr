@@ -1,0 +1,163 @@
+# src: .gitignore
+# @(#) : main ignore settings: template
+#
+# Copyright (c) 2026- atsushifx <http://github.com/atsushifx>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+# default: ignore all files
+*
+
+## Repository Specific
+# Allow Templates (for project-starter-template repo)
+!/templates/
+!/templates/**
+
+## General
+# Allow README, LICENSE, CONTRIBUTING
+!**/README*
+!**/LICENSE*
+!**/CONTRIBUTING*
+
+# Allow .github directories
+!.github/
+!.github/**
+
+# Allow profile (organization README)
+!/profile/
+!/profile/**
+
+# Allow other ignore
+!*ignore
+
+# Allow editorconfig
+!**/.editorconfig
+
+# Allow settings
+!**/settings.json
+
+
+## Root configs
+!**/package.json
+!**/pnpm-lock.yaml
+!**/renovate.json
+!**/lefthook.yml
+!**/dprint.jsonc
+!**/.shellspec
+!**/.mcp.json
+!**/CHANGELOG.*
+!**/Release-Note.*
+
+## Project directories
+# config files
+!configs/
+!configs/**
+!configs/**/*.json
+!configs/**/*.yml
+!configs/**/*.yaml
+!configs/**/*.toml
+!configs/**/*rc
+!configs/**/*.js
+!configs/**/*.mjs
+
+# runners & scripts
+!/runners
+!/runners/**
+!/runners/**/*.sh
+!/scripts
+!/scripts/**
+!/scripts/**/*.sh
+!/scripts/**/*.ts
+
+# Documents
+!/docs/
+!/docs/**/
+!/docs/**/*.md
+!/docs/**/*.mdx
+
+
+## AI Agents
+# General
+!**/AGENT.md
+
+# claude code
+!**/CLAUDE*.md
+
+# allowlist details: .claude/.gitignore
+!.claude/
+!.claude/agents/
+!.claude/agents/**
+!.claude/rules/
+!.claude/rules/**
+!.claude/commands/
+!.claude/commands/**
+
+##  Editor
+#   VSCode
+!.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+!.vscode/cspell*
+!.vscode/cspell*/**
+
+
+##  Git
+# allow all gitignore
+!**/.gitignore
+
+
+# ------------------------------------------------------------ ##
+##  Re-exclude: secrets and generated files                      ##
+##  Must stay last: these rules undo the broad allow rules above ##
+## ------------------------------------------------------------ ##
+
+#   OS specific files
+.DS_Store
+thumbs.db
+
+#   logs, patches
+**/*.log
+**/*.diff
+**/*.patch
+
+#   history, cache
+**/.history/
+**/.cache/
+
+#   backup/swap/temp
+**/$~*
+**/~*
+**/*~
+**/*.tmp
+**/*.swp
+# **/*.lock # track *.lock
+
+#   session files
+**/*session.json
+**/*session
+
+#   .env files
+**/.env*
+!.env.example
+
+
+#   API keys / credentials
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*apikey*
+**/*api-key*
+**/*api_key*
+
+#   temporary directories
+**/temp
+**/tmp
+
+#   node
+**/node_modules/
+**/.pnpm-store/

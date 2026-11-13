@@ -70,6 +70,16 @@
 !/scripts/**/*.sh
 !/scripts/**/*.ts
 
+# Flutter / Dart workspace
+# details: apps/.gitignore, packages/.gitignore
+!/pubspec.yaml
+!/pubspec.lock
+!/analysis_options.yaml
+!/apps/
+!/apps/**
+!/packages/
+!/packages/**
+
 # Documents
 !/docs/
 !/docs/**/
@@ -161,3 +171,12 @@ thumbs.db
 #   node
 **/node_modules/
 **/.pnpm-store/
+
+#   Dart / Flutter (workspace root; per-app rules: apps/.gitignore, packages/.gitignore)
+/.dart_tool/
+/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+#   build artifacts (flutter build web --output dist/web, desktop copies)
+/dist/

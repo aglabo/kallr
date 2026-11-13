@@ -178,5 +178,5 @@ thumbs.db
 **/.flutter-plugins
 **/.flutter-plugins-dependencies
 
-#   build artifacts (flutter build web --output dist/web, desktop copies)
+#   build artifacts (pnpm run build:windows copies the release bundle to dist/windows)
 /dist/

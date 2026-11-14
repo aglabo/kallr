@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 1.3.1
+version: 1.5.0
 created: "2026-11-14"
 ---
 
@@ -637,6 +637,329 @@ e2e テストを担う #8 は、API 契約を検証する側の責務を持ち�
 
 ---
 
+## DR-06: バッチ登録の冪等性を、安全性・応答の一貫性・回復可能性に分けて外部契約にする - 2026-11-14 10:07:11
+
+**Phase**: spec
+**Status**: Accepted
+
+### Context
+
+バッチ登録の再送時の振る舞い (冪等性) について、外部契約の中身が決まっていない。
+REQ-F-007、DR-03 決定 6、DR-04 決定 6 は、外部から観測できる再送時の振る舞いを契約に含めることを求めている。
+同じ 3 つは、内部の実現方法を兄弟 issue に委ねるとしている。委ねる先は、バッチ登録を担う #4 と、永続化を担う #7 になる。
+
+specifications の草案 (各ファイルの version 1.0.0) を設計する中で、次の 5 つの問題が見つかった。
+
+- HTTP の 4xx から、キーを再利用してよいかを推論するのは安全でない。理由は次の 3 つである
+  - エラー応答の優先順位 (DD-ER-05) では、`request.invalid` (400) がキーの評価より先に返る
+  - 入力検証には、時刻に依存する判定がある (過去の `fireAt` の扱いは specifications-endpoints.md の Open Questions に残っている)
+  - 応答を失った先行の送信が、後から処理される場合がある
+- 同時に届いた別の本文のリクエストに 409 を返すと、処理中のリクエストが後で失敗したときに、その 409 が誤りになる
+- 1 回の応答だけでは、論理操作が今後も登録されないことを保証できない
+- 503 は、キーの競合からも他の障害からも返り得る。クライアントは両者を区別できない
+- 登録と成功結果の記録を外部から見て同時に成立させても、停止後の回復が完了することまでは保証されない
+
+草案の specifications は、これらの問題を含む次の規則を持っていた (一部の抜粋)。
+
+- 結果が未確定のキーに別の本文が届いたら 409 `idempotency.key_conflict` を返す (R-ER-012、R-EP-072)
+- API の 4xx を受け取ったキーは「登録なしが確定」とし、入力を修正した本文で再利用できる (R-EP-076)
+- 「同じ本文」の判定基準 (バイト列の一致か、JSON としての意味的な等価か) を Open Questions に残している
+
+ユーザーは、基本の方針として次を選んだ。
+
+- クライアントが結果を確定できない場合でも、サーバー側で登録の重複を防ぐことを優先する
+- 回復できない障害の後に、結果の確定しない状態が残ることは受け入れる
+
+### Decision
+
+安全性:
+
+- 決定 1: Idempotency-Key は、本文と組になって、1 つの論理操作 (キー K と本文 B の組) を識別する。
+  クライアントは、新しい論理操作には新しいキーを作らなければならない (MUST)。
+  例外は、決定 9 が許す登録し直し (同じ登録の意図を、決定 9 の条件を満たして登録し直すこと) だけとする。
+  この登録し直しに限り、同じキーを別の本文で使ってよい (新しいキーを推奨する。決定 9)。
+  再送では、同じキーを使い、本文をまったく同じバイト列で送らなければならない (MUST)。
+- 決定 2: 同じキーの同時の登録処理のうち、登録へ進めるのは同時に高々 1 つとする。
+  どの登録処理が進むか、どの順序 (送信順・到着順・開始順・完了順) で進むかは保証しない。
+  進めなかった登録処理は登録せず、他の登録処理の結果を変えない。
+- 決定 3: 保持の保証が有効な間、1 つのキーで成立する登録は高々 1 つとする。保持の保証が有効な期間は次のとおりとする。
+  - 成功の記録: サーバーで成功が確定した時点から最低 24 時間
+  - 結果が確定していない登録処理: 結果が確定するまで
+- 決定 4: 結果が確定していないキーは、安全性を失う形で解放しない。
+  その登録処理がもう登録を成立させ得ないと確実になるまで、そのキーを未使用として扱わない。
+  ここでいう登録処理は、論理操作 (キー K と本文 B の組で識別される操作) について、サーバーが実行する個々の処理を指す。
+  期限切れにしてよいのは、結果が確定した記録だけとする。
+  - 成功の記録: サーバーで成功が確定した時点から最低 24 時間の後
+  - 登録なしの記録: いつでもよい
+
+  保持の保証の終了、記録の実際の削除、再送を新規の登録として処理することの 3 つは、別の事柄として扱う。
+  結果が確定していない記録を無期限に保持することは、実現方式として固定しない。
+- 決定 5: キーの評価より前に拒否された送信は、キーと登録のどちらにも影響しない。対象は次の拒否とする。
+  - 認証
+  - ルーティング・メソッド・認可
+  - メディアタイプと Content-Encoding・本文サイズ
+  - キーのヘッダーの形式
+
+  入力検証で拒否された送信は、何も登録せず、確定済みのキーの状態を変えない。
+
+応答の一貫性:
+
+- 決定 6: 成功が確定したキーに同じ本文で再送されたときは、元の 201 と、元のレスポンス本文の写しを返す。
+  この再現は、認証、ルーティング・メソッド・認可、メディアタイプと Content-Encoding、本文サイズ、キーのヘッダーの形式の各検査を通過した送信に限る。
+  そのうえで、入力内容の検証の結果は問わない。
+  これを、エラー応答の優先順位 (specifications-errors.md 4.1、DD-ER-05) の唯一の例外とする。
+  通知の最新の状態は GET で取得する。
+- 決定 7: 処理中または回復待ちの登録処理と競合した送信には、本文が同じでも異なっても 503 `server.unavailable` を返す。
+  入力検証の 400 は、本文が同じでも異なっても、常にこの 503 より優先する。
+  サーバーは、競合による 503 を返した送信では登録しない。
+  ただし、クライアントはこの 503 を他の 503 と区別できない。
+- 決定 8: 409 `idempotency.key_conflict` を返すのは、そのキーで別の本文の成功がすでに確定している場合だけとする。
+- 決定 9: 送信ごとの意味は次のとおりとする。
+  - 契約に適合する 201 は、論理操作の成功が確定したことを示す
+  - API が生成した、共通エラー形式の 4xx (`code` を持つ `application/problem+json`) だけが、その送信で登録されなかったことを示す
+  - 503 を含むすべての 5xx、problem 形式でないエラー応答、応答なしは、結果が確定しないものとして扱う
+  - 上のどれにも当てはまらない応答も、結果が確定しないものとして扱う
+
+  「登録なしが確定」は、クライアントが次の C1〜C3 で判断する。
+  C1〜C3 をすべて満たす場合に限り、クライアントは対象の論理操作 (キー K と本文 B の組) による登録が成立していないと判断できる。
+  それ以外は結果が確定しない。
+  - C1: クライアントが、透過的な自動再送 (HTTP ライブラリ、Service Worker、プロキシ) を無効にしている。
+    そのうえで、論理操作のすべての送信とその完了の状態を自ら管理している
+  - C2: すべての送信が応答を受け取っている。完了していない送信は無い。クライアントが中断した送信は、完了していない送信に数える
+  - C3: すべての応答が、API が生成した 4xx である
+
+  「登録なしが確定」は、K で別の本文の登録が成立していないことまでは意味しない。
+  特に、409 `idempotency.key_conflict` は、K で別の本文の成功がすでに確定していることを意味する。
+  また、「登録なしが確定」はクライアント側の判断であり、サーバー側の結果の確定 (決定 4 の登録なしの記録、決定 13 の登録なし) とは別の事柄である。
+
+  クライアントの規則は次のとおりとする。
+  - 同じ K と同じバイト列の再送は、最初の送信から 24 時間以内に限る
+  - 最初の送信から 24 時間が経過しても、その経過だけでは結果が確定しない
+  - 24 時間以内に開始した送信の応答を、24 時間を過ぎた後に受け取った場合も、決定 9 の冒頭に挙げた送信ごとの意味で判断する。
+    その応答が契約に適合する 201 なら、論理操作の成功が確定する。24 時間の時点で確定していなかった結果も、後から受け取った応答によって確定し得る
+  - 24 時間の期限は、再送を開始してよい期限である。24 時間を過ぎた後は、新しい再送を開始しない
+  - 結果の確定前にクライアントが停止した場合、停止によって結果は確定しない
+  - すでに確定した結果は、24 時間の経過や停止によって未確定に戻らない。確定した結果は、クライアントの判断としての次の 2 つを指す
+    - 成功の確定: 契約に適合する 201 による。後から受け取った応答 (並行していた別の送信の 503 など) によっても、未確定に戻らない
+    - 登録なしの確定: C1〜C3 による。この判断は、判断の対象とした送信 (C2・C3 の「すべての送信」) についての結論である。
+      判断の後に同じ K・B で始めた新しい送信は、この結論に含まれない
+  - 結果が確定しない間に、同じ内容を新しいキーで送ると、登録が重複し得る (SHOULD NOT)
+  - 同じ登録の意図を、新しいキーや別の本文で登録し直すことは、「登録なしが確定」の後に限って許す (新しいキーを推奨)。
+    登録し直しの可否は、新しい登録の送信を開始する時点で判断する。
+    その時点までに開始した、先行の論理操作のすべての送信について C1〜C3 を満たす場合に限り、登録し直しの送信を開始してよい
+  - 登録なしを判断した後に、先行の論理操作の送信を追加で開始した場合は、過去の判断だけを根拠に登録し直さない。
+    追加した送信も含めて、上の条件を満たしてから登録し直す
+  - 先行の論理操作の成功が確定している場合は、登録し直さず、既存の成功結果を扱う
+  - 登録し直しの上の条件は、クライアントの行動の条件とする。条件の成立を確かめる方法 (クライアント内部の排他制御など) は定めない。
+    サーバーは、キーの異なる論理操作の間の重複を防ぐことも、条件を満たさない登録し直しを拒否することも保証しない
+  - 登録結果が確定しないまま、本文やキーを変えて登録し直すことは、安全と保証しない
+  - 決定 3 の冪等性は、キーごとに成り立つ。同じ登録の意図でも、キーの異なる論理操作の間の重複は、決定 3 の保証の対象外である。
+    新しいキーで登録し直した後に、クライアントが先行の論理操作の新しい送信を始めると、同じ登録の意図が 2 回登録され得る。本契約は、この重複を防がない
+  - 同じキー・同じ本文の再送は、最初の送信から 24 時間以内に限る規則 (この一覧の最初の規則) に従う
+  - 無関係な新しい通知の登録は、独立した論理操作として、決定 1 に従い新しいキーで送る。この登録は、ここに挙げた登録し直しの制限を受けない
+- 決定 10: 「同じ本文」は、リクエスト本文のバイト列が同一であることとする。
+  候補を絞り込むためにハッシュを使ってよい。ただし、ハッシュの一致だけで同じと判定してはならない (MUST NOT)。
+- 決定 11: v1 が扱う Content-Encoding は identity だけとする。
+  - Content-Encoding ヘッダーが無い場合は identity とみなす。クライアントに identity の明示を求めない
+  - identity 以外の Content-Encoding は、415 `request.unsupported_media_type` で拒否する。
+    この応答には `Accept-Encoding: identity` を付ける (RFC 9110)
+  - Content-Type だけが原因の 415 には、`Accept-Encoding` を付けない
+
+回復可能性:
+
+- 決定 12: 登録と成功の記録は、外部から見て同時に成立する (R-EP-078)。
+- 決定 13: 回復が完了した場合、停止前に処理中だった登録処理は、次のどちらか 1 つとして観測される。片方だけが存在する状態は観測されない。
+  - 成功が確定: 登録と成功の記録がどちらも存在する
+  - 登録なし: どちらも存在せず、停止前のその登録処理が後から登録を成立させることもない。
+    その後に同じ K・B で新しい登録処理が始まり、登録が成立することは妨げない
+
+  この扱いは決定 4 と整合する。
+- 決定 14: 回復の完了、回復の期限、回復できない場合の扱いは保証しない。
+  契約上の制約として、回復できないキーは安全に再利用できない場合がある。
+  そのキーへの送信には、503 が返り続け得る。
+  その論理操作の結果は、確定しないまま残ることがある。
+
+共通:
+
+- 決定 15: キーの空間は、API インスタンス全体で共有する。認証済みの主体ごとには分けない。
+  ランダムなキーは、認証や認可の代わりにならない。
+- 決定 16: 登録へ進む権利 (処理権) は、所有権ではない。更新操作は、別の契約で定める。
+- 決定 17: ロックの方式、処理権を得る時点、永続化の方式、回復の方式は定めず、実装に委ねる。
+
+### Scope
+
+- Applies to: 通知 REST API のバッチ登録の、Idempotency-Key を使う再送時の外部から観測できる振る舞い。
+  バッチ登録の Content-Encoding の扱いを含む
+- Consistency: 本 DR は、DR-03 決定 6 と DR-04 決定 6 を具体化する。DR-04 決定 4・決定 5 と整合する。
+  DR-01〜DR-05 のどれも置き換えない。エラー応答の優先順位 (DD-ER-05) には、決定 6 の例外を 1 つ加える
+- Not decided here:
+  - 回復の完了、回復の期限、回復できない場合の扱い → 未定。specifications の Open Questions で扱う。
+    #4・#7 との実現可能性の照合は未確認のまま残る
+  - 論理操作と通知を対応付ける手段 → 未定 (Revisit Trigger に挙げた事実が現れたら DR を追加する)
+  - キャンセル同士の同時実行の詳細 → 未定 (キャンセルの契約として specifications で扱う)
+  - 503 の種類を区別する手段 → 未定 (必要になった時点で DR を追加する)
+  - 更新操作の契約 → 未定 (更新操作を追加するときに定める)
+  - ロックの方式、処理権を得る時点、永続化の方式、回復の方式 → 兄弟 issue #4・#7 (DR-03 決定 2)
+  - 各規則の具体的な文言、規則 ID、エラーカタログの記載 → specifications
+
+### Alternatives Considered
+
+- 最初の送信の 4xx を「登録なし」とみなし、本文を修正してキーを再利用する。
+  応答を失った先行の送信が後から登録され得る。また、優先順位のため、4xx はキーの状態について何も示さない。そのため不採用。
+- 処理中の登録処理と別の本文が競合したときに 409 を返す。処理中のリクエストが後で失敗すると、偽の競合になるため不採用。
+- 処理中の競合による 503 を、入力検証より先に返す。
+  400 が何も保証しない以上、先に返す利点が無い。DD-ER-05 の例外も広がるため不採用。
+- 1 回の 400 で、論理操作の「登録なし」を確定する。
+  先行の送信が、まだ処理権を得る段階に達していない場合があるため不採用。
+- 応答を失った送信は後から処理されない、と仮定する (改訂前の草案にあった前提)。
+  通信路と中継装置は、この仮定を保証しないため不採用。
+- バージョンや更新時刻による楽観ロックを使う。
+  登録前にはリソースが存在せず、クライアントがバージョンを持てないため不採用。
+- 先着順 (FIFO) の順序や、待機を保証する。
+  外部から観測と検証のどちらもできない。実装と応答時間を制約するため不採用。
+- 回復が必ず完了することを無条件に保証する。実現の条件が決まっていないため不採用。
+- 結果が確定していない記録の無期限の保持を、契約にする。保存と回復の方式を固定してしまうため不採用。
+- JSON として正規化して比較する。
+  Unicode や数値の正規化規則を契約に含める必要が生じるため不採用。
+- ハッシュ (SHA-256) の一致だけで同じ本文と判定する。衝突が起きると、別の本文の結果を返してしまうため不採用。
+- キーの空間を、認証済みの主体ごとに分ける。
+  #6 (ローカルセキュリティ) は、主体の識別をまだ定めていない。資格情報を再発行すると、登録が重複し得るため不採用。
+
+### Rationale
+
+最大の理由は、クライアントが結果を確定できない場合でも、サーバーが登録を重複させないことを優先したことにある。
+この方針のもとで、冪等性を次の 3 つの性質に分けて契約にした。
+
+- 安全性 (決定 1〜5): 保持の保証が有効な間、キーごとの登録を高々 1 つに保つ
+- 応答の一貫性 (決定 6〜11): 成功が確定した後は、同じ本文の再送に初回の応答を再現する。各応答が示す意味は、時刻や他の操作によって変わらない
+- 回復可能性 (決定 12〜14): 回復が完了したときに観測できる状態を限定する
+
+3 つに分ける理由は、性質ごとに保証できる範囲が異なることにある。
+安全性は、回復が完了しなくても保てる。
+回復の完了は、兄弟 issue での実現の条件が決まっていないため保証しない (決定 14)。
+
+成功の再送で元の 201 を返す理由は、再送の結果を時刻に依存する入力検証から切り離すためである (決定 6)。
+これにより、過去の `fireAt` の扱いを決める Open Questions の結論が、再送の結果を左右しない。
+
+409 を、別の本文の成功が確定した場合だけに限る理由は、409 を常に確定した競合の意味に保つためである (決定 8)。
+処理中の競合を 503 にすると、その応答は後の結果と食い違わない。
+
+「登録なしが確定」に C1〜C3 を求める理由は、1 回の応答では論理操作の結果を確定できないことにある (決定 9)。
+透過的な自動再送を有効にしていると、クライアントの知らない送信が後から処理され得る。
+
+クライアントの再送の期限を最初の送信から 24 時間とする理由は、サーバーでの成功の確定が最初の送信より遅れて起きることにある。
+この期限は、クライアントが再送を開始してよい期限を表す。
+成功の記録の最低保持期間は、サーバーで成功が確定した時点から数える。
+サーバーで成功が確定するのは、最初の送信より後になる。
+そのため、再送がサーバーでキーを照合される時点が最初の送信から 24 時間以内であれば、成功の記録は保持の保証の中にある。
+ただし、再送を期限内に開始しても、キーの照合が保持の保証の期間内に行われるとは保証しない。
+再送の期限を守ることだけでは、重複登録を防げない場合が残る (Consequences の Negative に挙げた、重複登録が成立し得る場合)。
+24 時間という値は、草案の specifications が定めた保持期間 (R-EP-073) に合わせている。
+
+本文の同一性をバイト列の一致とする理由は 2 つある (決定 10)。
+正規化規則を契約へ持ち込まずに済む。また、ハッシュの衝突による取り違えも起きない。
+Content-Encoding を identity だけにする理由は、決定 10 の比較対象のバイト列を一意に定めるためである (決定 11)。
+
+キーの空間を共有する理由は、#6 が主体の識別をまだ定めていないことにある (決定 15)。
+主体ごとに分けると、資格情報の再発行で同じ論理操作が別の空間に入り、登録が重複し得る。
+
+ロック・永続化・回復の方式を定めない理由は、DR-03 決定 2 に従い、内部の実現方法を兄弟 issue に委ねるためである (決定 17)。
+
+### Consequences
+
+- Positive:
+  - 保持の保証が有効な間、登録は重複しない
+  - 成功の再送の結果は、時刻に依存する入力検証の影響を受けない。過去の `fireAt` の扱いを決める Open Questions を制約しない
+  - 409 `idempotency.key_conflict` は、常に確定した競合を意味する
+  - ロック・永続化・回復の方式を、兄弟 issue が自由に選べる
+- Negative:
+  - エラー応答の優先順位 (specifications-errors.md 4.1) に、例外が 1 つ必要になる (DD-ER-05)
+  - クライアントは、「登録なしが確定」へ達するため、送信を自ら管理し、透過的な自動再送を無効にしなければならない
+  - 論理操作の結果が、確定しないまま残る場合がある。例は次のとおり (一部)
+    - 送信の応答を失い、その後に同じ本文が入力検証に通らなくなった場合
+    - キーが回復できない場合
+  - 決定 3 の保証が及ばない場合として、重複登録が成立し得るのは、次の 3 つがそろった場合である
+    - 成功の記録について、保持の保証が終了している
+    - 実際に記録が削除され、そのキーが新規の登録として処理され得る
+    - その後、通信経路に残っていた元の送信 (応答を失った先行の送信など) がサーバーに到着する
+
+    保持の保証の終了だけで、重複登録が必ず起きるわけではない。
+    クライアントの再送期限 (最初の送信から 24 時間以内) は送信開始の期限であり、サーバーへの到着期限を保証しない。
+  - クライアントは、503 の種類を区別できない
+  - 本 DR を記録した時点の状態として、specifications と requirements.md は本 DR に合わせた改訂を要する。改訂までは、既存の記述との不整合が残る。改訂の対象は次のとおり
+    - specifications-errors.md: 4.1 (入力検証より前に成功を再送する規則と、リソース状態の段で処理中の競合に 503 を返す規則の追加)、R-ER-012 の 409 の条件、R-ER-006 と R-ER-025 の Content-Encoding と Accept-Encoding、R-ER-014、R-ER-042、エラーカタログの `idempotency.key_conflict` と `server.unavailable` の注記、DD-ER-05 の例外
+    - specifications-endpoints.md: 3.8.1、R-EP-072、R-EP-075、R-EP-076、R-EP-077、R-EP-078、R-EP-081、R-EP-082、DD-EP-11、201 と本文の写しの再送を記録する設計判断の追加
+    - specifications-governance.md: G-16 の改訂と、回復できない未確定のキーの照合行の追加 (#4・#7 との照合は、いずれも未確認)
+    - requirements.md: REQ-F-001 と AC-025 (5xx を結果が確定しないものとして扱う。specifications-index.md 7.2 #13 に対応し、改訂することは決定済み)
+- Revisit Trigger:
+  - 回復できない事象が実際に起きたら、本 DR を見直す
+  - 結果の確定前に停止した論理操作が運用上の問題になったら、本 DR を見直す (対応付けの手段を検討する)
+  - #6 が複数の主体や所有権の分離を導入したら、本 DR を見直す
+  - 更新操作を追加するときは、本 DR を見直す
+  - 503 の種類を区別する必要が生じたら、本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-001
+- requirements/requirements.md: REQ-F-004
+- requirements/requirements.md: REQ-F-007
+- requirements/requirements.md: REQ-F-009
+- requirements/requirements.md: AC-025
+- specifications/specifications-errors.md: DD-ER-05
+- specifications/specifications-errors.md: R-ER-006
+- specifications/specifications-errors.md: R-ER-012
+- specifications/specifications-errors.md: R-ER-014
+- specifications/specifications-errors.md: R-ER-025
+- specifications/specifications-errors.md: R-ER-042
+- specifications/specifications-errors.md: R-ER-064
+- specifications/specifications-errors.md: R-ER-065
+- specifications/specifications-endpoints.md: DD-EP-05
+- specifications/specifications-endpoints.md: DD-EP-11
+- specifications/specifications-endpoints.md: DD-EP-12
+- specifications/specifications-endpoints.md: R-EP-043
+- specifications/specifications-endpoints.md: R-EP-072
+- specifications/specifications-endpoints.md: R-EP-073
+- specifications/specifications-endpoints.md: R-EP-075
+- specifications/specifications-endpoints.md: R-EP-076
+- specifications/specifications-endpoints.md: R-EP-077
+- specifications/specifications-endpoints.md: R-EP-078
+- specifications/specifications-endpoints.md: R-EP-081
+- specifications/specifications-endpoints.md: R-EP-082
+- specifications/specifications-endpoints.md: R-EP-084
+- specifications/specifications-endpoints.md: R-EP-085
+- specifications/specifications-governance.md: G-16
+- specifications/specifications-governance.md: G-17
+- specifications/specifications-governance.md: G-18
+- specifications/specifications-idempotency.md: R-ID-102
+- specifications/specifications-idempotency.md: R-ID-104
+- specifications/specifications-idempotency.md: R-ID-106
+- specifications/specifications-idempotency.md: R-ID-202
+- specifications/specifications-idempotency.md: R-ID-203
+- specifications/specifications-idempotency.md: R-ID-204
+- specifications/specifications-idempotency.md: R-ID-301
+- specifications/specifications-idempotency.md: R-ID-302
+- specifications/specifications-idempotency.md: R-ID-303
+- specifications/specifications-idempotency.md: R-ID-305
+- specifications/specifications-idempotency.md: R-ID-402
+- specifications/specifications-idempotency.md: R-ID-403
+- specifications/specifications-idempotency.md: R-ID-502
+- universal-dictionary.md: UD-030
+- universal-dictionary.md: UD-031
+- universal-dictionary.md: UD-035
+- universal-dictionary.md: UD-041
+- universal-dictionary.md: UD-042
+- universal-dictionary.md: UD-055
+- decision-records.md: DR-02
+- decision-records.md: DR-03
+- decision-records.md: DR-04
+- decision-records.md: DR-05
+- GitHub Issue: #3
+- GitHub Issue: #4
+- GitHub Issue: #6
+- GitHub Issue: #7
+
+---
+
 <!--
 Append new DR sections right after the last DR (above `## Deleted Decision Records` if present,
 otherwise above `## Change History`).
@@ -655,10 +978,14 @@ instead of adding another one (guideline E-4).
 
 ## Change History
 
-| Date       | Version | Description                                                                                                                                                                                          |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-14 | 1.0.0   | Initial release with DR-01: 共通エラー形式に RFC 9457 を採用し、`type` と `code` を 1 対 1 で対応させる                                                                                              |
-| 2026-11-14 | 1.1.0   | Add DR-02: バッチ登録のレスポンスは all-or-nothing の形状とし、部分成功を表す形状を持たない                                                                                                          |
-| 2026-11-14 | 1.2.0   | Add DR-03: 外部から観測できる振る舞いの保証を API 契約に含め、内部の実現方法は兄弟 issue に委ねる; Add DR-04: エラーの分類とクライアントの対処を分離し、エラー識別子の追加を無条件に後方互換としない |
-| 2026-11-14 | 1.3.0   | Add DR-05: 契約確定前の兄弟 issue との整合確認は、保証ごとの照合結果を記録として Specifications に残す                                                                                               |
-| 2026-11-14 | 1.3.1   | Refine DR-02: clarify wording and supplement DR-02 Scope split of validation-rule and atomicity delegation by responsibility                                                                         |
+| Date       | Version | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-14 | 1.0.0   | Initial release with DR-01: 共通エラー形式に RFC 9457 を採用し、`type` と `code` を 1 対 1 で対応させる                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 2026-11-14 | 1.1.0   | Add DR-02: バッチ登録のレスポンスは all-or-nothing の形状とし、部分成功を表す形状を持たない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 2026-11-14 | 1.2.0   | Add DR-03: 外部から観測できる振る舞いの保証を API 契約に含め、内部の実現方法は兄弟 issue に委ねる; Add DR-04: エラーの分類とクライアントの対処を分離し、エラー識別子の追加を無条件に後方互換としない                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 2026-11-14 | 1.3.0   | Add DR-05: 契約確定前の兄弟 issue との整合確認は、保証ごとの照合結果を記録として Specifications に残す                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2026-11-14 | 1.3.1   | Refine DR-02: clarify wording and supplement DR-02 Scope split of validation-rule and atomicity delegation by responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2026-11-14 | 1.4.0   | Add DR-06: バッチ登録の冪等性を、安全性・応答の一貫性・回復可能性に分けて外部契約にする                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 2026-11-14 | 1.4.1   | Refine DR-06: clarify wording (retry deadline vs. retention start, per-response meanings, client-side no-registration judgment, re-registration scope, registration process vs. logical operation, 24-hour limit on undetermined results, retention-period source, time-of-recording revision note) and supplement DR-06 residual duplicate-registration risk after retention ends and Related IDs from specifications-idempotency.md                                                                                                                                                                                                                                   |
+| 2026-11-14 | 1.4.2   | Refine DR-06: clarify wording and supplement DR-06 Related IDs from universal-dictionary.md; clarify Alternatives Considered wording (in-progress registration process in the 409 alternative); clarify Rationale wording (server-side success confirmation)                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2026-11-14 | 1.5.0   | Revise DR-06 decision 9 (design decision added, not a refine): the client may start a re-registration send only when, at that moment, every send started so far for the earlier logical operation satisfies C1-C3; a past no-registration judgment does not cover later added sends; a confirmed success is used instead of re-registering. These are client conditions only; no server-side cross-key duplicate prevention or rejection is added, and the client mechanism is not fixed. Decision 1 exception wording follows decision 9. Also refines decision 9 wording (24-hour elapse vs. later responses, scope of confirmed results, per-key guarantee boundary) |

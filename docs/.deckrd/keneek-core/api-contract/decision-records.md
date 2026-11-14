@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 1.5.0
+version: 1.7.0
 created: "2026-11-14"
 ---
 
@@ -767,7 +767,7 @@ specifications の草案 (各ファイルの version 1.0.0) を設計する中�
 
 回復可能性:
 
-- 決定 12: 登録と成功の記録は、外部から見て同時に成立する (R-EP-078)。
+- 決定 12: 登録と成功の記録は、外部から見て同時に成立する (R-EP-I-004)。
 - 決定 13: 回復が完了した場合、停止前に処理中だった登録処理は、次のどちらか 1 つとして観測される。片方だけが存在する状態は観測されない。
   - 成功が確定: 登録と成功の記録がどちらも存在する
   - 登録なし: どちらも存在せず、停止前のその登録処理が後から登録を成立させることもない。
@@ -906,43 +906,44 @@ Content-Encoding を identity だけにする理由は、決定 10 の比較対�
 - requirements/requirements.md: REQ-F-009
 - requirements/requirements.md: AC-025
 - specifications/specifications-errors.md: DD-ER-05
-- specifications/specifications-errors.md: R-ER-006
-- specifications/specifications-errors.md: R-ER-012
-- specifications/specifications-errors.md: R-ER-014
-- specifications/specifications-errors.md: R-ER-025
-- specifications/specifications-errors.md: R-ER-042
-- specifications/specifications-errors.md: R-ER-064
-- specifications/specifications-errors.md: R-ER-065
+- specifications/specifications-errors.md: R-ER-C-005
+- specifications/specifications-errors.md: R-ER-C-009
+- specifications/specifications-errors.md: R-ER-C-012
+- specifications/specifications-errors.md: R-ER-C-013
+- specifications/specifications-errors.md: R-ER-C-015
+- specifications/specifications-errors.md: R-ER-C-025
+- specifications/specifications-errors.md: R-ER-C-040
 - specifications/specifications-endpoints.md: DD-EP-05
 - specifications/specifications-endpoints.md: DD-EP-11
 - specifications/specifications-endpoints.md: DD-EP-12
-- specifications/specifications-endpoints.md: R-EP-043
-- specifications/specifications-endpoints.md: R-EP-072
-- specifications/specifications-endpoints.md: R-EP-073
-- specifications/specifications-endpoints.md: R-EP-075
-- specifications/specifications-endpoints.md: R-EP-076
-- specifications/specifications-endpoints.md: R-EP-077
-- specifications/specifications-endpoints.md: R-EP-078
-- specifications/specifications-endpoints.md: R-EP-081
-- specifications/specifications-endpoints.md: R-EP-082
-- specifications/specifications-endpoints.md: R-EP-084
-- specifications/specifications-endpoints.md: R-EP-085
+- specifications/specifications-endpoints.md: R-EP-C-020
+- specifications/specifications-endpoints.md: R-EP-C-029
+- specifications/specifications-endpoints.md: R-EP-C-031
+- specifications/specifications-endpoints.md: R-EP-C-032
+- specifications/specifications-endpoints.md: R-EP-C-033
+- specifications/specifications-endpoints.md: R-EP-C-034
+- specifications/specifications-endpoints.md: R-EP-C-036
+- specifications/specifications-endpoints.md: R-EP-C-037
+- specifications/specifications-endpoints.md: R-EP-I-002
+- specifications/specifications-endpoints.md: R-EP-I-004
+- specifications/specifications-endpoints.md: R-EP-I-005
+- specifications/specifications-endpoints.md: R-EP-I-006
 - specifications/specifications-governance.md: G-16
 - specifications/specifications-governance.md: G-17
 - specifications/specifications-governance.md: G-18
-- specifications/specifications-idempotency.md: R-ID-102
-- specifications/specifications-idempotency.md: R-ID-104
-- specifications/specifications-idempotency.md: R-ID-106
-- specifications/specifications-idempotency.md: R-ID-202
-- specifications/specifications-idempotency.md: R-ID-203
-- specifications/specifications-idempotency.md: R-ID-204
-- specifications/specifications-idempotency.md: R-ID-301
-- specifications/specifications-idempotency.md: R-ID-302
-- specifications/specifications-idempotency.md: R-ID-303
-- specifications/specifications-idempotency.md: R-ID-305
-- specifications/specifications-idempotency.md: R-ID-402
-- specifications/specifications-idempotency.md: R-ID-403
-- specifications/specifications-idempotency.md: R-ID-502
+- specifications/specifications-idempotency.md: R-ID-C-101
+- specifications/specifications-idempotency.md: R-ID-C-202
+- specifications/specifications-idempotency.md: R-ID-C-203
+- specifications/specifications-idempotency.md: R-ID-C-204
+- specifications/specifications-idempotency.md: R-ID-C-301
+- specifications/specifications-idempotency.md: R-ID-C-302
+- specifications/specifications-idempotency.md: R-ID-C-303
+- specifications/specifications-idempotency.md: R-ID-C-305
+- specifications/specifications-idempotency.md: R-ID-C-401
+- specifications/specifications-idempotency.md: R-ID-C-501
+- specifications/specifications-idempotency.md: R-ID-I-102
+- specifications/specifications-idempotency.md: R-ID-I-105
+- specifications/specifications-idempotency.md: R-ID-I-402
 - universal-dictionary.md: UD-030
 - universal-dictionary.md: UD-031
 - universal-dictionary.md: UD-035
@@ -957,6 +958,427 @@ Content-Encoding を identity だけにする理由は、決定 10 の比較対�
 - GitHub Issue: #4
 - GitHub Issue: #6
 - GitHub Issue: #7
+
+---
+
+## DR-07: 一覧の並びと長さの上限は実装言語によらない方法で比べ、`state` クエリの値と上限の判定を一意にする - 2026-11-14 12:00:00
+
+**Phase**: review-harden
+**Status**: Accepted
+
+### Context
+
+一覧の並び、長さの上限、`state` クエリの値、上限どうしの関係について、比べ方と判定の方法が契約に定まっていない。
+specifications-endpoints.md v2.0.1 には、次の 4 つの未定義がある。
+
+- R-EP-C-009 は、一覧の並びを `fireAt` の昇順、同じ `fireAt` の通知は `id` の昇順と定める。値をどう比べるかは定めていない
+- 3.5 の検証制約は、長さの上限を文字数で定める。対象は `title`・`body`・`url`・通知 ID・`Idempotency-Key` の 5 つ (全件) とする。文字の数え方は定めていない
+- `state` クエリについて、R-EP-C-008 は複数回の指定を許し、R-EP-C-011 は 4 つの状態名以外の値を `request.invalid` で拒否する。空の値、区切り文字、同じ値の重複、大文字の扱いは定めていない
+- 3.5 は、件数・長さ・本文サイズの上限を別々に定める。3 つの上限の関係は定めていない
+
+`fireAt` は、UTC オフセットを含む RFC 3339 の日時である (R-EP-C-014)。
+そのため、同じ時刻が異なるオフセットの文字列で送られ得る。
+通知 ID に使える文字は、英数字・`-`・`_` に限られる (3.5)。
+
+複数のエラー条件が同時に成立したときの外部応答は、specifications-errors.md 4.1 の優先順位に従う (R-EP-C-001)。
+4.1 では、本文サイズの超過 (Step 6、413 `request.payload_too_large`) が、検証制約への違反 (Step 10、400 `request.invalid`) より先に来る。
+
+これらは、`/deckrd review spec --phase harden` で、specifications-endpoints.md 7 章 Open Questions #20 の方針案として承認された。
+規則にはまだ反映されていない。比べ方が定まらないままだと、一覧の順序と上限の判定が実装によって変わる。
+
+### Decision
+
+1. 決定 1: 一覧の並びは、`fireAt` を UTC に直した時刻の昇順とする。
+   時刻が同じ通知は、`id` を Unicode のコードポイントの順で比べた昇順とする。
+2. 決定 2: 3.5 の長さの上限は、Unicode のコードポイントの数で判定する。
+3. 決定 3: `state` クエリの値は、3.6 の 4 つの状態名のどれかと、小文字で過不足なく一致しなければならない。
+   次の値は `request.invalid` で拒否する。
+   - 空の値
+   - 区切り文字を含む値 (`scheduled,missed` など)
+   - 大文字を含む値
+
+   同じ値を重複して指定したときは、和集合として、1 回の指定と同じに扱う。
+4. 決定 4: 件数・長さ・本文サイズの上限は、それぞれ独立に判定する。
+   各要素が件数と長さの上限を満たしていても、本文サイズが上限を超えれば `request.payload_too_large` で拒否する。
+   複数の違反が同時に成立したときの応答は、specifications-errors.md 4.1 の優先順位に従う (R-EP-C-001)。
+
+### Scope
+
+- Applies to: 一覧取得の並び、`state` クエリの値の検証、バッチ登録とパスの通知 ID に対する 3.5 の長さの上限と本文サイズの上限の判定
+- Not decided here:
+  - `fireAt` のオフセットの保持または正規化、秒未満の精度の受け付けと保持 → specifications-endpoints.md §Open Questions #9
+  - `url` に許可する形式 → specifications-endpoints.md §Open Questions #8
+  - 上限の既定値そのもの (件数、本文サイズ、各長さ) → specifications-endpoints.md §Open Questions #12
+  - 未知のクエリの扱い → specifications-endpoints.md §Open Questions #19
+  - `title`・`body` の空白だけの値と制御文字の扱い → specifications-endpoints.md §Open Questions #27
+  - 各規則の具体的な文言と規則 ID → specifications-endpoints.md (`/deckrd spec` で反映する)
+
+### Alternatives Considered
+
+- `fireAt` を送られた文字列のまま比べる。オフセットが異なると、同じ時刻の通知の順序が送信時のオフセットで変わるため不採用。
+- 文字数を UTF-16 のコードユニット、またはバイト数で数える。
+  数がサーバーの実装言語によって変わり、絵文字などでクライアントとサーバーの判定が食い違うため不採用。
+- `state` クエリの値に区切り文字を許す。
+  複数指定の方法が 2 つになり、R-EP-C-008 の複数回の指定と重複するため不採用。
+- 何もしない (比べ方と判定の方法を契約に定めない)。比較と上限の判定が実装によって変わるため不採用。
+
+### Rationale
+
+最大の理由は、比べ方と判定の方法を、クライアントとサーバーの間で揃えることにある。あわせて、実装言語への依存をなくす。
+
+`fireAt` を UTC に直して比べれば、オフセットの書き方によらず、同じ時刻は同じ位置に並ぶ (決定 1)。
+`id` の比較にコードポイントの順を選んでも、追加の規則は要らない。
+通知 ID の文字は英数字・`-`・`_` に限られる (3.5)。そのため、コードポイントの順とバイト列の順は一致する。
+
+コードポイントの数は、文字列の符号化の方式を問わず 1 つに定まる (決定 2)。
+UTF-16 のコードユニットで数えると、絵文字などのサロゲートペアは 2 つに数えられる。
+バイト数で数えると、同じ文字でも符号化によって数が変わる。
+
+`state` クエリの値を 4 つの状態名との完全一致に限ると、受け付ける値の集合が 1 つに定まる (決定 3)。
+複数の状態の指定は、R-EP-C-008 の複数回の指定だけで表せる。
+
+上限の独立した判定の理由は、次のことをクライアントへ知らせる点にある (決定 4)。要素の検証を通っても、送信が受け付けられるとは限らない。
+1 つのコードポイントは、UTF-8 で 1〜4 バイトになり、JSON のエスケープ表記では 6 バイト以上になる。
+そのため、本文のバイト数はコードポイントの数からは決まらない。
+3.5 の既定値の例は次のとおり。`title` (100) と `body` (1000) の各コードポイントを、サロゲートペアのエスケープ表記 (12 バイト) で送るとする。
+この場合、`title` と `body` だけで 1 要素あたり 13200 バイト、100 件で 1320000 バイトになり、1 MiB (1048576 バイト) を超える。
+
+### Consequences
+
+- Positive:
+  - 一覧の順序が、`fireAt` のオフセットの書き方と実装言語によらず一致する
+  - 長さの上限の判定が、クライアントとサーバーで一致する
+  - `state` クエリで受け付ける値と拒否する値が一意に定まる
+  - クライアントは、要素の検証を通っても 413 `request.payload_too_large` になり得ることを、契約から知ることができる
+- Negative:
+  - 空の値、区切り文字を含む値、大文字を含む値を `state` クエリに送るクライアントは、`request.invalid` で拒否される
+  - クライアントは、長さの上限をコードポイントの数で数えなければならない。実装言語の標準の文字列長が UTF-16 のコードユニット数である場合は、数え方を合わせる必要がある
+  - クライアントは、要素ごとの長さの検証に加えて、本文サイズを確かめなければ送信が受け付けられるかを判断できない
+  - 本 DR を記録した時点で、specifications-endpoints.md v2.0.1 は本 DR に合わせた改訂を要する。改訂までは既存の記述との不整合が残る。改訂の対象は次のとおり
+    - R-EP-C-009 (並びの比べ方) と R-EP-C-011 (`state` クエリの値) の改訂
+    - 長さの上限をコードポイントの数で判定する規則と、上限を独立に判定する規則の追加
+- Revisit Trigger:
+  - 通知 ID に使える文字が英数字・`-`・`_` 以外に広がったら、`id` の比べ方を見直すために本 DR を見直す
+  - `state` クエリの値に、4 つの状態名以外の書き方 (区切り文字による複数指定など) を受け付ける必要が生じたら、本 DR を見直す
+  - 長さの上限を、コードポイント以外の単位 (書記素クラスタなど) で数える必要が生じたら、本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-002
+- requirements/requirements.md: REQ-F-005
+- specifications/specifications-endpoints.md: R-EP-C-001
+- specifications/specifications-endpoints.md: R-EP-C-008
+- specifications/specifications-endpoints.md: R-EP-C-009
+- specifications/specifications-endpoints.md: R-EP-C-011
+- specifications/specifications-endpoints.md: R-EP-C-014
+- specifications/specifications-endpoints.md: §Schema Artifact and Validation Constraints
+- specifications/specifications-endpoints.md: §Open Questions #20
+- specifications/specifications-errors.md: §Error Response Precedence
+- specifications/specifications-errors.md: R-ER-C-006
+- specifications/specifications-errors.md: R-ER-C-010
+- GitHub Issue: #3
+
+---
+
+## DR-08: 発火時刻を過ぎた通知は、引き渡しの結果が決まるまで `scheduled` として観測される - 2026-11-14 12:00:00
+
+**Phase**: review-harden
+**Status**: Accepted
+
+### Context
+
+`fireAt` を過ぎてから `dispatched` か `missed` に決まるまでの間、通知がどの状態に見えるかが契約に定まっていない。
+その間のキャンセルをどう扱うかも、明記されていない。
+
+specifications-endpoints.md v2.0.1 は、状態を次のように定める。
+
+- 状態の集合は `scheduled`・`dispatched`・`missed`・`cancelled` の 4 つとする (DD-EP-08、R-EP-C-021)
+- `scheduled` は「登録済みで、発火時刻を待っている」状態とする (3.6)
+- 3.6 の遷移表は、`scheduled` から発火時刻での引き渡しの成功で `dispatched` に、失敗で `missed` に遷移すると定める (R-EP-C-023)
+- 遷移表には、`fireAt` を過ぎたが引き渡しの結果がまだ決まっていない間の行が無い
+
+キャンセルについては、次の規則がある。
+
+- キャンセルは `scheduled` の通知だけを受け付け、ほかの状態は `notification.not_cancellable` で拒否する (R-EP-C-024)
+- キャンセルと引き渡しが競合したときは、キャンセルの成功か `notification.not_cancellable` による拒否のどちらか一方に確定する (R-EP-C-025)
+- キャンセルが成功した通知は、以後 OS へ引き渡されない (R-EP-I-007)
+
+状態の追加は、既存クライアントの解釈を変えるため破壊的変更になる (DD-EP-08)。
+同じ理由で、4.3 は状態の追加を将来の拡張案に含めていない。
+
+この見え方は、`/deckrd review spec --phase harden` で、specifications-endpoints.md 7 章 Open Questions #17 の方針案として承認された。
+規則にはまだ反映されていない。
+
+### Decision
+
+1. 決定 1: `fireAt` を過ぎた通知は、`dispatched` または `missed` に遷移するまで `scheduled` として観測される。
+2. 決定 2: その間のキャンセルは R-EP-C-025 に従う。
+   キャンセルの成功か、`notification.not_cancellable` による拒否のどちらか一方に確定する。
+
+### Scope
+
+- Applies to: `fireAt` を過ぎてから、`dispatched` または `missed` に遷移するまでの間の、通知の観測される状態とキャンセルの結果
+- Consistency: 状態の集合 (DD-EP-08) と、キャンセルと引き渡しの競合の規則 (R-EP-C-025、R-EP-I-007) は変えない
+- Not decided here:
+  - `missed` の判定の境界 (発火時刻からどれだけ遅れたら、引き渡せなかったとみなすか) → specifications-endpoints.md §Open Questions #10
+  - 発火時刻の判定に使う時計、端末のスリープ、時計の変更、プロセスの停止中に `fireAt` を過ぎた通知の状態 → specifications-endpoints.md §Open Questions #18
+  - 状態の変化が一覧取得・単体取得にすぐ反映されることを保証するか → specifications-endpoints.md §Open Questions #28
+  - 兄弟 issue との照合 (7 章 #7 の (d-1)・(d-2)) → specifications-governance.md の照合の記録 (DR-05)。照合は未確認のまま残る
+  - 規則の具体的な文言と規則 ID、3.6 の遷移表に加える行 → specifications-endpoints.md (`/deckrd spec` で反映する)
+
+### Alternatives Considered
+
+- 中間の状態 (`dispatching` など) を加える。
+  状態の集合が変わり、状態の追加は既存クライアントにとって破壊的変更になるため不採用 (DD-EP-08)。
+- `fireAt` を過ぎた通知へのキャンセルを、すべて拒否する。
+  まだ OS へ引き渡されておらず、キャンセルできる通知まで拒否することになるため不採用。
+- 何もしない (その間の見え方を契約に定めない)。その間に何が観測されるかを、クライアントが予想できないため不採用。
+
+### Rationale
+
+最大の理由は、v1 の状態の集合を変えない点にある。そのうえで、観測される状態も、その間は 1 つに限られる。
+`scheduled` のまま見せれば、状態を追加する破壊的変更を避けられる (DD-EP-08)。
+
+その間のキャンセルに新しい規則は要らない。
+キャンセルと引き渡しの競合の結果は、R-EP-C-025 がすでに 2 つのうちの一方に確定させている。
+キャンセルが成功した通知を以後引き渡さないことも、R-EP-I-007 が定めている。
+
+### Consequences
+
+- Positive:
+  - `fireAt` を過ぎた後に観測される状態が `scheduled`・`dispatched`・`missed`・`cancelled` のどれかに限られ、状態の集合が変わらない
+  - その間のキャンセルの結果は、R-EP-C-025 の 2 つのうちの一方に確定する
+- Negative:
+  - `scheduled` の通知が発火時刻を過ぎているかは、クライアントが `fireAt` から自ら判断しなければならない
+  - 本 DR を記録した時点で、specifications-endpoints.md v2.0.1 は本 DR に合わせた改訂を要する。改訂までは既存の記述との不整合が残る。改訂の対象は次のとおり
+    - `fireAt` を過ぎた通知の観測される状態を定める規則の追加
+    - 3.6 の遷移表への、`fireAt` を過ぎて引き渡しの結果が決まっていない `scheduled` の行の追加
+- Revisit Trigger:
+  - `fireAt` を過ぎた後の状態を、クライアントが `fireAt` から判断するだけでは扱えなくなったら、本 DR を見直す
+  - 状態の集合を変える API メジャーバージョンを導入するときは、本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-005
+- requirements/requirements.md: REQ-F-007
+- specifications/specifications-endpoints.md: DD-EP-08
+- specifications/specifications-endpoints.md: R-EP-C-021
+- specifications/specifications-endpoints.md: R-EP-C-023
+- specifications/specifications-endpoints.md: R-EP-C-024
+- specifications/specifications-endpoints.md: R-EP-C-025
+- specifications/specifications-endpoints.md: R-EP-I-007
+- specifications/specifications-endpoints.md: §States and Transition Rules
+- specifications/specifications-endpoints.md: §Open Questions #17
+- decision-records.md: DR-05
+- GitHub Issue: #3
+
+---
+
+## DR-09: キャンセルの応答を 3 つに分類し、結果未確定のときにクライアントが結論を出すことを禁じる - 2026-11-14 12:00:00
+
+**Phase**: review-harden
+**Status**: Accepted
+
+### Context
+
+キャンセルの応答には、バッチ登録のような応答の分類が契約に定まっていない。
+そのため、応答を失った後の再送が拒否されたとき、最初のキャンセルの結果をクライアントが誤って判断し得る。
+
+バッチ登録の応答は、次の 3 つの区分に分類されている (3.9、R-EP-C-037、specifications-idempotency.md R-ID-C-301)。
+
+- 成功: 契約に適合する 201
+- 失敗: API が生成した、`code` を持つ共通エラー形式の 4xx
+- 結果未確定: 5xx (503 を含む)、problem 形式でないエラー応答、上のどれにも当てはまらない応答、応答なし
+
+problem 形式でない応答は、エラー識別子を得られない場合として扱い、その応答だけでは結果を確定できない (specifications-errors.md R-ER-C-042)。
+
+キャンセルについては、次の 2 つの場合が同じ code の拒否になる。
+
+- キャンセルが成功した後の再送は、`notification.not_cancellable` になる (R-EP-C-026)
+- `dispatched`・`missed` の通知へのキャンセルも、`notification.not_cancellable` になる (R-EP-C-024)
+
+このため、応答を失った後の再送が `notification.not_cancellable` で拒否されても、その拒否だけでは 2 つの場合を区別できない。
+
+単体取得による確認の条件も、2 か所で書き方が異なる。
+
+- R-EP-C-031: キャンセルのレスポンスを受け取れなかったときは、単体取得で状態を確認して判断する (SHOULD)
+- 3.8 のキャンセルの行: レスポンスを受け取れずに再送して拒否された場合に、単体取得で状態を確認して判断する
+
+成功レスポンスの結果が、その後の一覧取得・単体取得に反映されることを契約で保証するかは、決まっていない (specifications-endpoints.md 7 章 Open Questions #28)。
+R-EP-C-031 の単体取得による確認は、この反映を前提にしている。
+
+これらの不足は、`/deckrd review spec --phase harden` で見つかった。
+
+### Decision
+
+1. 決定 1: キャンセルの応答は、次の 3 つに分類する。分類はバッチ登録の応答の分類 (R-EP-C-037) に揃える。
+   - 成功: 契約に適合する 200
+   - 拒否: API が生成した、`code` を持つ problem 形式の 4xx
+   - 結果未確定: 5xx、problem 形式でないエラー応答、契約に適合しない応答、応答なし
+2. 決定 2: クライアントは、結果未確定の応答から、キャンセルの成功や失敗を判断してはならない (MUST NOT)。
+3. 決定 3: クライアントは、結果未確定の後の再送が `notification.not_cancellable` で拒否されたことだけを根拠に、最初のキャンセルが失敗したと判断してはならない (MUST NOT)。
+4. 決定 4: 単体取得による状態の確認は SHOULD のままとし、MUST に上げない。
+   確認する条件は、「キャンセルの応答が結果未確定だった場合、またはその後の再送が `notification.not_cancellable` で拒否された場合」とする。
+
+### Scope
+
+- Applies to: キャンセルの応答の分類と、結果未確定の応答を受け取った後のクライアントの判断
+- Consistency: バッチ登録の応答の分類 (R-EP-C-037、R-ID-C-301) と、分類とクライアントの対処を分ける方針 (DR-04) に揃える。どちらも変えない
+- Not decided here:
+  - 単体取得による確認を MUST に上げるか → specifications-endpoints.md §Open Questions #28 (成功の結果が後の取得に反映されるかの決定に依存する)
+  - キャンセルの 5xx の後に、状態が `cancelled` か変化なしのどちらかであることを、既存の規則を超えて保証するか → 未定 (必要になった時点で DR を追加する)
+  - 規則の具体的な文言と規則 ID、R-EP-C-031 の条件の書き直し → specifications-endpoints.md (`/deckrd spec` で反映する)
+
+### Alternatives Considered
+
+- 単体取得による確認も MUST に上げる。
+  確認の信頼性は、成功の結果が後の単体取得に反映されるか (7 章 Open Questions #28) に依存する。
+  この事項は未決定で、兄弟 issue との照合も済んでいない (DR-05)。
+  MUST に上げると、本 DR を Proposed にしなければならないため不採用。
+- 規則を加えず、レビューでの指摘にとどめる。再送の拒否を最初のキャンセルの失敗と読み違える余地が残るため不採用。
+
+### Rationale
+
+最大の理由は、操作を問わず同じ分類で応答を扱い、クライアントの対処の操作ごとの違いをなくすためである (DR-04)。
+キャンセルの分類をバッチ登録の R-EP-C-037 に揃えれば、クライアントは同じ判断の手順を両方に使える。
+
+結果未確定の後に結論を出すことを禁じる理由は、再送の拒否だけでは最初のキャンセルの結果を区別できないことにある。
+成功したキャンセルの後の再送 (R-EP-C-026) と、発火済みの通知へのキャンセル (R-EP-C-024) は、同じ `notification.not_cancellable` になる。
+
+単体取得による確認を SHOULD にとどめる理由は、確認の信頼性を契約がまだ保証していないことにある (7 章 Open Questions #28)。
+確認する条件を 1 つに定めれば、R-EP-C-031 と 3.8 の書き方の違いがなくなる。
+
+### Consequences
+
+- Positive:
+  - キャンセルとバッチ登録の応答を、同じ 3 つの区分で扱える
+  - 再送の拒否を、最初のキャンセルの失敗と読み違えることを防げる
+  - 単体取得で確認する条件が 1 つに定まる
+- Negative:
+  - 7 章 Open Questions #28 が決まるまで、単体取得による確認の信頼性は保証されない
+  - 結果未確定の後、クライアントがキャンセルの結果を確定できない場合が残る
+  - 本 DR を記録した時点で、specifications-endpoints.md v2.0.1 は本 DR に合わせた改訂を要する。改訂までは既存の記述との不整合が残る。改訂の対象は次のとおり
+    - キャンセルの応答の分類と、結果未確定のときの判断の禁止を定める規則の追加
+    - R-EP-C-031 の単体取得による確認の条件の書き直し
+- Revisit Trigger:
+  - 7 章 Open Questions #28 が決まり、成功の結果が後の取得に反映されることが保証されたら、単体取得による確認を MUST に上げるかを決めるために本 DR を見直す
+  - キャンセルに `Idempotency-Key` などの再送を識別する手段を加えるときは、本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-007
+- specifications/specifications-endpoints.md: DD-EP-04
+- specifications/specifications-endpoints.md: R-EP-C-024
+- specifications/specifications-endpoints.md: R-EP-C-026
+- specifications/specifications-endpoints.md: R-EP-C-031
+- specifications/specifications-endpoints.md: R-EP-C-037
+- specifications/specifications-endpoints.md: §Resend Behavior
+- specifications/specifications-endpoints.md: §Batch Atomicity
+- specifications/specifications-endpoints.md: §Open Questions #28
+- specifications/specifications-idempotency.md: R-ID-C-301
+- specifications/specifications-errors.md: R-ER-C-042
+- decision-records.md: DR-04
+- decision-records.md: DR-05
+- GitHub Issue: #3
+
+---
+
+## DR-10: エラー応答の本文で、認証状態と実装の内部情報を開示しない - 2026-11-14 20:26:31
+
+**Phase**: spec
+**Status**: Accepted
+
+### Context
+
+エラー応答の本文で何を開示してはならないかについて、契約の規定が足りない。
+specifications-errors.md v2.0.0 のハードニングのレビューで、次の 2 つの欠落が見つかった。
+
+1 つ目の欠落は、認証失敗の本文での認証状態の開示に関わる。
+
+- DD-ER-07 は、認証の失敗を、資格情報なし・形式不正・失効で区別せず、すべて `auth.unauthenticated` とする
+- DD-ER-07 の理由は、区別してもクライアントの対処は増えず、認証状態の情報を開示するだけになる、というものである
+- 一方で、未認証の応答で開示を禁じる規則 (R-ER-C-017、R-ER-C-056) が対象にするのは、パスの存在・メソッドの可否・リソースの状態だけである
+- そのため、`code` 以外のメンバー (`title`・`detail`・拡張メンバー) で資格情報の状態を区別することは、禁じられていない
+- `code` を 1 つにまとめても、本文で区別できれば DD-ER-07 の目的は達成できない
+
+2 つ目の欠落は、エラー応答での実装の内部情報の開示に関わる。
+
+- エラー応答に載せてはならない内部情報の規定が、契約にない
+- RFC 9457 のセキュリティ上の考慮事項は、`detail` などに実装の内部情報が混入する危険を示している
+- `server.internal` (500) と `server.unavailable` (503) の応答が、特に該当する
+
+### Decision
+
+1. 決定 1: 401 `auth.unauthenticated` の応答本文は、資格情報の欠落・形式の不正・失効のどれに当たるかを区別できる内容を含まない。
+   対象は、`title`・`detail`・拡張メンバーのすべてとする。
+2. 決定 2: API が生成するエラー応答は、どのメンバーにも実装の内部情報を含まない。
+   内部情報の例は、スタックトレース、内部のファイルパス、データストアのクエリや識別子、使用しているライブラリの名称やバージョンである (一部の例示)。
+3. 決定 3: `WWW-Authenticate` ヘッダーの内容は、決定 1 の対象にしない。
+   チャレンジの内容は、認証方式の確定まで確定しないため (R-ER-C-053)。
+
+決定 1 と決定 2 は、specifications-errors.md に契約の規則 (R-ER-C-060、R-ER-C-061) として追加する。
+どちらの決定も、応答の内容に対する制約であり、開示を防ぐ実現方法は定めない。
+
+### Scope
+
+- Applies to:
+  - 決定 1: 401 `auth.unauthenticated` の応答本文
+  - 決定 2: API が生成するすべてのエラー応答の、すべてのメンバー
+- Not decided here:
+  - 規則の文言と、禁じる内部情報の具体的な書き方 → specifications-errors.md (R-ER-C-060、R-ER-C-061)
+  - `WWW-Authenticate` のチャレンジの内容と、そこで資格情報の状態を区別するかどうか → specifications-errors.md (R-ER-C-053。#6 との照合後に確定する。R-ER-C-057)
+  - 開示を防ぐ実現方法 (診断用の詳細をどこに記録するかを含む) → 実装 (DR-03 決定 2)
+  - API が生成しない応答 (プロトコルレベルのエラー、プロキシなどが生成する応答) の内容 → 本 DR の対象外 (R-ER-C-016)
+
+### Alternatives Considered
+
+- DD-ER-07 だけで足りるとして、規則を追加しない。
+  `code` が同じでも本文で資格情報の状態を区別でき、DD-ER-07 の目的を達成できないため不採用。
+- `detail` を、すべての `code` で固定の文言にする。
+  診断に使える情報まで失う。たとえば `request.invalid` の違反の内容は、`detail` の文面だけで伝える (R-ER-X-001)。そのため不採用。
+- 開示の制限を実装の判断に委ね、契約には置かない。
+  応答の内容はクライアントから観測できる。外部から観測できる振る舞いは契約に含めるため (DR-03 決定 1)、不採用。
+
+### Rationale
+
+開示の制限を契約の規則にする最大の理由は、DD-ER-07 の意図を `code` だけでなく応答本文まで一貫させることにある。
+`code` を 1 つにまとめても、本文の他のメンバーで区別できれば、認証状態の情報は開示される。
+決定 1 は、DD-ER-07 の意図を本文に延ばす最小の追加であり、新しい条件を加えない。
+
+内部情報の禁止を契約に置く理由は、エラー応答の内容がクライアントから観測できることにある。
+DR-03 決定 1 は、外部から観測できる振る舞いを契約に含めると決めている。
+一方で DR-03 決定 2 に従い、開示を防ぐ実現方法は定めない。
+開示の制限は観測できる応答の内容に対する制約であり、内部の実現方法を拘束しない。
+
+`WWW-Authenticate` を対象から外す理由は、チャレンジの内容が認証方式の確定まで確定しないことにある (R-ER-C-053)。
+内容が未確定のまま規則を置くと、方式を確定するときに規則と食い違うおそれがある。
+
+### Consequences
+
+- Positive:
+  - 認証状態と実装の内部情報が応答に含まれないことを、契約への適合として検証できる
+  - 401 の応答は、`code` と本文のどちらからも資格情報の状態を区別できなくなり、DD-ER-07 の目的が本文まで及ぶ
+- Negative:
+  - 実装者は、診断用の詳細を、サーバー側のログなど応答の外に置く必要がある
+  - `WWW-Authenticate` の内容は、認証方式の確定まで、決定 1 の対象外のまま残る
+- Revisit Trigger:
+  - 認証方式が確定し、`WWW-Authenticate` のチャレンジの内容が決まったら、資格情報の状態の区別を決定 1 の対象に含めるかを見直すために本 DR を見直す
+  - クライアントが資格情報の状態ごとに異なる対処を必要とするようになったら、DD-ER-07 とあわせて本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-003
+- requirements/requirements.md: REQ-F-008
+- specifications/specifications-errors.md: DD-ER-07
+- specifications/specifications-errors.md: R-ER-C-016
+- specifications/specifications-errors.md: R-ER-C-017
+- specifications/specifications-errors.md: R-ER-C-053
+- specifications/specifications-errors.md: R-ER-C-056
+- specifications/specifications-errors.md: R-ER-C-057
+- specifications/specifications-errors.md: R-ER-C-060
+- specifications/specifications-errors.md: R-ER-C-061
+- specifications/specifications-errors.md: R-ER-X-001
+- decision-records.md: DR-03
 
 ---
 
@@ -989,3 +1411,6 @@ instead of adding another one (guideline E-4).
 | 2026-11-14 | 1.4.1   | Refine DR-06: clarify wording (retry deadline vs. retention start, per-response meanings, client-side no-registration judgment, re-registration scope, registration process vs. logical operation, 24-hour limit on undetermined results, retention-period source, time-of-recording revision note) and supplement DR-06 residual duplicate-registration risk after retention ends and Related IDs from specifications-idempotency.md                                                                                                                                                                                                                                   |
 | 2026-11-14 | 1.4.2   | Refine DR-06: clarify wording and supplement DR-06 Related IDs from universal-dictionary.md; clarify Alternatives Considered wording (in-progress registration process in the 409 alternative); clarify Rationale wording (server-side success confirmation)                                                                                                                                                                                                                                                                                                                                                                                                            |
 | 2026-11-14 | 1.5.0   | Revise DR-06 decision 9 (design decision added, not a refine): the client may start a re-registration send only when, at that moment, every send started so far for the earlier logical operation satisfies C1-C3; a past no-registration judgment does not cover later added sends; a confirmed success is used instead of re-registering. These are client conditions only; no server-side cross-key duplicate prevention or rejection is added, and the client mechanism is not fixed. Decision 1 exception wording follows decision 9. Also refines decision 9 wording (24-hour elapse vs. later responses, scope of confirmed results, per-key guarantee boundary) |
+| 2026-11-14 | 1.5.1   | `specifications-endpoints.md` v2.0.0 の ID の振り直しに合わせ、DR-06 の決定 12 と Related の参照を新 ID に更新 (判断は変えない)。草案時点の規則や当時の改訂対象を指す記述は、旧 ID のまま残す (対応は endpoints 4.4)。errors・idempotency の ID の振り直し (各 v2.0.0) に合わせ、Related の R-ER・R-ID の参照を更新 (草案時点の記述は旧 ID のまま)                                                                                                                                                                                                                                                                                                                      |
+| 2026-11-14 | 1.6.0   | Add DR-07: 一覧の並びと長さの上限は実装言語によらない方法で比べ、`state` クエリの値と上限の判定を一意にする; Add DR-08: 発火時刻を過ぎた通知は、引き渡しの結果が決まるまで `scheduled` として観測される; Add DR-09: キャンセルの応答を 3 つに分類し、結果未確定のときにクライアントが結論を出すことを禁じる                                                                                                                                                                                                                                                                                                                                                             |
+| 2026-11-14 | 1.7.0   | Add DR-10: エラー応答の本文で、認証状態と実装の内部情報を開示しない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |

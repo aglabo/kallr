@@ -2,7 +2,7 @@
 title: "Universal Dictionary: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Draft
-version: 1.1.1
+version: 1.1.2
 created: "2026-11-14"
 ---
 
@@ -232,7 +232,7 @@ API 自身が生成するエラーレスポンスの、単一の共通形式。R
 - 対立・区別: 中継装置が返す、problem 形式でない応答
 - 関連: UD-014、UD-018
 - 定義根拠: 移行元 requirements.md v1.5.1 1.3、DR-01
-- 関連規則: DR-01 (必須メンバーと拡張メンバー)、requirements.md REQ-F-003、`specifications-errors.md` R-ER-019
+- 関連規則: DR-01 (必須メンバーと拡張メンバー)、requirements.md REQ-F-003、`specifications-errors.md` R-ER-C-019
 
 ### UD-014 エラー識別子
 
@@ -244,7 +244,7 @@ API 自身が生成するエラーレスポンスの、単一の共通形式。R
 - 対立・区別: `type` (URI)、HTTP ステータスコード
 - 関連: UD-013、UD-015、UD-016、UD-017
 - 定義根拠: 移行元 requirements.md v1.5.1 1.3
-- 関連規則: DR-01 (`code` メンバーに入れる)、requirements.md REQ-F-004、`specifications-errors.md` R-ER-030 (安定性)
+- 関連規則: DR-01 (`code` メンバーに入れる)、requirements.md REQ-F-004、`specifications-errors.md` R-ER-C-030 (安定性)
 
 ### UD-015 エラー分類
 
@@ -281,7 +281,7 @@ API 自身が生成するエラーレスポンスの、単一の共通形式。R
 - 対立・区別: `error-catalog.yaml` (検証用の成果物)
 - 関連: UD-014、UD-015、UD-016
 - 定義根拠: 移行元 specifications-index.md v1.1.0 3.3
-- 関連規則: `specifications-errors.md` R-ER-031 (仕様上の正本は errors の表)
+- 関連規則: `specifications-errors.md` R-ER-C-031 (仕様上の正本は errors の表)
 
 ### UD-018 API が生成した共通エラー形式の 4xx
 
@@ -293,7 +293,7 @@ API 自身が返す、共通エラー形式 (`code` を持つ `application/probl
 - 対立・区別: 受け取ったすべての 4xx
 - 関連: UD-013、UD-043
 - 定義根拠: DR-06 決定 9、requirements.md REQ-F-001
-- 関連規則: `specifications-idempotency.md` R-ID-301、`specifications-errors.md` R-ER-044
+- 関連規則: `specifications-idempotency.md` R-ID-C-301、`specifications-errors.md` R-ER-C-042
 
 ## 5. 認証と認可
 
@@ -380,7 +380,7 @@ API 自身が返す、共通エラー形式 (`code` を持つ `application/probl
 - 対立・区別: UD-022 (互換性を保つこと)
 - 関連: UD-056、UD-027
 - 定義根拠: 移行元 requirements.md v1.5.1 1.3
-- 関連規則: requirements.md REQ-F-011 (行う内容 (a)〜(c))、`specifications-governance.md` R-GV-010
+- 関連規則: requirements.md REQ-F-011 (行う内容 (a)〜(c))、`specifications-governance.md` R-GV-C-009
 
 ### UD-025 ドキュメントバージョン
 
@@ -443,7 +443,7 @@ Deckrd ドキュメントの frontmatter `version`。契約のバージョンと
 - 対立・区別: 論理操作の同一性 (UD-031)。結果を必ず確定できること。UD-051 (保証が及ばない重複)
 - 関連: UD-050、UD-055
 - 定義根拠: DR-06 決定 3、移行元 specifications-idempotency.md v1.0.0 2.1
-- 関連規則: DR-06 決定 3 (保証が及ぶ期間と回数)、`specifications-idempotency.md` R-ID-102、R-ID-104
+- 関連規則: DR-06 決定 3 (保証が及ぶ期間と回数)、`specifications-idempotency.md` R-ID-C-101、R-ID-I-102
 
 #### UD-055 Idempotency-Key
 
@@ -457,7 +457,7 @@ Deckrd ドキュメントの frontmatter `version`。契約のバージョンと
 - 関連: UD-029、UD-031、UD-038
 - 定義根拠: DR-06 決定 1・決定 3
 - 関連規則: DR-06 決定 1 (新しい論理操作には新しいキーを作ること、およびその例外)、決定 9。
-  `specifications-idempotency.md` R-ID-302、R-ID-305、R-ID-306 (同じキーを別の本文で使える条件)
+  `specifications-idempotency.md` R-ID-C-302、R-ID-C-305、R-ID-C-306 (同じキーを別の本文で使える条件)
 
 #### UD-030 登録の意図
 
@@ -469,7 +469,7 @@ Deckrd ドキュメントの frontmatter `version`。契約のバージョンと
 - 対立・区別: 論理操作 (UD-031)。無関係な新しい通知の登録 (別の登録の意図)
 - 関連: UD-031、UD-034
 - 定義根拠: DR-06 決定 9
-- 関連規則: `specifications-idempotency.md` R-ID-305
+- 関連規則: `specifications-idempotency.md` R-ID-C-305
 
 #### UD-031 論理操作
 
@@ -495,7 +495,7 @@ Idempotency-Key K と本文 B の組 (K、B) で識別される、1 つの登録
 - 対立・区別: UD-035 (サーバーの処理)
 - 関連: UD-031、UD-049
 - 定義根拠: DR-06 決定 9 (C1)、移行元 specifications-idempotency.md v1.0.0 TM-02
-- 関連規則: `specifications-idempotency.md` R-ID-303
+- 関連規則: `specifications-idempotency.md` R-ID-C-303
 
 #### UD-033 再送
 
@@ -508,7 +508,7 @@ Idempotency-Key K と本文 B の組 (K、B) で識別される、1 つの登録
 - 対立・区別: UD-034
 - 関連: UD-046
 - 定義根拠: DR-06 決定 1・決定 9
-- 関連規則: `specifications-idempotency.md` R-ID-302
+- 関連規則: `specifications-idempotency.md` R-ID-C-302
 
 #### UD-034 登録し直し
 
@@ -520,7 +520,7 @@ Idempotency-Key K と本文 B の組 (K、B) で識別される、1 つの登録
 - 対立・区別: UD-033。無関係な新しい通知の登録 (別の登録の意図による、独立した論理操作)
 - 関連: UD-030、UD-043
 - 定義根拠: DR-06 決定 9
-- 関連規則: DR-06 決定 1・決定 9、`specifications-idempotency.md` R-ID-305、R-ID-306 (登録し直せる条件と、使えるキー)
+- 関連規則: DR-06 決定 1・決定 9、`specifications-idempotency.md` R-ID-C-305、R-ID-C-306 (登録し直せる条件と、使えるキー)
 
 #### UD-035 登録処理
 
@@ -545,7 +545,7 @@ Idempotency-Key K と本文 B の組 (K、B) で識別される、1 つの登録
 - 関連: UD-035
 - 定義根拠: DR-06 決定 16
 - 関連規則: DR-06 決定 2 (同時に持てる数)・決定 16・決定 17。
-  `specifications-idempotency.md` R-ID-101、R-ID-503。`specifications-governance.md` G-16
+  `specifications-idempotency.md` R-ID-I-101、R-ID-I-502。`specifications-governance.md` G-16
 
 ### 7.2 同一性
 
@@ -559,7 +559,7 @@ Idempotency-Key K と本文 B の組 (K、B) で識別される、1 つの登録
 - 対立・区別: JSON としての意味的な等価。ハッシュの一致
 - 関連: UD-031
 - 定義根拠: DR-06 決定 10
-- 関連規則: DR-06 決定 10 (ハッシュの扱い)・決定 11 (Content-Encoding)、`specifications-idempotency.md` R-ID-206
+- 関連規則: DR-06 決定 10 (ハッシュの扱い)・決定 11 (Content-Encoding)、`specifications-idempotency.md` R-ID-C-206
 
 #### UD-038 キー空間
 
@@ -571,7 +571,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: 認証済みの主体ごとの名前空間
 - 関連: UD-055
 - 定義根拠: DR-06 決定 15
-- 関連規則: DR-06 決定 15 (範囲)。`specifications-idempotency.md` R-ID-502。`specifications-governance.md` G-18 (#6 との整合は未確認)
+- 関連規則: DR-06 決定 15 (範囲)。`specifications-idempotency.md` R-ID-C-501。`specifications-governance.md` G-18 (#6 との整合は未確認)
 
 ### 7.3 状態と判断
 
@@ -592,7 +592,7 @@ Idempotency-Key の値を識別する範囲。
 - 確定状況: 確定 (実現可能性は未確認)
 - 対立・区別: UD-040 (クライアントの判断)。通知の状態の集合 (UD-009)
 - 定義根拠: DR-06 決定 4・決定 7・決定 13、移行元 specifications-idempotency.md v1.0.0 TM-05
-- 関連規則: `specifications-idempotency.md` R-ID-201、`specifications-governance.md` G-17 (回復の照合は未確認)
+- 関連規則: `specifications-idempotency.md` R-ID-C-201、`specifications-governance.md` G-17 (回復の照合は未確認)
 
 #### UD-040 結果の判断
 
@@ -603,7 +603,7 @@ Idempotency-Key の値を識別する範囲。
 - 確定状況: 確定
 - 対立・区別: UD-039 (サーバーが把握する状態)
 - 定義根拠: DR-06 決定 9、移行元 specifications-idempotency.md v1.0.0 TM-06
-- 関連規則: `specifications-idempotency.md` R-ID-301、R-ID-303、R-ID-304
+- 関連規則: `specifications-idempotency.md` R-ID-C-301、R-ID-C-303、R-ID-C-304
 
 #### UD-041 成功の確定 (クライアント)
 
@@ -616,7 +616,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: UD-042 (サーバーが把握する状態)
 - 関連: UD-052
 - 定義根拠: DR-06 決定 9
-- 関連規則: `specifications-idempotency.md` R-ID-301、R-ID-304
+- 関連規則: `specifications-idempotency.md` R-ID-C-301、R-ID-C-304
 
 #### UD-042 成功が確定 (サーバー)
 
@@ -629,7 +629,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: UD-041 (クライアントの判断)
 - 関連: UD-047、UD-048
 - 定義根拠: DR-06 決定 12・決定 13
-- 関連規則: DR-06 決定 3 (保持期間の起点)、`specifications-idempotency.md` R-ID-103、R-ID-201、R-ID-401
+- 関連規則: DR-06 決定 3 (保持期間の起点)、`specifications-idempotency.md` R-ID-C-201、R-ID-I-103、R-ID-I-401
 
 #### UD-043 登録なしの確定 (クライアント)
 
@@ -642,7 +642,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: UD-044 (サーバーが把握する状態)。1 つの 4xx の応答 (UD-018) だけからの推論
 - 関連: UD-018、UD-034
 - 定義根拠: DR-06 決定 9
-- 関連規則: DR-06 決定 9 (C1〜C3)、`specifications-idempotency.md` R-ID-303、R-ID-305
+- 関連規則: DR-06 決定 9 (C1〜C3)、`specifications-idempotency.md` R-ID-C-303、R-ID-C-305
 
 #### UD-044 登録なしが確定 (サーバー)
 
@@ -655,7 +655,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: UD-043 (クライアントの判断)
 - 関連: UD-035
 - 定義根拠: DR-06 決定 4・決定 13
-- 関連規則: `specifications-idempotency.md` R-ID-201、R-ID-402
+- 関連規則: `specifications-idempotency.md` R-ID-C-201、R-ID-I-402
 
 #### UD-045 未確定
 
@@ -667,7 +667,7 @@ Idempotency-Key の値を識別する範囲。
 - 上位概念: UD-040
 - 対立・区別: キーの状態の処理中・回復待ち (サーバー)。登録処理の失敗
 - 定義根拠: DR-06 決定 9
-- 関連規則: `specifications-idempotency.md` R-ID-301、R-ID-304
+- 関連規則: `specifications-idempotency.md` R-ID-C-301、R-ID-C-304
 
 ### 7.4 時間と限界
 
@@ -681,7 +681,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: UD-048 (サーバーが保証する保持の期間)。UD-049
 - 関連: UD-033
 - 定義根拠: DR-06 決定 9、Rationale
-- 関連規則: DR-06 決定 9、`specifications-idempotency.md` R-ID-302 (起点と長さ)
+- 関連規則: DR-06 決定 9、`specifications-idempotency.md` R-ID-C-302 (起点と長さ)
 
 #### UD-047 成功の記録
 
@@ -693,8 +693,8 @@ Idempotency-Key の値を識別する範囲。
 - 構成要素: UD-055、本文、成功結果 (初回の 201 と初回のレスポンス本文)
 - 対立・区別: 登録された通知そのもの
 - 関連: UD-042
-- 定義根拠: 移行元 specifications-idempotency.md v1.0.0 R-ID-103
-- 関連規則: DR-06 決定 3・決定 12、`specifications-idempotency.md` R-ID-103、R-ID-401
+- 定義根拠: 移行元 specifications-idempotency.md v1.0.0 R-ID-I-103
+- 関連規則: DR-06 決定 3・決定 12、`specifications-idempotency.md` R-ID-I-103、R-ID-I-401
 
 #### UD-048 成功記録の最低保持期間
 
@@ -707,7 +707,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: UD-046 (クライアントの再送開始の期限)
 - 関連: UD-042、UD-047
 - 定義根拠: DR-06 決定 3
-- 関連規則: DR-06 決定 3 (起点と長さ)、`specifications-idempotency.md` R-ID-103、`specifications-governance.md` G-03
+- 関連規則: DR-06 決定 3 (起点と長さ)、`specifications-idempotency.md` R-ID-I-103、`specifications-governance.md` G-03
 
 #### UD-049 キー照合時点
 
@@ -719,7 +719,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: 送信の時刻。到着の順序
 - 関連: UD-032、UD-039
 - 定義根拠: DR-06 Rationale
-- 関連規則: `specifications-idempotency.md` R-ID-302、5.2
+- 関連規則: `specifications-idempotency.md` R-ID-C-302、5.2
 
 #### UD-050 保持の保証
 
@@ -731,7 +731,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: 記録の実際の削除
 - 関連: UD-029、UD-051
 - 定義根拠: DR-06 決定 3
-- 関連規則: DR-06 決定 3・決定 4 (成功の記録と、結果の確定していない登録処理のそれぞれの期間)。`specifications-idempotency.md` R-ID-102、R-ID-104
+- 関連規則: DR-06 決定 3・決定 4 (成功の記録と、結果の確定していない登録処理のそれぞれの期間)。`specifications-idempotency.md` R-ID-C-101、R-ID-I-102
 
 #### UD-051 残留リスク
 
@@ -743,7 +743,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: 保持の保証が終わることそのもの
 - 関連: UD-029、UD-050
 - 定義根拠: DR-06 Consequences、移行元 specifications-idempotency.md v1.0.0 TM-08
-- 関連規則: `specifications-idempotency.md` R-ID-106
+- 関連規則: `specifications-idempotency.md` R-ID-I-105
 
 ### 7.5 応答と検査
 
@@ -757,7 +757,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: 契約に適合しない 2xx
 - 関連: UD-041
 - 定義根拠: DR-06 決定 9
-- 関連規則: `specifications-endpoints.md` R-EP-010、R-EP-011、R-EP-080。`specifications-idempotency.md` R-ID-301
+- 関連規則: `specifications-endpoints.md` R-EP-C-002、R-EP-C-003、R-EP-C-035。`specifications-idempotency.md` R-ID-C-301
 
 #### UD-053 成功結果の再現
 
@@ -769,7 +769,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: 新規の登録の 201。通知の現在の状態
 - 関連: UD-042、UD-054
 - 定義根拠: DR-06 決定 6
-- 関連規則: DR-06 決定 6。`specifications-idempotency.md` R-ID-202。`specifications-errors.md` R-ER-064 (適用する送信と優先順位)
+- 関連規則: DR-06 決定 6。`specifications-idempotency.md` R-ID-C-202。`specifications-errors.md` R-ER-C-009 (適用する送信と優先順位)
 
 #### UD-054 キーの評価より前の検査
 
@@ -782,7 +782,7 @@ Idempotency-Key の値を識別する範囲。
 - 対立・区別: 入力内容の検証
 - 関連: UD-053
 - 定義根拠: DR-06 決定 5
-- 関連規則: `specifications-idempotency.md` R-ID-501、`specifications-errors.md` 4.1 (Step 1〜8)、R-ER-064
+- 関連規則: `specifications-idempotency.md` R-ID-I-501、`specifications-errors.md` 4.1 (Step 1〜8)、R-ER-C-009
 
 ---
 
@@ -800,7 +800,7 @@ Idempotency-Key の値を識別する範囲。
 - 扱い: 決定 1 に、決定 9 の例外を明記する (refine。判断の意味は変えない)。
 - 状態: 解消。v1.4.2 の決定 1 は「Idempotency-Key は、本文と組になって、1 つの論理操作 (キー K と本文 B の組) を識別する」と書く。
   例外は「決定 9 が許す登録し直し」だけとしている。
-  UD-031・UD-055 と一致する。同じキーを別の本文で使える条件は DR-06 と R-ID-305・306 が定め、本書は定めない。
+  UD-031・UD-055 と一致する。同じキーを別の本文で使える条件は DR-06 と R-ID-C-305・306 が定め、本書は定めない。
 
 ### 8.2 決定 4: 論理操作と登録の意図
 
@@ -818,13 +818,13 @@ Idempotency-Key の値を識別する範囲。
 - 扱い: 決定 3 を「サーバーで成功が確定した時点から」、決定 9 を「成功の確定 (クライアントの判断)」に直す (refine)。
 - 状態: 解消。v1.4.2 の決定 3・決定 4 は「サーバーで成功が確定した時点から」と書き、決定 9 は「クライアントの判断として、契約に適合する 201 による成功の確定」と書いている。
   決定 6・決定 8・決定 13 の「成功が確定」は、キーの状態 (UD-042) の意味で使われている。
-  決定 9 にある 24 時間の経過の扱いは、用語の意味ではなく規則の食い違いなので、本書の範囲外とした。`decision-records.md` v1.5.0 の決定 9 と R-ID-304 で解消している。
+  決定 9 にある 24 時間の経過の扱いは、用語の意味ではなく規則の食い違いなので、本書の範囲外とした。`decision-records.md` v1.5.0 の決定 9 と R-ID-C-304 で解消している。
 
 ### 8.4 決定 2・決定 3・決定 7: 操作と登録処理
 
 - 箇所: DR-06 決定 2 (v1.4.1)「同じキーの同時の操作」、決定 3「結果が確定していない操作」、決定 7「処理中または回復待ちの操作」
 - 食い違い: 「操作」が、論理操作 (UD-031) ではなく、登録処理 (UD-035) を指していた。
-- 検証: 同じ決定を具体化した R-ID-101・102・204 は「登録処理」と書いている。決定の文言が不正確だった。辞書は正しい。
+- 検証: 同じ決定を具体化した R-ID-I-101・102・204 は「登録処理」と書いている。決定の文言が不正確だった。辞書は正しい。
 - 扱い: 「操作」を「登録処理」に直す (refine)。
 - 状態: 解消。v1.4.2 の決定 2・決定 3・決定 7 と Alternatives は「登録処理」と書いている。
 
@@ -864,7 +864,7 @@ Idempotency-Key の値を識別する範囲。
 | TM-07 | 3 つの時点と期間   | UD-046、UD-048、UD-049                 |
 | TM-08 | 残留リスク         | UD-051                                 |
 
-TM-01 にあった「クライアントは論理操作ごとに新しいキーを作る」は行動の義務なので、定義から外した。この義務とその例外は、DR-06 決定 1・決定 9 と R-ID-305 が定める (8.1)。
+TM-01 にあった「クライアントは論理操作ごとに新しいキーを作る」は行動の義務なので、定義から外した。この義務とその例外は、DR-06 決定 1・決定 9 と R-ID-C-305 が定める (8.1)。
 
 ---
 
@@ -879,3 +879,4 @@ TM-01 にあった「クライアントは論理操作ごとに新しいキー�
 | 2026-11-14 | 1.0.0   | Initial release。requirements.md 1.3、index 3.3、idempotency 3.1 の用語と、DR-06 の概念を UD-001〜UD-056 に統合する。DR-06 との不整合 4 件を記録する                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | 2026-11-14 | 1.1.0   | 構造の変更 (MINOR)。関係を上位概念・構成要素・状態に分けて方向を統一し、根拠を定義根拠と関連規則に分け、確定状況を追加する。意味を変えない明確化として、期間の起点と長さ、キーを再利用できる条件、所属・排他の数・必須メンバーなどの規則を、定義から関連規則へ移す。冪等性の単位 (キー) と論理操作の同一性を区別する。8 章の解消を v1.4.2 の本文で照合し、8.5 を追加する。影響を確認した文書は、requirements.md 1.3 (定義から外した責務の記述を表に戻す。v1.5.3)、DR-06 (変更不要。8.5)、idempotency 3.1・3.2 と index 3.3 (UD-ID と用語名は変わらないので変更不要) とする。implementation と tasks は未作成 |
 | 2026-11-14 | 1.1.1   | 8.3 の参照先を、削除した作業メモから、解消した DR-06 v1.5.0 の決定 9 と R-ID-304 に直す (定義は変えない)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2026-11-14 | 1.1.2   | UD-052 の関連規則を `specifications-endpoints.md` v2.0.0 の ID に更新 (R-EP-010・R-EP-011・R-EP-080 → R-EP-C-002・R-EP-C-003・R-EP-C-035)。定義は変えない。関連規則と定義根拠の R-ER・R-GV・R-ID の参照を、各分割ファイル v2.0.0 の ID に更新 (定義は変えない)                                                                                                                                                                                                                                                                                                                                               |

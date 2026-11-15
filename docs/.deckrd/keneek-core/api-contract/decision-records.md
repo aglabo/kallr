@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 2.3.0
+version: 2.4.0
 created: "2026-11-14"
 ---
 
@@ -2644,6 +2644,145 @@ specifications-governance.md v2.1.0 の 3.5 の判断基準表には、成功レ
 
 ---
 
+## DR-16: 成功応答の後に開始された取得に結果の反映を保証し、確定した終端状態は最終的に反映して `scheduled` に戻さない - 2026-11-16 07:47:27
+
+**Phase**: spec
+**Status**: Accepted
+
+### Context
+
+201 と 200 の成功応答の後に、一覧取得・単体取得へその結果が反映されるかが、契約に定まっていない。
+specifications-endpoints.md の 7 章 Open Questions #28 は、この点を未決定として残している。
+論点は 3 つある。
+
+- (a) バッチ登録の 201 の後に、登録した通知が取得に現れるか
+- (b) キャンセルの 200 の後に、取得で `cancelled` と `cancelledAt` が観測されるか
+- (c) `dispatched`・`missed` への遷移が、取得にいつ反映されるか
+
+(c) については、specifications-endpoints.md の 3.6 が、終端状態の確定の前は `scheduled` として観測されると定めている (R-EP-C-042)。
+同じ節は、確定した状態が一覧取得・単体取得に反映される時期を定めていない。
+
+反映の保証がないことは、次の規則に影響している。
+
+- R-EP-C-031 の単体取得による状態の確認は、確認の信頼性が #28 の決定に依存するため、SHOULD にとどまる (DR-09 決定 4)
+- R-EP-C-044 は、結果未確定のキャンセルの後に、クライアントが結論を出すことを禁じている。判断の手段は単体取得による確認である
+- specifications-errors.md の R-ER-C-041 も、キャンセルの結果を単体取得で確認してから判断することを求めている
+
+保証がないまま実装すると、確認の取得が古い状態を返し、クライアントが誤って判断し得る。
+
+一覧取得の 1 回の応答が、単一の時点の状態を表すかも、定まっていない。
+取得の途中で状態が変わったときに、同じ通知が異なる状態で現れることや、`state` で絞り込んだ結果から抜け落ちることを許すかが、7 章 #36 の問いとして残っている。
+7 章 #36 は #28 と合わせて決めるとされている。
+
+関係する保証の照合は、まだ終わっていない。
+specifications-governance.md の 3.3.3 で、G-04 と G-08 の照合結果は「未確認」と記録されている。
+G-05 と issue #5 の組は「矛盾あり」で、解消されていない。
+issue #5 は照会とキャンセルを担い、issue #7 は永続化を担う。
+この 2 つで反映を実現できるかは、DR-05 の整合確認として確かめる必要がある。
+
+### Decision
+
+1. 決定 1: バッチ登録が 201 を返した後に開始された、同じサーバーへの一覧取得・単体取得に、その登録が反映されることを保証する。
+2. 決定 2: キャンセルが 200 を返した後に開始された、同じサーバーへの一覧取得・単体取得に、キャンセルによる `cancelled` と `cancelledAt` が反映されることを保証する。
+3. 決定 3: `dispatched` または `missed` の終端状態が確定した通知について、サーバーは、確定した状態を後続の単体取得・一覧取得に最終的に反映しなければならない (MUST)。
+   - 終端状態の確定から取得結果への反映までの時間の上限は、保証しない。
+   - 一度取得で観測可能になった終端状態を、後続の単体取得・一覧取得で `scheduled` に戻してはならない (MUST NOT)。
+   - この保証は、サーバーの再起動の後も維持する。
+   - 内部で終端状態を確定する条件は、DR-12 から変更しない。
+4. 決定 4: 一覧取得の 1 回の応答は、リクエストの開始から応答の確定までの範囲にある、単一の論理的な観測時点の状態を表す。
+   - その応答の中で、通知の包含判定、状態、`state` フィルター、状態に依存するメンバーが、その時点について互いに整合する。
+   - 決定 3 の遅延反映は許容する。この決定は、最新の内部確定状態の即時反映を意味しない。
+   - 単一の時点を実現する方式は、指定しない。
+
+### Scope
+
+- Applies to: 通知 REST API の契約が定義する、バッチ登録の 201、キャンセルの 200、終端状態 (`dispatched`・`missed`) の確定の後の、一覧取得と単体取得の結果。決定 1 と決定 2 は、成功応答の後に開始された、同じサーバーへの取得に適用する
+- Not decided here:
+  - 上の保証を仕様書のどの規則にどう書くか。R-EP-C-031、3.8、4.1 の注記、7 章 #28・#36 の解決を含む → specifications-endpoints.md (spec 側の作業)
+  - R-EP-C-031 の単体取得による確認を SHOULD から MUST に上げるか → 未定。DR-09 決定 4 との整合確認が済んだ時点で決める。本 DR は MUST 化を決めず、DR-09 を置き換えない
+  - 保証の行を加えること → specifications-governance.md の 3.3.3
+  - 結果未確定の間に、その操作の通知が取得に現れるか → specifications-endpoints.md の 7 章 #14。本 DR の保証の対象外とする
+  - 反映と単一の論理的な観測時点を実現する方法 → issue #5 (照会・キャンセル) と issue #7 (永続化)
+  - issue #5・issue #7 との照合 → specifications-governance.md の 3.3.3 (G-04・G-05・G-08)。DR-05 の整合確認に従う。照合は未了である
+
+### Alternatives Considered
+
+- 反映を保証しない。取得の結果は、クライアントが次の操作を選ぶための参考情報にとどめる。
+  保証がないと、確認の取得が古い状態を返し、クライアントが誤って判断し得るため不採用。
+- 決定 3 の反映までの時間に上限を設ける。
+  上限の値を決める根拠が、DR-12 などの既存の記述に無い。
+  DR-12 は、発火時刻からの遅れの上限も保証していない。
+  実現できるかの照合も、issue #5・issue #7 とは済んでいないため不採用。
+- 決定 4 の単一の論理的な観測時点を保証しない。
+  1 回の一覧取得の内部で、同じ通知が異なる状態として現れる、または `state` で絞り込んだ結果から抜け落ちることを許すことになる。
+  この状況はクライアントの誤判断につながるため不採用。
+
+### Rationale
+
+保証を置く最大の理由は、確認の取得が古い状態を返して、クライアントが誤って判断するのを防ぐことにある。
+R-EP-C-031 の単体取得による確認は、結果未確定の後にクライアントが判断する手段となる。
+取得が成功応答の結果を反映しなければ、この手段は成り立たない。
+
+利用者は Progressive Web App (PWA) であり、確認の取得は PWA が行う。
+この前提は、specifications-endpoints.md の 2.2 に定めがある。
+issue #5・issue #7 で保証を実現できるかは、確かめていない (未確認)。
+
+この保証があれば、R-EP-C-031 を SHOULD から MUST に上げる道が開ける。
+ただし、MUST に上げるには DR-09 決定 4 との整合確認が要る。
+そのため、本 DR では決めない。
+
+決定 3 で、確定した終端状態を最終的に反映する義務を置く理由は、反映が永久に起きない状態を契約から外すことにある。
+反映までの時間の上限は、DR-12 が遅れの上限を保証していないことに合わせて、保証しない。
+一度観測可能になった `dispatched` や `missed` が `scheduled` に戻ると、クライアントは確定した状態を信頼できない。
+再起動の後も保証を維持するのは、再起動で戻る状態を許すと、同じ誤判断を生むことが理由になる。
+
+決定 4 は、1 回の一覧取得の中に、同じ通知が異なる状態として現れる状況を、契約から外す。
+この状況も、クライアントの誤判断につながる。
+範囲を、リクエストの開始から応答の確定までに限るのは、保証を 1 回の応答の内部に限り、最新状態の即時反映と切り分けることにある。
+
+結果未確定のキャンセルは、取得だけで常に結果を確定できるわけではない。
+状態は `cancelled` か、そのキャンセルが無かった場合の状態のどちらかであり、状態が変わらないことは保証されない。
+決定 3 の遅延反映により、確定した終端状態が取得にまだ反映されていない期間も残る。
+
+### Consequences
+
+- Positive:
+  - 成功応答の後に開始された確認の取得が、成功応答の結果を反映する
+  - R-EP-C-031 を MUST に上げる検討が、DR-09 決定 4 との整合確認の後にできる
+  - 一度観測可能になった終端状態が取得で戻らないため、クライアントは確定した状態を信頼できる
+  - 一覧取得の 1 回の応答が単一の論理的な観測時点を表すため、1 回の応答の内部で状態が食い違わない
+- Negative:
+  - サーバーは、成功応答の結果を後続の取得に反映する責務を負う。実現できるかは、issue #5・issue #7 との照合で確かめる必要がある
+  - 終端状態が取得に反映されるまでの時間は保証されない。クライアントは、その間に `scheduled` を観測し得る
+  - 結果未確定のキャンセルの後、単体取得だけでは結果を確定できない場合が残る
+  - specifications の反映が済むまで、R-EP-C-031 や 4.1 の注記は、保証が無いことを前提とした書き方のまま残る
+- Revisit Trigger:
+  - issue #5・issue #7 との照合で、決定 1〜4 の保証を実現できないと分かったら、本 DR を見直す
+  - 終端状態の反映の遅れが原因で、クライアントの判断に問題が実際に起きたら、時間の上限の保証について本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-007
+- specifications/specifications-endpoints.md: R-EP-C-031
+- specifications/specifications-endpoints.md: R-EP-C-042
+- specifications/specifications-endpoints.md: R-EP-C-043
+- specifications/specifications-endpoints.md: R-EP-C-044
+- specifications/specifications-endpoints.md: §Open Questions #14
+- specifications/specifications-endpoints.md: §Open Questions #28
+- specifications/specifications-endpoints.md: §Open Questions #36
+- specifications/specifications-errors.md: R-ER-C-041
+- specifications/specifications-governance.md: G-04
+- specifications/specifications-governance.md: G-05
+- specifications/specifications-governance.md: G-08
+- decision-records.md: DR-05
+- decision-records.md: DR-08
+- decision-records.md: DR-09
+- decision-records.md: DR-12
+- GitHub Issue: #5
+- GitHub Issue: #7
+
+---
+
 <!--
 Append new DR sections right after the last DR (above `## Deleted Decision Records` if present,
 otherwise above `## Change History`).
@@ -2681,3 +2820,4 @@ instead of adding another one (guideline E-4).
 | 2026-11-15 | 2.1.0   | Add DR-13: 引き渡し処理の開始が確定した後は、終端状態が確定するまでキャンセルを拒否する                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 2026-11-15 | 2.2.0   | Add DR-14: 停止中・スリープ中に発火時刻を過ぎ、引き渡し処理を開始していない通知は再開後に遅れて引き渡し、発火時刻の判定はサーバーの時計で行う                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | 2026-11-15 | 2.3.0   | Add DR-15: 成功レスポンスへのメンバーの追加は後方互換とし、クライアントは成功レスポンスの未知のメンバーを無視しなければならない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 2026-11-16 | 2.4.0   | Add DR-16: 成功応答の後に開始された取得に結果の反映を保証し、確定した終端状態は最終的に反映して `scheduled` に戻さない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |

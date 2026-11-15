@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 2.0.0
+version: 2.1.0
 created: "2026-11-14"
 ---
 
@@ -1976,6 +1976,296 @@ OS ごとに条件を変えると、同じ事象の状態が端末によって�
 
 ---
 
+## DR-13: 引き渡し処理の開始が確定した後は、終端状態が確定するまでキャンセルを拒否する - 2026-11-15 15:08:18
+
+**Phase**: spec
+**Status**: Accepted
+
+### Context
+
+引き渡し処理の開始の後、終端状態の確定の前に届いたキャンセルを、成功させるか拒否させるかが契約に定まっていない。
+DR-12 (Accepted) を specifications へ反映する前に、この扱いを決める必要がある。
+
+specifications-endpoints.md v2.2.2 は、キャンセルを次のように定める (本 DR に関わる部分)。
+
+- `scheduled` は「登録済みで、OS への引き渡しの結果がまだ決まっていない」状態とする (3.6)
+- 3.6 の遷移表の `scheduled` へのキャンセルの行は、「成功。状態は `cancelled`」とする
+- 同じ遷移表の、`fireAt` を過ぎたが引き渡しの結果が決まっていない `scheduled` の行は、その間のキャンセルは R-EP-C-025 に従うとする (R-EP-C-042)
+- キャンセルは `scheduled` の通知だけを受け付け、`cancelled`・`dispatched`・`missed` の通知は `notification.not_cancellable` で拒否する (R-EP-C-024)
+- キャンセルと引き渡しが競合したときは、成功か拒否のどちらか一方に確定する (R-EP-C-025)。どちらになるかの決め方は書かれていない
+- 3.7 は、競合して拒否された通知は「`dispatched` または `missed` になる」と書く
+- キャンセルが成功した通知は、以後 OS へ引き渡されない (3.7、R-EP-I-007)
+- キャンセルが成功した後の再送は、`notification.not_cancellable` になる (R-EP-C-026)
+- `fireAt` を過ぎた通知の、確定までの間のキャンセルは R-EP-C-025 に従う (R-EP-C-042、DR-08 決定 2)
+
+DR-12 は、引き渡し処理について次のことを決めた。
+
+- 引き渡し処理の開始は、有効な開始の記録が、再開の後で復元できる状態となったことを指す。その時点まで、通知可否の確認と OS の通知 API の呼び出しを始めない (DR-12 決定 5)
+- 開始の後の通知の終端状態は、確定する場合、場合 A・B・C・E・F に従って `dispatched` か `missed` になる (DR-12 決定 5)。DR-12 は、確定までの時間 (引き渡し処理の終了までの時間) の上限も、確定すること自体も保証しない
+- 終端状態の確定は、状態が決まり、再開の後に一意に復元できるようになったことを指す。確定するまで、通知は `scheduled` として観測される (DR-12 決定 6)
+
+このため、開始の後でも、通知は確定まで `scheduled` として観測され得る。
+本 DR の前は、R-EP-C-025 が成功と拒否のどちらに確定するかを定める規則が無い。
+そのため、開始の後のキャンセルも成功し得る。
+その場合、DR-12 決定 5 の表で `dispatched` か `missed` と判定される通知が、`cancelled` にもなり得る。
+キャンセルの確定と開始の確定の両方が、再開の後に復元され得るかも決まっていない。
+
+関連する未決定の事項として、次の 2 つがある。
+
+- DR-09 の Scope は、「キャンセルの 5xx の後に、状態が `cancelled` か変化なしのどちらかであることを、既存の規則を超えて保証するか」を保留している
+- specifications-endpoints.md §Open Questions #24 は、R-EP-I-007 の保証が永続化 (issue #7) に依存するかを問うている
+
+### Decision
+
+1. 決定 1: `scheduled` は、終端状態がまだ確定していないことだけを示す。
+   - `scheduled` は、キャンセルできることを示さない
+   - `scheduled` は、引き渡し処理を開始したかどうかを示さない
+   - `scheduled` であることは、キャンセルの成功の必要条件であり、十分条件ではない
+2. 決定 2: キャンセルを成功させ得るのは、引き渡し処理の開始の確定より前に限る。
+   この条件は、状態に関してキャンセルを受け付けるための必要条件であり、成功を無条件に保証しない。
+   キャンセルの成功の応答 (200) は、次をすべて満たした場合に限る。
+   - specifications-errors.md 4.1 の他の段 (認証・認可・経路・通知 ID など) で拒否されない
+   - サーバーの処理が失敗しない (5xx でない)
+   - キャンセルの確定が、開始の確定より先に成立する
+
+   リクエストが届いた時点で開始が確定していなくても、処理の間に開始が先に確定すれば、そのキャンセルは拒否になる。
+3. 決定 3: 開始が確定し、終端状態がまだ確定していない通知へのキャンセルは、409 `notification.not_cancellable` で拒否する。
+   その間、一覧取得と単体取得では、その通知の状態として `scheduled` が観測され得る。
+4. 決定 4: 同じ通知について、キャンセルの確定と引き渡し処理の開始の確定は両立しない。
+   - 競合の途中でプロセスが停止しても、再開の後に両方が復元されることは無い
+   - 記録の破損などで、どちらが確定していたかを判定できなくなった場合は、永続化 (issue #7) の回復の方法に委ねる。DR-12 で場合 D・場合 E の区別を失った場合と同じに扱う
+5. 決定 5: `cancelled` も、DR-12 決定 6 と同じ意味で確定する。
+   確定した `cancelled` は、停止の後の再開でも一意に復元できる終端状態とする。
+6. 決定 6: キャンセルの成功の応答 (200) は、`cancelled` の確定の後にだけ返す。
+   確定した `cancelled` が一覧取得・単体取得に反映される時期は、本 DR では決めない。
+7. 決定 7: `cancelled` になった通知については、引き渡し処理を開始せず、OS の通知 API を呼び出さない。
+   その通知について、OS の通知 API は一度も呼び出されていない。
+   3.7 と R-EP-I-007 の「以後 OS へ引き渡されない」の意味を、この性質として確定する。
+8. 決定 8: 開始が確定した通知は、`cancelled` に遷移しない。
+   この性質は、キャンセルの拒否の応答があったかどうかに関係なく成り立つ、通知の性質とする。
+   その通知の終端状態は、DR-12 決定 5 の場合 A・B・C・E・F に従い、`dispatched` か `missed` にだけ確定し得る。
+9. 決定 9: キャンセルできない期間 (開始の確定から終端状態の確定まで) の時間の上限は保証しない。
+10. 決定 10: プロセスの停止の後に再開したとき、各通知の回復時の判定区分を次の 4 つに分け、それぞれの扱いを定める。
+    - (a) キャンセルが確定していた通知は、`cancelled` とする
+    - (b) 開始が確定し、終端状態が確定していなかった通知は、DR-12 決定 5 の場合 E として `missed` とする
+    - (c) 開始が確定し、終端状態も確定していた通知は、その終端状態とする
+    - (d) キャンセルと開始のどちらも確定していなかった通知は、DR-12 決定 5 の場合 D とする。状態は specifications-endpoints.md §Open Questions #18 で決める。決まるまでは `scheduled` として観測され、決定 2 の条件でキャンセルを受け付ける
+
+    (b) の場合 E による `missed` への回復は、停止の後の再開のときに限る。
+    通常の稼働の間、開始が確定し、終端状態の確定していない通知は、`scheduled` のままとする (DR-12 決定 6)。
+11. 決定 11: 確定しなかったキャンセルと、結果を確認できなかったキャンセルの後の状態を、次のとおりとする。
+    - 内部でキャンセルが確定しなかった場合、そのキャンセルは状態に影響を残さない。状態は、そのキャンセルが無かった場合の状態と同じになる。引き渡し処理が進めば、`dispatched` と `missed` のどちらにもなり得る
+    - クライアントがキャンセルの結果を確認できなかった場合 (5xx・応答なしなどの結果未確定)、状態は次のどちらかである
+      - `cancelled` (内部でキャンセルが確定していた場合)
+      - そのキャンセルが無かった場合の状態
+    - 結果を確認できなかった場合も、クライアントは結論を出さない (DR-09 決定 2・決定 3)
+12. 決定 12: `notification.not_cancellable` による拒否が示すことを、次のとおりに限る。
+    - 示すこと: そのキャンセルの要求が拒否された事実と、その要求が通知の状態を変えなかったこと
+    - 示さないこと: 通知の具体的な現在の状態と、将来の終端状態
+    - 拒否の理由は次の 3 つであり、拒否の応答はこれらを区別しない
+      - `cancelled` (キャンセルの成功の後の再送を含む。R-EP-C-026)
+      - `dispatched`・`missed`
+      - 開始が確定した `scheduled`
+    - 拒否応答から、終端状態が確定していることは導けない。開始が確定した `scheduled` の通知は、DR-12 に従って確定するまで `scheduled` のまま残り得る。確定までの時間と、確定すること自体は保証しない
+13. 決定 13: 通知の状態遷移と、キャンセルの要求の結果 (成功・拒否) を区別する。
+    - 状態遷移は、通知の状態の変化だけを指す
+    - キャンセルの拒否は、要求の結果であり、状態遷移ではない。拒否で状態は変わらない
+    - キャンセルの成功は、要求の結果である。成功に対応する状態遷移は、キャンセルの確定による `scheduled` から `cancelled` への遷移である
+
+### Scope
+
+- Applies to: 引き渡し処理の開始の確定の後、終端状態の確定の前のキャンセルの扱い、キャンセルの成功と拒否の条件と意味、キャンセルの確定と開始の確定の関係、停止の後の再開での状態の決まり方
+- Consistency: 次のものは変えない
+  - 状態の集合 (DD-EP-08、R-EP-C-021)
+  - 終端状態が別の状態へ遷移しないこと (R-EP-C-021)
+  - キャンセルの応答の分類と、結果未確定のときにクライアントが結論を出さないこと (R-EP-C-043、R-EP-C-044、DR-09 決定 1〜3)
+  - キャンセルの成功の後の再送が `notification.not_cancellable` になること (R-EP-C-026)
+- Relation to DR-08: 補完であり、置き換えない
+  - DR-08 決定 1 (確定するまで `scheduled` として観測される) は、決定 3・決定 12 の開始が確定した `scheduled` にもそのまま当てはまる
+  - DR-08 決定 2 (成功か拒否の一方に確定する) は変えない。本 DR は、R-EP-C-025 がどちらに確定するかの決め方を定める
+- Relation to DR-09: 補完であり、置き換えない
+  - DR-09 決定 1〜4 は変えない
+  - DR-09 の Scope の保留事項 (キャンセルの 5xx の後に、状態が `cancelled` か変化なしのどちらかであることを保証するか) は、決定 11 の範囲でだけ解決する
+  - 本 DR が保証するのは、「`cancelled` か、そのキャンセルが無かった場合の状態のどちらか」である
+  - 「変化なし」(状態が変わらないこと) は保証しない。引き渡し処理は、キャンセルとは独立に進むためである
+- Relation to DR-12: 補完であり、置き換えない
+  - DR-12 決定 1〜7 の文は変えない
+  - 決定 5 は、DR-12 決定 6 の確定の定義を `cancelled` にも当てるだけである
+- Not decided here:
+  - キャンセルの確定と開始の確定の排他、永続化、ロックの方法 → issue #5・issue #7 の implementation (DR-03 決定 2)
+  - 確定した `cancelled` が一覧取得・単体取得に反映される時期 → specifications-endpoints.md §Open Questions #28
+  - 単体取得による確認を MUST に上げるか (DR-09 決定 4) → specifications-endpoints.md §Open Questions #28
+  - 場合 D の通知の状態と、発火時刻の判定に使う時計 → specifications-endpoints.md §Open Questions #18
+  - `notification.not_cancellable` の拒否の理由を、応答で区別するか → specifications-endpoints.md §Open Questions #34
+  - 記録の破損などで、開始とキャンセルのどちらが確定していたかを判定できない場合の回復 → 永続化 (issue #7) の回復の方法
+  - specifications-governance.md G-05・G-06 の照合対象に issue #7 を加えること → specifications-governance.md (本 DR とは別の変更)
+  - 決定 4・決定 5 を issue #5・issue #7 で実現できるかの照合 → specifications-governance.md G-05・G-06 の照合 (DR-05)
+  - 本 DR の変更は、既存の規則 (specifications-governance.md 3.4〜3.6、R-GV-C-005、R-GV-C-006、R-GV-C-009) に従い、互換性の分類と版の更新の評価を受ける。評価の結果 (分類と版の変更) と、具体的な移行の方法 → specifications-governance.md の規則による評価。本 DR では決めない
+  - 規則の具体的な文言と規則 ID → specifications-endpoints.md と specifications-errors.md (本 DR とは別の変更)
+- Relation to DR-05: 本 DR では次の 3 つを区別する
+  - 本 DR の採用: G-05・G-06 の照合 (issue #5・issue #7) の完了は、本 DR を Accepted とする条件ではない
+  - 照合待ちの規則の有効性: 照合待ちの規則も有効であり、拘束力を持つ。この扱いは specifications-endpoints.md 4 章の冒頭が定めている
+  - API 契約全体の確定: DR-05 決定 6 のとおり、照合結果に「未確認」が残っておらず、未解決の矛盾も無いことを条件とする。本 DR は、この条件を免除しない
+- Relation to §Open Questions #24: 決定 4・決定 5 は、R-EP-I-007 の保証が再起動をまたいで成り立つことと、その保証が永続化 (issue #7) に依存することを、契約として明記する。G-05・G-06 に issue #7 を加えることと、その実現性の照合は、本 DR では完了しない
+
+### Alternatives Considered
+
+3 つの案の違いは次のとおりとする。
+
+| 案                      | キャンセルを成功させ得る範囲   | DR-12 との関係                                     | 200 の意味                                       |
+| ----------------------- | ------------------------------ | -------------------------------------------------- | ------------------------------------------------ |
+| 案 A (採用)             | 引き渡し処理の開始の確定より前 | DR-12 の決定を変えない                             | OS の通知 API を一度も呼び出さないことが確定した |
+| 案 B (先に確定した方)   | 終端状態の確定より前           | 決定 5 と衝突し、一部の Supersede が要る           | 通知を止めたことを意味しない                     |
+| 案 C (呼び出しの前だけ) | OS の通知 API の呼び出しより前 | 場合 C の扱いで決定 5 と衝突するか、境界が食い違う | OS の通知 API を一度も呼び出さない               |
+
+- 案 B: キャンセルと引き渡しの終端状態の確定を競合させ、先に確定した方を優先する。
+  キャンセルできる範囲は最も広く、実現も単純である。
+  しかし、場合 A と判定された通知が `cancelled` に確定し得る。
+  これは、DR-12 決定 5 (場合ごとに終端状態が決まる) と衝突し、DR-12 の一部の Supersede が要る。
+  200 は「通知を止めた」ことを意味しなくなる。表示済みの通知も `cancelled` になり得る。
+  再開の後に場合 E として回復を待つ通知も、キャンセルできてしまう。
+  以上の理由で不採用。
+- 案 C: OS の通知 API の呼び出しの前だけ、キャンセルを成功させ得る。
+  まだ OS へ引き渡していない通知はキャンセルできるべきという DR-08 の理由と、最もよく合う。
+  しかし、通知可否の確認が「無効」だった後 (場合 C) のキャンセルを成功させると、DR-12 決定 5 と衝突する。
+  拒否すると、「有効」の確認の後、呼び出しの前のキャンセルが成功することと食い違う。
+  排他の基準が、呼び出しの開始と、確定の根拠が揃うことの 2 つになる。
+  再開の後は呼び出したかどうかが分からないため、結局は案 A と同じ境界になる。
+  以上の理由で不採用 (次点)。
+- DR-08 で退けた「`fireAt` を過ぎた通知へのキャンセルを、すべて拒否する」案とは異なる。
+  案 A は、開始が確定する前の通知を、`fireAt` を過ぎていてもキャンセルできる。
+  場合 D の通知も、決定 2 の条件でキャンセルを受け付ける。
+  DR-08 が退けた理由 (まだ OS へ引き渡されていない通知まで拒否する) は、案 A では開始の確定の後の通知にだけ当てはまる。その影響は Consequences の Negative に挙げる。
+
+### Rationale
+
+最大の理由は、(a) キャンセルの成功の意味が確実となることと、(b) 停止と再開の後の回復の扱いが一意となることにある。
+
+- (a) 200 を受け取った通知は、引き渡し処理を開始しておらず、OS の通知 API を一度も呼び出していない (決定 6・決定 7)
+- (b) キャンセルの確定と開始の確定は排他であり、再開の後、各通知の回復時の判定区分が 1 つに決まる (決定 4・決定 5・決定 10)。場合 D の通知の状態は、specifications-endpoints.md §Open Questions #18 に委ねたままとする
+
+(a) は、DR-12 決定 5 に支えられる。
+DR-12 決定 5 は、開始の確定まで通知可否の確認と OS の通知 API の呼び出しを始めないと定めている。
+そのため、開始より先にキャンセルが確定した通知は、OS の通知 API を一度も呼び出していない。
+`cancelled` の意味は、比較した 3 つの案の中で最も強くなる。
+
+(b) は、境界を 1 点に置くことで成り立つ。
+キャンセルの可否の境界は、DR-12 の場合 D と場合 E の境界と同じ 1 点 (有効な開始の記録の有無) になる。
+再開の後に必要な識別は、DR-12 がすでに求めている開始の記録の有無だけで済む。
+呼び出したかどうかを区別する必要は無い。
+
+開始が確定した通知は `cancelled` にならない (決定 8)。
+そのため、DR-12 決定 5 の場合の表は、開始が確定した通知を例外なく覆う。
+決定 4 により、`cancelled` の通知は有効な開始の記録を持たない。
+そのため、`cancelled` の通知が再開の後に場合 E として扱われることは無い。
+
+副次的な利点として、案 A は、比較した案 A・B・C のうち、DR-08・DR-09・DR-12 のどの決定も変えずに済む唯一の案でもある。
+本 DR は 3 つの DR を補完するだけで、Supersede を要しない。
+
+本 DR は、キャンセルできない期間という、契約に無かった新しい制約を加える。
+本 DR の前は、その期間のキャンセルも R-EP-C-025 のもとで成功し得た。
+本 DR は、次の取引を明示して選ぶ。
+
+- 受け入れるもの
+  - キャンセルできない期間に、時間の上限が無いこと (決定 9)
+  - OS の通知 API をまだ呼び出していない通知も、開始が確定していれば拒否されること
+- 得るもの: 上の (a) と (b)
+- 受け入れられると判断する理由
+  - DR-12 は、終端状態の確定までの時間に、もともと上限を設けていない
+  - 影響を受けるのは、開始が確定した通知だけである。場合 D の通知は、引き続きキャンセルできる
+
+決定 11 で「変化なし」を保証しない理由は、引き渡し処理がキャンセルとは独立して進むことにある。
+確定しなかったキャンセルの後も、通知は `dispatched` か `missed` に確定し得る。
+「`cancelled` か、そのキャンセルが無かった場合の状態のどちらか」であれば、決定 4 の排他から導ける。
+
+### Consequences
+
+- Positive:
+  - キャンセルの成功か拒否かが、開始の確定とキャンセルの確定の順序で一意に決まる (R-EP-C-025 の決め方が定まる)
+  - 開始が確定した通知の終端状態は、DR-12 決定 5 の場合の表だけで決まる
+  - 200 を受け取った通知は、OS の通知 API を一度も呼び出していない
+  - 停止の後の再開でも、キャンセルの確定と開始の確定が両方復元されることは無い
+  - キャンセルが結果未確定になった後の状態が、`cancelled` か、そのキャンセルが無かった場合の状態のどちらかに限られる
+- Negative:
+  - キャンセルできない期間は、終端状態の確定まで無期限に続き得る (決定 9)
+  - キャンセルできない期間の通知には、次のものが含まれる
+    - OS の通知 API をまだ呼び出していない通知 (通知可否の確認の前、確認と呼び出しの間)
+    - 再開の後に、場合 E として回復を待つ通知
+  - 上の通知を拒否することは、DR-08 の Rationale と部分的に衝突する
+    - DR-08 は、まだ OS へ引き渡されていない通知までキャンセルを拒否する案を退けた
+    - DR-08 の Rationale の「その間のキャンセルに新しい規則は要らない」という前提も成り立たなくなる
+    - DR-08 決定 1・決定 2 とは直接矛盾しない。結果は成功か拒否のどちらかのままで、DR-08 決定 2 が参照する R-EP-C-025 の中身が本 DR で定まる
+  - クライアントは、取得の結果から開始が確定したかを判断できない
+  - 取得で `scheduled` が観測され、キャンセルが 409 になる組み合わせには、次の 3 つの原因があり、クライアントは区別できない
+    - (i) 開始が確定し、終端状態がまだ確定していない
+    - (ii) 終端状態は確定したが、取得にまだ反映されていない (§Open Questions #28)
+    - (iii) 以前のキャンセルが成功したが、取得にまだ反映されていない (§Open Questions #28、R-EP-C-026)
+  - `notification.not_cancellable` の理由が 3 つになり、§Open Questions #34 の情報の不足が大きくなる
+  - 本 DR は、キャンセルの成功と拒否の条件、および状態遷移の規則を変える。この変更は、specifications-governance.md 3.4〜3.6 の規則に従って、互換性の分類と版の更新の評価を受ける (分類の判断基準は 3.5)
+  - 決定 4 の排他と決定 5 の一意の復元は、永続化 (issue #7) と照会・キャンセル (issue #5) の実現に制約を加える
+  - 2 つの条件を実現できるかは、G-05・G-06 の照合で確かめるまで未確認である
+  - 本 DR を記録した時点で、次の文書は本 DR に合わせた改訂を要する。改訂までは既存の記述との不整合が残る。改訂は本 DR とは別の変更とする
+    - specifications-endpoints.md v2.2.2 の 3.6 (`scheduled` の意味、キャンセルの行の分割、開始の後に `cancelled` へ遷移しないこと)
+    - specifications-endpoints.md v2.2.2 の 3.7 (成功と拒否の意味。「拒否された通知は `dispatched` または `missed` になる」は意味が変わる)
+    - specifications-endpoints.md v2.2.2 の 3.10 (`notification.not_cancellable` の条件)
+    - specifications-endpoints.md v2.2.2 の R-EP-C-006、R-EP-C-024、R-EP-C-025、R-EP-I-007
+    - specifications-endpoints.md v2.2.2 の DD-EP-04
+    - specifications-endpoints.md v2.2.2 の 5 章
+    - specifications-endpoints.md v2.2.2 の 7 章 (#34 の更新)
+    - specifications-endpoints.md v2.2.2 の 2.6 (Related Decision Records に DR-13 を加える) と 8 章 (Change History)。本 DR の論点は、決定 1〜13 ですべて決めたため、7 章に新しい未決定事項として加えない。改訂した規則と 2.6・8 章で追跡する
+    - specifications-errors.md v2.0.1 の R-ER-C-014 と 5 章
+    - specifications-governance.md v2.0.0 の G-05・G-06 (照合対象に issue #7 を加えるかを含む)
+  - G-05・G-06 の保証の内容が変わるため、その照合結果は「未確認」に戻る (specifications-governance.md DD-GV-13)
+  - R-EP-C-021、R-EP-C-026、R-EP-C-042、R-EP-C-043、R-EP-C-044 の本文は変えない
+- Revisit Trigger:
+  - §Open Questions #18 が場合 D の扱いを決め、決定 2 の受け付ける条件や、決定 10 の (d) と両立しなくなったら、本 DR を見直す
+  - §Open Questions #28 が取得への反映を決め、決定 6 (応答と確定の順序) と両立しなくなったら、本 DR を見直す
+  - §Open Questions #34 で、`notification.not_cancellable` の理由を応答で区別すると決めたら、本 DR を見直す
+  - G-05・G-06 の照合で、決定 4・決定 5 を issue #5・issue #7 で実現できないと分かったら、本 DR を見直す
+  - DR-12 の時間の上限の扱いが変わり、キャンセルできない期間に上限を設けられるようになったら、本 DR を見直す
+  - 開始が確定し、OS の通知 API をまだ呼び出していない通知のキャンセルの需要が、DR-08 の理由を優先すべき程度に確かめられたら、案 C を再評価するために本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-005
+- requirements/requirements.md: REQ-F-007
+- specifications/specifications-endpoints.md: DD-EP-04
+- specifications/specifications-endpoints.md: DD-EP-08
+- specifications/specifications-endpoints.md: R-EP-C-006
+- specifications/specifications-endpoints.md: R-EP-C-021
+- specifications/specifications-endpoints.md: R-EP-C-024
+- specifications/specifications-endpoints.md: R-EP-C-025
+- specifications/specifications-endpoints.md: R-EP-C-026
+- specifications/specifications-endpoints.md: R-EP-C-042
+- specifications/specifications-endpoints.md: R-EP-C-043
+- specifications/specifications-endpoints.md: R-EP-C-044
+- specifications/specifications-endpoints.md: R-EP-I-007
+- specifications/specifications-endpoints.md: §States and Transition Rules
+- specifications/specifications-endpoints.md: §Cancel Result Semantics
+- specifications/specifications-endpoints.md: §Input Rejection Conditions
+- specifications/specifications-endpoints.md: §Open Questions #18
+- specifications/specifications-endpoints.md: §Open Questions #24
+- specifications/specifications-endpoints.md: §Open Questions #28
+- specifications/specifications-endpoints.md: §Open Questions #34
+- specifications/specifications-errors.md: R-ER-C-014
+- specifications/specifications-errors.md: R-ER-C-041
+- specifications/specifications-errors.md: §Error Response Precedence
+- specifications/specifications-governance.md: G-05
+- specifications/specifications-governance.md: G-06
+- specifications/specifications-governance.md: DD-GV-13
+- specifications/specifications-governance.md: §Breaking and Non-breaking Change Criteria
+- specifications/specifications-governance.md: §契約を確定する条件
+- decision-records.md: DR-03
+- decision-records.md: DR-05
+- decision-records.md: DR-08
+- decision-records.md: DR-09
+- decision-records.md: DR-12
+- GitHub Issue: #3
+- GitHub Issue: #5
+- GitHub Issue: #7
+
+---
+
 <!--
 Append new DR sections right after the last DR (above `## Deleted Decision Records` if present,
 otherwise above `## Change History`).
@@ -2010,3 +2300,4 @@ instead of adding another one (guideline E-4).
 | 2026-11-14 | 1.7.0   | Add DR-10: エラー応答の本文で、認証状態と実装の内部情報を開示しない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | 2026-11-15 | 1.8.0   | Add DR-11: `dispatched` の条件は OS の通知 API の呼び出しの正常終了とアプリケーション単位の通知可否の確認とし、OS の受理・表示と `missed` の遅れの上限は保証しない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | 2026-11-15 | 2.0.0   | Add DR-12: `dispatched` は事前の通知可否が「有効」で呼び出しが正常終了した通知と判定し、`missed` は成功を確認できないまま引き渡し処理を終了した状態とする (supersedes DR-11)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2026-11-15 | 2.1.0   | Add DR-13: 引き渡し処理の開始が確定した後は、終端状態が確定するまでキャンセルを拒否する                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |

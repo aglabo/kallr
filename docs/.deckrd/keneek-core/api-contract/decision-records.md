@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 1.8.0
+version: 2.0.0
 created: "2026-11-14"
 ---
 
@@ -1385,7 +1385,7 @@ DR-03 決定 1 は、外部から観測できる振る舞いを契約に含め�
 ## DR-11: `dispatched` の条件は OS の通知 API の呼び出しの正常終了とアプリケーション単位の通知可否の確認とし、OS の受理・表示と `missed` の遅れの上限は保証しない - 2026-11-15 12:29:36
 
 **Phase**: spec
-**Status**: Proposed
+**Status**: Superseded by DR-12
 
 ### Context
 
@@ -1568,6 +1568,414 @@ R-EP-C-042 は、遷移するまで `scheduled` として観測されること�
 
 ---
 
+## DR-12: `dispatched` は事前の通知可否が「有効」で呼び出しが正常終了した通知と判定し、`missed` は成功を確認できないまま引き渡し処理を終了した状態とする - 2026-11-15 13:57:58
+
+**Phase**: spec
+**Status**: Accepted
+**Supersedes**: DR-11（全体）
+
+### Context
+
+DR-11 (Proposed) は、`dispatched` と `missed` の外部の条件を決めた。
+しかし、Open Questions が残っているため、DR-11 は Accepted にできない。
+Open Questions を決めると、`missed` の意味は改訂前の定義のままでは合わなくなる。
+
+DR-11 の決定 (全件) と Open Questions (全件) を、本 DR では次のように扱う。
+
+| DR-11 の項目     | 内容                                                                                      | 本 DR での扱い                                                  |
+| ---------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 決定 1           | `dispatched` の必要条件は、呼び出しの正常終了と、事前の通知可否の確認が「有効」であること | 決定 1 に引き継ぐ (確認と呼び出しの関係を書き直す)              |
+| 決定 2           | 引き渡しの試みを場合 A〜E に分け、D と E は決めない                                       | 決定 5 に引き継ぐ (場合 F を加え、場合 D と場合 E を定義し直す) |
+| 決定 3           | 発火時刻からの遅れの上限を、`missed` の判定の境界として保証しない                         | 決定 5 に引き継ぐ                                               |
+| 決定 4           | 両 OS で共通に観測できる条件だけを契約にする                                              | 決定 7 に引き継ぐ                                               |
+| Open Questions 1 | 通知可否を確かめてから呼び出すまでの間の変化                                              | 決定 1 で解決する                                               |
+| Open Questions 2 | 呼び出しの後から非同期に知らされる失敗                                                    | 決定 2 で解決する                                               |
+| Open Questions 3 | 呼び出しの結果を確かめられなかった通知 (場合 E)                                           | 決定 3・決定 5・決定 6 で解決する                               |
+| Open Questions 4 | 照合 (d-1) が未確認のまま残っていること                                                   | Scope の「Relation to DR-05」で、本 DR の採用の条件から外す     |
+| Open Questions 5 | Windows App SDK の `Unsupported` の扱い                                                   | 決定 4 と決定 5 の場合 F で解決する                             |
+
+specifications-endpoints.md v2.2.2 は、状態を次のように定める (本 DR に関わる部分)。
+
+- 状態の集合は `scheduled`・`dispatched`・`missed`・`cancelled` の 4 つとする (DD-EP-08、R-EP-C-021)
+- `dispatched`・`missed`・`cancelled` は終端状態であり、別の状態へ遷移しない (R-EP-C-021)
+- `dispatched` は、発火時刻に OS へ通知を引き渡したことだけを意味する (R-EP-C-022)
+- 画面への表示と利用者の確認は、`dispatched` の意味に含めない (DD-EP-08、R-EP-C-022)
+- `missed` は、発火時刻に OS へ通知を引き渡せなかった状態とする (3.6)
+- 3.6 の遷移表は、発火時刻での引き渡しに成功すると `dispatched` に遷移すると定める (R-EP-C-023)
+- 同じ遷移表は、発火時刻での引き渡しに失敗すると `missed` に遷移すると定める (R-EP-C-023)
+- `fireAt` を過ぎた通知は、`dispatched` または `missed` に遷移するまで `scheduled` として観測される (R-EP-C-042、DR-08)
+- 7 章 Open Questions #10 は、`dispatched` の外部の条件と、`missed` と判定する遅れの境界を問うている
+
+universal-dictionary.md v1.1.2 は、次のように定義する。
+
+- UD-011 `dispatched`: 発火時刻に Keneek が OS へ通知を引き渡したことを表す
+- UD-012 `missed`: 発火時刻に OS へ通知を引き渡せなかったことを表す
+
+両 OS の通知 API の公式ドキュメント (Microsoft Learn と Android Developers) を、2026-11-15 に確認した。
+本 DR に関わる事実は次のとおりとする (確認結果の一部)。
+出典の URL は `### Related` に挙げる。
+
+- Windows の `Show` と Android の `notify` は、どちらも戻り値を返さない
+- 呼び出しの正常な戻りが OS の受理や表示を保証するとは、どちらの OS の文書も書いていない
+- 通知が無効なときに呼び出しが同期的に例外やエラーを返すとは、どちらの OS も書いていない
+- 通知可否の確認と呼び出しを不可分に行う API は、どちらの OS にも無い
+- 通知可否の確認の結果は、確認した時点の値である
+- 確認してから呼び出すまでの間に状態が変わったときの扱いは、どちらの OS も書いていない
+- Windows UWP の `ToastNotification.Failed` は、通知を出すときに生じたエラーを知らせる
+- `Failed` が `Show` に対していつ発生するかは書かれていない
+- `Failed` がすべての失敗で発生するかは書かれていない
+- `Failed` を購読できるのは、動作中のアプリケーションに限られる
+- Windows App SDK の `AppNotificationManager` には、`Failed` に当たるイベントが無い
+- Android では、`notify` の後に投稿の失敗を通常のアプリケーションへ知らせるコールバックは、確認した範囲では書かれていない
+- Windows App SDK の `AppNotificationSetting` は、有効と 4 種類の無効のほかに `Unsupported` を返し得る
+- `Unsupported` の意味と、返る条件は書かれていない
+- Android の `areNotificationsEnabled()` には、判定できない場合の記載が無い
+- Windows App SDK のクイックスタートは、管理者権限で動くアプリケーションでは `Show` が黙って失敗し、通知は表示されないと書いている
+
+OS への通知の引き渡しと、通知の状態の記録は、別々の処理として行われる。
+そのため、引き渡し処理を始めた後、終端状態が確定する前にプロセスが停止し得る。
+停止は、OS の通知 API を呼び出した後にも、呼び出す前にも起こり得る。
+呼び出した後に停止した場合、通知が OS に届いた可能性がある。
+その場合でも、状態は確定していない。
+DR-11 の場合 E は、呼び出した後の停止だけを指している。
+呼び出す前の停止をどの場合に含めるかは、DR-11 では決まっていない。
+
+再開後に停止した通知を扱うには、その通知の引き渡し処理を始めていたかを識別できなければならない。
+識別できなければ、引き渡し処理を始めていた通知を、始めていない通知 (場合 D) と取り違える。
+場合 D の扱いは、specifications-endpoints.md §Open Questions #18 でまだ決まっていない。
+§Open Questions #18 が場合 D を遅れて引き渡すと決めた場合、取り違えた通知は再び引き渡され、通知が重複し得る。
+引き渡し処理の開始の記録が、再開の後で復元できる状態となるまで、通知可否の確認と OS の通知 API の呼び出しを始めなければ、この取り違えを防げる。
+この記録は、永続化 (issue #7) の責務に関わる。
+
+状態の意味と `missed` の検出と保持は、specifications-governance.md G-04 の保証にあたる。
+G-04 の照合対象には、照会・キャンセル (issue #5) と永続化 (issue #7) が含まれる。
+どちらの照合結果も「未確認」である (DR-05)。
+
+### Decision
+
+1. 決定 1: 次の 2 つをともに確認した通知は、`dispatched` と判定する。
+   終端状態の確定は決定 6 による。
+   - (i) この引き渡しの試みに対応するアプリケーション単位の通知可否の確認を、OS の通知 API の呼び出しより前に行い、その結果が「有効」だったこと
+   - (ii) OS の通知 API の呼び出しが、例外やエラーを返さずに正常終了したこと
+
+   次の 4 つは保証しない。
+   - OS の受理
+   - 表示の成功
+   - 利用者の確認
+   - 呼び出した時点でも通知可否が「有効」だったこと
+
+   確認から呼び出しまでの時間の上限は定めない。
+   確認の後の設定の変更によって、呼び出しが同期的に例外やエラーを返した場合は、決定 5 の場合 B に従う。
+2. 決定 2: 呼び出しの後から非同期に知らされる失敗 (Windows UWP の `ToastNotification.Failed` など) によって、`dispatched` を `missed` へ変えない。
+   `dispatched` の判定は、決定 1 の 2 つの条件だけで行う。
+   判定は、失敗のイベントの到着の順序に左右されない。
+   失敗のイベントが状態の記録より先に届いた場合も、同じとする。
+   失敗のイベントの監視は、API 契約の義務にしない。
+   監視するかどうかと監視の方法は、implementation に委ねる。
+3. 決定 3: `missed` は、OS への通知要求について、成功を確認できないまま引き渡し処理を終了した状態を表す。
+   `missed` は、OS へ通知が届かなかったことを意味しない。
+4. 決定 4: アプリケーション単位の通知可否の確認結果を、「有効」「無効」「判定不能」の 3 つに分ける。
+   判定不能は、確認の結果から有効か無効かを決められない場合 (Windows App SDK の `AppNotificationSetting` の `Unsupported` など) を指す。
+5. 決定 5: 引き渡しの試みを次の 6 つの場合に分け、それぞれの終端状態と、確定の根拠が揃う時点を次の表のとおりとする。
+
+   | 場合                   | 内容                                                         | 確定の根拠が揃う時点                                                    | 状態               |
+   | ---------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------ |
+   | A 呼び出しの正常終了   | 決定 1 の (i) と (ii) を満たす                               | 呼び出しの正常終了を確認した時点 (事前の確認の結果は「有効」)           | `dispatched`       |
+   | B 呼び出しの失敗       | 「有効」の確認の後の呼び出しが、同期的に例外やエラーを返した | 呼び出しの失敗を確認した時点                                            | `missed`           |
+   | C 通知の無効           | 事前の通知可否の確認が「無効」だった                         | 「無効」の確認に基づいて、呼び出さないと確定した時点                    | `missed`           |
+   | F 通知可否の判定不能   | 事前の通知可否の確認が「判定不能」だった                     | 「判定不能」の確認に基づいて、呼び出さないと確定した時点                | `missed`           |
+   | E 確定前の停止         | 引き渡し処理の開始の後、終端状態の確定の前に停止した         | 再開後、その通知の OS の通知 API の呼び出しを再実行しないと確定した時点 | `missed`           |
+   | D 引き渡し処理の未開始 | 引き渡し処理を開始していない (プロセスの停止やスリープなど)  | 本 DR では決めない (specifications-endpoints.md §Open Questions #18)    | 本 DR では決めない |
+
+   表の時点で根拠が揃った後、終端状態は決定 6 の定義を満たしたときに確定する。
+   場合 E は、OS の通知 API を呼び出したかどうかによらない。
+   場合 E には、場合 C または場合 F の判定の後、終端状態が確定する前に停止した通知も含む。
+   終端状態がすでに確定した通知は、回復の後もその終端状態を保ち、場合 E として扱い直さない。
+   場合 E の通知は、再開後に OS の通知 API を呼び出し直さない。
+   場合 E で終端状態を確定できなかったことは、OS への引き渡しが失敗した証拠として扱わない。
+   引き渡し処理の終了までの時間の上限 (発火時刻からの遅れの上限を含む) は、契約で保証しない。
+
+   再開後の場合 D と場合 E の区別は、有効な開始の記録があるかどうかで行う。
+   区別は、永続化の完了の通知には依らない。
+   - 有効な開始の記録がある通知は、場合 E とする
+   - 有効な開始の記録が無い通知は、場合 D とする
+   - 開始の記録は、通知可否の確認より前の時点で復元できる状態となる
+   - そのため、場合 C または場合 F の判定の後で停止した通知も、再開後に場合 E として扱える
+   - 記録の破損などで区別できなくなった場合は、永続化 (issue #7) の回復の方法で解決する
+
+   次の性質を、外部の契約の不変条件として保証する。
+   - 保証する性質: 再開後、引き渡し処理を開始していた通知 (場合 E) を、開始していない通知 (場合 D) と取り違えない
+   - 満たすべき条件: その引き渡し処理の開始の記録が、再開の後で復元できる状態となるまで、通知可否の確認と OS の通知 API の呼び出しを始めないこと
+   - 記録の方法は契約に定めず、永続化 (issue #7) の implementation に委ねる (DR-03 決定 2)
+6. 決定 6: 結果の確認と、終端状態の確定を区別する。
+   - 結果の確認は、引き渡しの試みで、呼び出しの結果や通知可否の確認の結果を得ることを指す
+   - 終端状態の確定は、その結果に基づいて通知の状態が `dispatched` か `missed` に決まり、再開後にその状態を一意に復元できるようになったことを指す
+   - 再開後に一意に復元できることを、確定の保証条件とする
+   - この条件を満たした状態は、停止の後の回復でも保たれる
+
+   引き渡し処理を開始した後、終端状態を確定する前にプロセスが停止した場合は、再開後に場合 E として扱う。
+   結果を確認したかどうかは、この扱いに影響しない。
+   結果を確認した後の停止 (場合 A・B・C・F の結果を得た後の停止) も、場合 E に含む。
+   その通知は、呼び出し直さず `missed` に確定する。
+   終端状態が確定するまで、通知は `scheduled` として観測される (R-EP-C-042、DR-08)。
+   確定した状態が一覧取得・単体取得に反映される時期は、本 DR では保証しない。
+   本 DR は、書き込みの後の読み取りの一貫性 (read-after-write) を新たに保証しない。
+7. 決定 7: 契約にする条件は、Windows と Android の両方で観測できるものだけとする。
+   OS ごとの判定の方法 (呼び出しの成否、通知可否、停止の検出を確かめる手段) は契約に定めず、implementation に委ねる (DR-03 決定 2)。
+
+### Scope
+
+- Applies to: 発火時刻の引き渡しの試みの結果として、通知を `dispatched` または `missed` と判定する外部の条件、確定の根拠が揃う時点、終端状態の確定の定義、`dispatched` と `missed` の意味
+- Consistency: 次のものは変えない
+  - 状態の集合 (DD-EP-08、R-EP-C-021)
+  - 画面への表示と利用者の確認を `dispatched` の意味に含めないこと (DD-EP-08、R-EP-C-022)
+  - 終端状態が別の状態へ遷移しないこと (R-EP-C-021)
+  - `fireAt` を過ぎた通知が、遷移するまで `scheduled` として観測されること (R-EP-C-042、DR-08)
+  - DR-08 は置き換えない
+- Not decided here:
+  - 引き渡し処理を開始していない通知の状態 (決定 5 の場合 D) と、発火時刻の判定に使う時計 → specifications-endpoints.md §Open Questions #18
+  - 確定した状態が一覧取得・単体取得に反映される時期 → specifications-endpoints.md §Open Questions #28
+  - OS ごとの判定の方法 (どの API で呼び出しの成否と通知可否を確かめるか、非同期の失敗のイベントを監視するか) → implementation (DR-03 決定 2)
+  - 引き渡し処理の開始の記録と終端状態を、再開後に復元できる形で残す方法 → 永続化 (issue #7) の implementation
+  - 記録の破損などで、再開後に場合 D と場合 E を区別できなくなった場合の扱い → 永続化 (issue #7) の回復の方法 (実現性は specifications-governance.md G-04 の照合で確かめる。DR-05)
+  - 次の 2 つの条件を実現できるか → specifications-governance.md G-04 の照合で、実現性の照合の事項として確かめる (DR-05)
+    - 開始の記録の条件 (決定 5): 開始の記録が、再開の後で復元できる状態となるまで、通知可否の確認と OS の通知 API の呼び出しを始めないこと
+    - 一意の復元の条件 (決定 6): 確定した終端状態を、再開後に一意に復元できること
+  - 照合 (d-1) (specifications-governance.md G-04、issue #5・issue #7) → specifications-governance.md の照合の記録 (DR-05)
+  - 規則の具体的な文言と規則 ID → specifications-endpoints.md (本 DR とは別の変更)
+  - R-EP-C-022 と 3.6 の `dispatched`・`missed` の意味と遷移表の書き直し、UD-011・UD-012 の定義の改訂 → specifications-endpoints.md と universal-dictionary.md (本 DR とは別の変更として、同じ変更単位で整合させる)
+- Relation to DR-05: 本 DR では次の 3 つを区別する
+  - 照合待ちの規則の有効性: 照合待ちの規則も有効であり、拘束力を持つ。この扱いは specifications-endpoints.md 4 章の冒頭が定めており、DR-05 が定めたものではない
+  - 本 DR の採用: 照合 (d-1) の完了は、本 DR を Accepted とする条件ではない
+  - API 契約全体の確定: DR-05 決定 6 のとおり、照合結果に「未確認」が残っておらず、未解決の矛盾も無いことを条件とする
+  - 本 DR は、API 契約全体の確定の条件を免除しない
+
+### Alternatives Considered
+
+判定不能 (決定 4・決定 5 の場合 F) の扱い:
+
+- 案 A: 通知 API の呼び出しを試み、その結果に従う。
+  判定不能のときだけ決定 1 (i) の必要条件を外すことになる。
+  管理者権限のアプリケーションのように黙って失敗する場合でも `dispatched` になり得るため不採用。
+- 案 C: 判定できるまで `scheduled` のままにする。
+  判定不能が続くと状態が決まらない。
+  遅れの上限も保証しないため、クライアントが結果を知る手段が無い。
+  §Open Questions #18・#28 の判断にも依存するため不採用。
+
+場合 E の扱い:
+
+- E2: `dispatched` にする。
+  呼び出しの正常終了を確かめておらず、根拠なしに引き渡しを主張するため不採用。
+- E3: 再開後に呼び出し直す。
+  停止の前に呼び出していて通知が OS に届いていた場合に、利用者に同じ通知が 2 回出るため不採用。
+- E4: `scheduled` のままにする。
+  状態が決まらないまま残り、遅れの上限も無いため不採用 (判定不能の案 C と同じ理由)。
+
+確認と呼び出しの間の変化 (DR-11 Open Questions 1) の扱い:
+
+- 案 B: 呼び出しの後にも通知可否を確かめる (再確認)。
+  呼び出しと再確認の間に同じ競合が残り、競合を解消できない。
+  再確認が「無効」を返しても、呼び出した時点で無効だったとは言えず、表示された通知を `missed` にし得る。
+  再確認が判定不能を返した場合の扱いも新たに要るため不採用。
+- 案 C: 呼び出した時点の通知可否を保証できなければ `missed` にする。
+  呼び出した時点の可否を保証する手段は、どちらの OS にも無い。
+  文字どおりに適用すると、すべての通知を `missed` にするか、実質的に決定 1 と同じ運用になる。
+  外部の契約として成り立たないため不採用。
+
+呼び出しの後から知らされる失敗 (DR-11 Open Questions 2) の扱い:
+
+- 案 B: 後から失敗が知らされたら、`dispatched` から `missed` に遷移させる。
+  終端状態の不変性 (R-EP-C-021) を破り、`dispatched` を暫定の状態にする。
+  失敗のイベントは Windows UWP にしか無く、イベントがある OS だけで状態の意味が変わるため不採用。
+- 案 C: 失敗を後から知らされる可能性が消えるまで、`scheduled` のままにする。
+  失敗の可能性の無くなる時期は公式に書かれておらず、`scheduled` から抜ける条件を決められない。
+  期限を設けると、根拠の無い値を契約へ入れることとなるため不採用。
+
+DR-11 から引き継ぐ不採用の案:
+
+- `dispatched` の条件を、呼び出しの正常終了だけにする (通知が無効でも `dispatched` とする)。
+  OS に届いていないと分かっている事実を、状態が主張してしまうため不採用。
+- `dispatched` の条件を、OS が通知の要求を受理したこととする。
+  Windows には受理を知らせるイベントが無い。
+  Android の `getActiveNotifications()` も、一覧に現れる時期が書かれていない。
+  両 OS で受理を観測する手段が無いため不採用。
+- 通知可否の条件に、Android のチャネルの無効・一時停止・おやすみモードや Windows の集中モードを含める。
+  Windows と Android の両方で確かめられる手段が無いため不採用 (決定 7)。
+- `missed` と判定する遅れの上限を契約で定める。
+  Windows と Android の両方で成り立つ 1 つの値を選ぶ根拠が無いため不採用。
+- OS ごとに `dispatched` の条件を契約に書く。
+  同じ事象の状態が端末によって異なり、契約が端末に依存するため不採用。
+
+### Rationale
+
+最大の理由は、Keneek の観測した事実だけを状態が示すことにある。
+DD-EP-08 は、Keneek が観測できない事実を状態が主張しないことを、状態の集合の根拠にしている。
+
+決定 1 の条件を (i) と (ii) に限る理由は、両 OS の公式ドキュメントで保証されているのが、確認した時点の値と呼び出しの正常終了だけであることにある。
+`dispatched` は、この 2 つの事実だけを示す。
+そのため、確認の後に設定が無効になって表示されなくても、`dispatched` の示す事実は偽にならない。
+(i) は、確認がその試みに対応することと、呼び出しより前に行われたことだけを条件にする。
+`dispatched` と判定した後の終端状態の確定は、決定 6 の定義に従う。
+確認から呼び出しまでの時間に上限を付けない理由は、両 OS で共通に成り立つ値の根拠が無いことにある。
+
+決定 2 の理由は、終端状態の不変性 (R-EP-C-021) と DR-08・R-EP-C-042 を、変えないで済むことにある。
+後から知らされる失敗は Windows UWP にしか無い。
+その発生時期と確実性は、公式の文書に書かれていない。
+そのため、両 OS で共通の契約にできない (決定 7)。
+
+決定 3 の理由は、場合 E に改訂前の `missed` の意味 (引き渡せなかった) を当てると、観測できない事実を状態が主張することにある。
+場合 E は、呼び出しの後で停止し、OS へ届いた可能性のある通知を含む。
+「成功を確認できないまま終了した」と定めれば、届いた可能性を否定せずに、場合 B・C・E・F を 1 つの状態で表せる。
+`dispatched` は成功を確認して終了した場合を表す。
+`missed` は成功を確認できずに終了した場合を表す。
+2 つの意味は重ならない。
+
+決定 4 と場合 F の理由は、判定不能が「有効と確認できなかった」場合であり、決定 1 (i) を満たさないことにある。
+場合 C (無効) と同じ `missed` を選べば、(i) を一貫した必要条件で扱える。
+判定不能が続く環境でも、通知が `scheduled` のまま残らない。
+`Unsupported` のときに `Show` で表示できたと言える根拠は、公式ドキュメントに無い。
+
+場合 E を `missed` とし呼び出し直さない理由は、通知の重複を避けることを優先したことにある。
+終端状態を確定できなかったことは、引き渡しの失敗の証拠ではない。
+決定 3 の `missed` の意味は、届かなかったことを主張しないため、場合 E に当てはまる。
+場合 E を、呼び出したかどうかによらず定める理由は、場合 D と場合 E の境界を「有効な開始の記録の有無」の 1 点へ置くことにある。
+再開後に必要な識別は、開始の記録があるかどうかだけになる。
+呼び出したかどうかを区別する必要は無い。
+呼び出す前に停止した通知も呼び出し直さないため、その通知は失われ得る。
+重複を避けることを優先し、この損失を受け入れる。
+
+場合 D と場合 E を取り違えないことを不変条件にする理由は、取り違えると場合 E の決定が守れないことにある。
+呼び出した通知を場合 D と取り違えると、#18 の決定によっては再び引き渡され、通知が重複する。
+開始の記録が復元できる状態になるまで確認と呼び出しを始めなければ、確認や呼び出しの済んだ通知は必ず有効な開始の記録を持つ。
+そのため、呼び出した通知が場合 D と取り違えられることは無い。
+記録を呼び出しより前ではなく確認より前へ置く理由は、場合 C・F の判定の後、確定の前で停止した通知も、場合 E として回復できることにある。
+記録の方法を契約に定めない理由は、DR-03 決定 2 が内部の実現方法を兄弟 issue に委ねていることにある。
+契約は、保証する性質と、その性質に必要な条件だけを定める。
+
+決定 6 の理由は、結果を確認した時点で終端状態が確定したとみなすと、停止の後に観測される状態が決まらないことにある。
+確定する前の停止をすべて場合 E に含めれば、再開後の外部の状態が 1 つに決まる。
+再開後に状態を一意に復元できることを確定の保証条件にする理由は、終端状態の不変性 (R-EP-C-021) が再開をまたいで成り立つための必要条件であることにある。
+確定した状態を再開後に一意に復元できないと、通知は `scheduled` に戻って観測されるか、別の終端状態として観測され得る。
+この条件だけで R-EP-C-021 のすべてを実現するわけではない。
+後から知らされる失敗で状態を変えないことは、決定 2 で別に定めている。
+確定の定義に取得での観測を含めない理由は、取得への反映の時期が §Open Questions #28 で未決定であることにある。
+取得での観測を確定の条件にすると、#28 で決めるべき反映の時期を本 DR が先に決めてしまう。
+
+決定 7 の理由は、契約が端末へ依存するのを避けることにある。
+OS ごとに条件を変えると、同じ事象の状態が端末によって異なる。
+判定の方法は内部の実現方法にあたるため、DR-03 決定 2 に従い implementation に委ねる。
+
+場合 D (§Open Questions #18) が未決定でも本 DR を採用できる理由は、場合 A・B・C・E・F の決定が場合 D の扱いへ依存しないことにある。
+場合 D の通知は、#18 が決まるまで R-EP-C-042 により `scheduled` として観測される。
+この扱いは既存の契約と矛盾しない。
+
+### Consequences
+
+- Positive:
+  - 同じ引き渡しの試みは、OS によらず同じ条件で `dispatched` か `missed` と判定される (場合 A・B・C・E・F)
+  - アプリケーション単位で通知が無効、または判定不能と分かっている通知が、`dispatched` として観測されない
+  - `dispatched` と `missed` は、後から知らされる失敗やイベントの到着の順序によって変わらない
+  - 場合 E の通知は呼び出し直さないため、利用者に同じ通知が 2 回出ない
+  - 場合 D と場合 E の境界が有効な開始の記録の有無の 1 点になり、再開後に呼び出したかどうかを区別しなくてよい
+  - 判定の方法、非同期の失敗のイベントの扱い、開始の記録の方法を、契約を変えずに implementation で選べる
+- Negative:
+  - `dispatched` は、OS の受理、表示の成功、利用者の確認、呼び出した時点の通知可否のどれも保証しない
+  - 確認の後に通知が無効になった場合も、表示されない通知が `dispatched` のまま残る
+  - Windows UWP で後から失敗が知らされた場合も、表示されない通知が `dispatched` のまま残る
+  - Android のチャネルの無効・一時停止・おやすみモードや Windows の集中モードで表示されない通知も、`dispatched` になり得る
+  - `missed` から「OS に確実に届かなかった」と読み取れなくなる
+  - 場合 E では、OS に届いて表示された通知も `missed` になり得る
+    - 正常終了を確認した後、確定する前に停止した通知も、これに含む (決定 6)
+  - 場合 F では、呼び出せば表示できた可能性のある通知も `missed` に確定する
+  - 開始の記録の後、呼び出しの前に停止した通知も、場合 E として呼び出し直さない
+    - その通知は、利用者に届かないまま失われ得る
+    - 重複を避けるため、この損失を受け入れる
+  - 引き渡し処理の終了までの時間に上限が無いため、クライアントは、発火時刻からどれだけ遅れたら `missed` になるかを契約から知ることができない
+  - 確定した状態が取得に反映される時期は、§Open Questions #28 で決まるまで保証されない
+    - クライアントは、取得の結果から確定の時点を知ることができない
+  - 場合 D の状態は、本 DR では決まらない
+  - 決定 5 の開始の記録の条件と、決定 6 の一意の復元の条件は、永続化 (issue #7) の実現に制約を加える
+    - 開始の記録が、再開の後で復元できる状態となるまで、通知可否の確認と OS の通知 API の呼び出しを始められない
+    - 確定した終端状態を、再開後に一意に復元できなければならない
+  - 2 つの条件が実現できるかは、G-04 の照合で確かめるまで未確認である
+  - 記録の破損などで場合 D と場合 E を区別できなくなった場合の扱いは、永続化 (issue #7) の回復の方法が決まるまで定まらない
+    - 不変条件が守られないと、呼び出した通知が場合 D と取り違えられ得る
+    - #18 が場合 D を遅れて引き渡すと決めた場合、取り違えた通知は再び引き渡され、通知が重複し得る
+  - 本 DR を仕様に反映すると G-04 の保証の内容が変わるため、G-04 の照合結果は「未確認」に戻る (specifications-governance.md DD-GV-13)
+  - DR-05 決定 6 により、G-04 の照合が済むまで、API 契約全体は確定しない
+  - R-EP-C-022 の規則の意味が変わるため、言い回しの明確化だけでは足りない (理由を次に挙げる)
+    - R-EP-C-022 の「発火時刻に OS へ通知を引き渡した」は、OS へ通知が渡ったことを主張すると読める
+    - 本 DR の `dispatched` は、決定 1 の 2 つの事実 (事前の通知可否が「有効」、呼び出しの正常終了) だけを示し、OS の受理を保証しないため、主張の範囲が狭まる
+    - 決定 1 (i) の通知可否の確認は、R-EP-C-022 の文に無い条件である
+    - 時間の上限を定めず `dispatched` が発火時刻より後に確定し得るため、「発火時刻に」は厳密には成り立たない
+    - この変更は、§Open Questions #10 を解決するために必要である
+    - 状態の集合と、表示と利用者の確認を含めないこと (DD-EP-08) は変わらない
+  - 本 DR を記録した時点で、次の文書は本 DR に合わせた改訂を要する (改訂までは既存の記述との不整合が残る)
+    - specifications-endpoints.md v2.2.2 の R-EP-C-022 の `dispatched` の意味 (規則の意味の変更)
+    - specifications-endpoints.md v2.2.2 の 3.6 の `dispatched`・`missed` の意味
+    - specifications-endpoints.md v2.2.2 の 3.6 の遷移表の「発火時刻での引き渡しに成功」と「発火時刻での引き渡しに失敗」の行
+      - 「失敗」は、呼び出さなかった場合 C・F と、再開後に確定する場合 E を含められない
+      - R-EP-C-023 は遷移表に従うため、遷移表の改訂に合わせて読む
+    - specifications-endpoints.md v2.2.2 の DD-EP-08 の「OS への引き渡しだけを意味し」の言い回し
+      - 決定 (状態の集合、表示と確認を含めないこと、`missed` を v1 から含めること) は変えず、R-EP-C-022 と同じ意味に揃える
+    - specifications-endpoints.md v2.2.2 の 7 章 Open Questions #10 (本 DR で解決する)
+    - universal-dictionary.md v1.1.2 の UD-011 (`dispatched`) と UD-012 (`missed`) の定義
+      - どちらも意味が変わり、「発火時刻に」も合わない
+      - 辞書の MAJOR の改訂として、仕様と同じ変更単位で整合させる
+- Revisit Trigger:
+  - G-04 の照合で、決定 5 の不変条件 (場合 D と場合 E を取り違えないこと) またはその開始の記録の条件を、永続化 (issue #7) で実現できないと分かったら、本 DR を見直す
+  - G-04 の照合で、決定 6 の一意の復元の条件を、永続化 (issue #7) で実現できないと分かったら、本 DR を見直す
+  - 永続化 (issue #7) の回復の方法で、記録の破損などの場合に場合 D と場合 E の区別を回復できないと分かったら、本 DR を見直す
+  - 照合 (d-1) で、照会・キャンセル (issue #5) または永続化 (issue #7) の責務と矛盾が見つかったら、本 DR を見直す
+  - §Open Questions #18 が場合 D の扱いを決め、場合 E の扱いと両立しなくなったら、本 DR を見直す
+  - §Open Questions #28 が取得への反映の時期を決め、決定 6 の確定の定義と両立しなくなったら、本 DR を見直す
+  - Windows または Android の公式ドキュメントが、呼び出しの正常終了の意味、通知が無効なときの呼び出しの振る舞い、または確認と呼び出しを不可分に行う手段を定めたら、本 DR を見直す
+  - 両 OS で OS の受理を観測できる手段が公式に示されたら、本 DR を見直す
+  - Windows App SDK の `Unsupported` の意味と返る条件が公式に示されたら、場合 F を見直す
+  - Windows でアプリケーション単位より細かい通知可否を確かめる手段が公式に示されたら、本 DR を見直す
+  - Windows と Android 以外の OS を契約の対象に加えるときは、本 DR を見直す
+
+### Related
+
+- requirements/requirements.md: REQ-F-005
+- specifications/specifications-endpoints.md: DD-EP-08
+- specifications/specifications-endpoints.md: R-EP-C-021
+- specifications/specifications-endpoints.md: R-EP-C-022
+- specifications/specifications-endpoints.md: R-EP-C-023
+- specifications/specifications-endpoints.md: R-EP-C-042
+- specifications/specifications-endpoints.md: §States and Transition Rules
+- specifications/specifications-endpoints.md: §Open Questions #10
+- specifications/specifications-endpoints.md: §Open Questions #18
+- specifications/specifications-endpoints.md: §Open Questions #28
+- specifications/specifications-governance.md: G-04
+- specifications/specifications-governance.md: DD-GV-13
+- universal-dictionary.md: UD-011
+- universal-dictionary.md: UD-012
+- decision-records.md: DR-03
+- decision-records.md: DR-05
+- decision-records.md: DR-08
+- decision-records.md: DR-11
+- GitHub Issue: #3
+- GitHub Issue: #5
+- GitHub Issue: #7
+- Microsoft Learn: <https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastnotifier.show>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastnotifier.setting>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastnotification.failed>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastfailedeventargs>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastfailedeventargs.errorcode>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.windows.appnotifications.appnotificationmanager>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.windows.appnotifications.appnotificationmanager.show>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.windows.appnotifications.appnotificationmanager.setting>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.windows.appnotifications.appnotificationsetting>
+- Microsoft Learn: <https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-quickstart>
+- Android Developers: <https://developer.android.com/reference/android/app/NotificationManager>
+- Android Developers: <https://developer.android.com/reference/androidx/core/app/NotificationManagerCompat>
+- Android Developers: <https://developer.android.com/reference/android/service/notification/NotificationListenerService>
+- Android Developers: <https://developer.android.com/develop/ui/views/notifications/notification-permission>
+- Android Developers: <https://developer.android.com/reference/android/app/NotificationChannel>
+
+---
+
 <!--
 Append new DR sections right after the last DR (above `## Deleted Decision Records` if present,
 otherwise above `## Change History`).
@@ -1601,3 +2009,4 @@ instead of adding another one (guideline E-4).
 | 2026-11-14 | 1.6.0   | Add DR-07: 一覧の並びと長さの上限は実装言語によらない方法で比べ、`state` クエリの値と上限の判定を一意にする; Add DR-08: 発火時刻を過ぎた通知は、引き渡しの結果が決まるまで `scheduled` として観測される; Add DR-09: キャンセルの応答を 3 つに分類し、結果未確定のときにクライアントが結論を出すことを禁じる                                                                                                                                                                                                                                                                                                                                                             |
 | 2026-11-14 | 1.7.0   | Add DR-10: エラー応答の本文で、認証状態と実装の内部情報を開示しない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | 2026-11-15 | 1.8.0   | Add DR-11: `dispatched` の条件は OS の通知 API の呼び出しの正常終了とアプリケーション単位の通知可否の確認とし、OS の受理・表示と `missed` の遅れの上限は保証しない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 2026-11-15 | 2.0.0   | Add DR-12: `dispatched` は事前の通知可否が「有効」で呼び出しが正常終了した通知と判定し、`missed` は成功を確認できないまま引き渡し処理を終了した状態とする (supersedes DR-11)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |

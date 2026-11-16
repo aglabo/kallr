@@ -18,8 +18,9 @@
 const $ = (id) => document.getElementById(id);
 $('o').textContent = location.origin;
 const pad = (n) => String(n).padStart(2, '0');
-const d = new Date(Date.now() + 90000);
-$('at').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+// Shift by +9h and read UTC fields so the value is JST regardless of the browser timezone.
+const d = new Date(Date.now() + 90000 + 9 * 3600000);
+$('at').value = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 const log = (m) => { $('log').textContent += m + '\n'; };
 async function call(method, body) {
   try {

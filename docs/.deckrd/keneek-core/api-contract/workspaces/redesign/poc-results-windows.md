@@ -204,3 +204,65 @@ status: draft
 
 - レジストリキー `HKCU\Software\Classes\AppUserModelId\Kallr.Poc.W01` は `unregister-reg` で削除済み
 - 予約は、取り消しまたは発火により残っていない (`list` で確認済み)
+
+## PoC-W0 手順 4 / PoC-W6: Dart HTTP サーバーと PWA、Origin の検証
+
+調査メモ: 6.5。Issue: #18。手順 3 (#17) の結果が前提。**途中経過**: 下の「未確認の事項」が残っている。
+
+### 環境
+
+- Windows 11 Pro 10.0.22621、Dart SDK 3.14.0、Chrome (版は未記録)
+- コード: `poc/windows/w0-4-httpserver/` (ブランチ `chore-18/poc/dart-http-pwa`)
+- API サーバー: `127.0.0.1:8765`。手順 3 の `run()` を呼び、`POST /schedules` で予約、`GET /schedules` で一覧を返す
+- 許可する Origin は `http://localhost:8081` のみ。テスト用 PWA は 8081 (許可) と 8082 (非許可) で配信した
+- 許可しない Origin への応答には、CORS ヘッダーを付けない。
+  許可した Origin への応答には `Access-Control-Allow-Origin` と `Access-Control-Allow-Private-Network: true` を付ける
+
+### 結果
+
+| #  | 呼び出し元                                               | 内容                          | 結果                                                                                                                  |
+| -- | -------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| P1 | curl (`Origin: http://localhost:8081`)                   | `POST` / `GET` / プリフライト | `POST` は 201 で予約できた。プリフライトは 204                                                                        |
+| P2 | curl (`Origin: https://evil.example`)                    | `POST`                        | 403 `{"error":"origin_not_allowed","origin":"https://evil.example"}`                                                  |
+| P3 | curl (Origin なし)                                       | `GET`                         | 403 `{"error":"origin_not_allowed","origin":null}`                                                                    |
+| P4 | PWA `http://localhost:8081` (Chrome)                     | `POST` / `GET`                | `POST` は 201 で予約でき、`GET` は 200 で一覧に出た                                                                   |
+| P5 | PWA `http://localhost:8082` (Chrome)                     | `POST` / `GET`                | すべて `TypeError: Failed to fetch`。サーバーのログでは、`GET` は 403 で拒否、`POST` はプリフライトの段階で拒否された |
+| P6 | PWA `http://localhost:8081` (開いたまま)、サーバー停止後 | `POST` / `GET`                | どちらも `TypeError: Failed to fetch`。コンソールのエラー文は未記録                                                   |
+
+- P4 のプリフライトには `Access-Control-Request-Private-Network` が付いていなかった (サーバーのログで `pna=null`)。
+  この環境の Chrome は、localhost 同士の呼び出しでは PNA のヘッダーを付けない
+- P6: サーバーが動いていないときも `Failed to fetch` で、P5 (Origin の拒否) と JavaScript からは区別できない。
+  区別するには、PWA 側で『接続できない』を案内する処理が要る。
+  コンソールの詳細 (`ERR_CONNECTION_REFUSED` など) は未記録
+- P5 の `fetch` の失敗は、ブラウザ側からは CORS による遮断に見え、403 の本文は読めない。拒否の応答は、サーバーのログと curl (P2、P3) で確かめた
+- P4 の後に同じページで再度 `POST` すると、500 になった。
+  本文は `{"error":"HResultException: 0x80070057 at CreateScheduledToastNotification"}` だった。
+  入力欄の時刻 (07:16) が過ぎていたためで、手順 2・3 の過去時刻の結果と同じ。
+  このときの `GET` は 200 で出力が空 (07:16 の予約は発火済み)
+  - PoC のサーバーは、過去時刻という入力の誤りを 400 ではなく 500 で返している。本番の API では、入力の誤りとして区別する必要がある
+- 単純な `GET` は、プリフライトなしでサーバーに届く。そのため Origin の検査はサーバー側で必須。CORS の遮断に任せると、リクエストはサーバーに届く
+
+### 設計への影響
+
+- 許可した Origin からの登録は受理され、許可していない Origin と Origin なしは拒否される。呼び出し元の検証 (Origin) は、localhost の同一 PC 内では成立した
+- Origin は curl のような非ブラウザのクライアントでは偽装できる。ブラウザ以外からの呼び出しを防ぐ手段は、この PoC には含まれない (#6 の認証との組み合わせで検討する)
+
+### 未確認の事項
+
+- 公開ページ (HTTPS) から localhost を呼ぶ場合の Local Network Access の許可ダイアログ。今回の PWA は `http://localhost` から呼んでいるため、確認できていない
+- インストール済み PWA の挙動
+- #6 (外部認証仕様) との整合
+- P4 で予約した toast が指定時刻に表示されたか (目視は未記録)
+
+### #6 との照合 (契約 `specifications-errors.md` R-ER-C-051〜057 との比較)
+
+- 契約は、資格情報を `Authorization` ヘッダーで送ると定める (R-ER-C-052。Bearer は候補)。この PoC の `fetch` は `Authorization` を送っていないため、認証を含む経路は未検証
+  - `Authorization` を付けると、すべての呼び出しがプリフライトを要する。本 PoC の `GET` のようにプリフライトなしでサーバーに届く経路はなくなる。プリフライトは認証の例外として扱われる (R-ER-C-051、R-ER-C-058)
+- 契約は、403 を『認証済みだが認可されていない』場合に限る (DD-ER-11、R-ER-C-054)。
+  本 PoC は、許可していない Origin に 403 `origin_not_allowed` を返した。
+  Origin の拒否をどの `code` で返すかは契約になく、#6 が決める
+- 契約の 401 は、資格情報の状態を応答本文で区別しない (R-ER-C-060)。
+  本 PoC の拒否の本文は Origin を返しており、この方針とは別に整理が要る
+- 結論: Origin の検査はブラウザからの呼び出しに有効だが、契約が定める認証 (Authorization) の検証とは別の層。
+  両方を重ねる設計で、Origin 拒否の応答形式は #6 で決める。
+  照合は、この比較までで、『未確認』は残る (契約側も #6 との照合を『未確認』としている)

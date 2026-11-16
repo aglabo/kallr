@@ -1,0 +1,7 @@
+name: w04
+description: PoC W0-4 / W6 - localhost Dart HTTP server (schedules a toast via the W0-3 FFI code) called from a PWA, with an Origin check
+publish_to: none
+environment:
+  sdk: ^3.5.0
+dependencies:
+  ffi: ^2.1.0

@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 2.4.0
+version: 2.5.0
 created: "2026-11-14"
 ---
 
@@ -2783,6 +2783,194 @@ issue #5・issue #7 で保証を実現できるかは、確かめていない (�
 
 ---
 
+## DR-17: `notification.not_cancellable` の拒否応答に、判定した時点の通知の状態を `currentState` として載せる - 2026-11-16 17:40:42
+
+**Phase**: spec
+**Status**: Accepted
+**Supersedes**: DR-13（決定 12: 「示さないこと」のうち通知の具体的な現在の状態を示さない部分、拒否の理由を応答で区別しない部分、拒否応答から終端状態の確定を導けないとする部分）
+本 DR は Proposed の間、DR-13 の既存決定を変更しない。Accepted になった時点で、決定 6 に定めた範囲を部分的に置き換える。
+
+### Context
+
+`notification.not_cancellable` の拒否応答は、拒否の理由となる通知の状態を区別しない。
+区別できない状態は、次の 3 分類である (DR-13 決定 12、R-EP-C-024、R-EP-C-026)。
+
+- `cancelled` (キャンセルが成功した後の再送を含む)
+- `dispatched`・`missed`
+- 引き渡し処理の開始が確定した `scheduled`
+
+DR-13 は、3 つ目の分類 (開始が確定した `scheduled`) を同じ code の拒否に加えた。
+その結果、区別できない分類は 1 つ増えた。
+DR-13 は、Revisit Trigger に「`notification.not_cancellable` の理由を応答で区別すると決めたら見直す」を置いている。
+この論点は、specifications-endpoints.md §Open Questions #34 に未決定として残っている。
+
+区別できないことの影響は、応答を失った後の再送で現れる。
+再送が `notification.not_cancellable` で拒否されても、その拒否だけでは結果を判断できない (DR-09 決定 3、R-EP-C-044)。
+クライアントは、単体取得で状態を確認する (R-EP-C-031、SHOULD)。
+
+エラー応答の拡張には、既存の規則がある。
+
+- クライアントは、未知のエラー拡張メンバーを無視する (R-ER-C-049、DR-04 決定 11)
+- 拡張メンバーの追加は、既知のメンバーの意味を変えない限り後方互換な変更である (R-ER-C-050)
+
+成功レスポンスへのメンバーの追加を扱う DR-15 は、成功レスポンスに限る。
+エラー応答の拡張は、DR-15 の対象ではなく、R-ER-C-050 の対象である (DR-15 決定 4)。
+
+通知の状態は、`scheduled`・`dispatched`・`missed`・`cancelled` のいずれか 1 つである (R-EP-C-021)。
+
+### Decision
+
+1. 決定 1: `notification.not_cancellable` の既存の code と拒否の条件は変えない。新しいエラー code は追加しない。
+2. 決定 2: `notification.not_cancellable` の応答は、RFC 9457 の拡張メンバー `currentState` を必須で持つ。
+   `currentState` は、キャンセルの可否を判定した時点の通知の状態を示す。
+3. 決定 3: `currentState` は JSON string とする。値は既存の通知の状態の定義と一致させる。
+   値は `scheduled`・`dispatched`・`missed`・`cancelled` のいずれかとし、別の語彙を作らない。
+   - `currentState` の値だけでは、引き渡し処理の開始が確定したかどうかは判断できない
+   - ただし、`notification.not_cancellable` の拒否条件と組み合わせると、`currentState: scheduled` は開始が確定した状態を示す
+   - この解釈は既存の拒否条件 (R-EP-C-024) から導かれる。`scheduled` 自体の意味 (DR-13 決定 1) は変えない
+4. 決定 4: `currentState` は、判定した時点の状態である。
+   応答を受け取る時点まで、状態が変わらないことは保証しない。
+5. 決定 5: `currentState` を必須とする範囲は、`notification.not_cancellable` に限る。他のエラーには広げない。
+6. 決定 6: DR-13 決定 12 を、部分的に置き換える。置き換える範囲は次の 3 つである。
+   - 「示さないこと」のうち、通知の具体的な現在の状態を示さない部分
+   - 拒否の理由 (`cancelled`、`dispatched`・`missed`、開始が確定した `scheduled` の 3 分類) を、応答で区別しない部分
+   - 拒否応答から、終端状態が確定していることは導けないとする部分。`currentState` が `cancelled`・`dispatched`・`missed` のとき、判定した時点で終端状態にあることは導ける
+
+   決定 12 のその他の部分は変えない。
+   - 示すこと: そのキャンセルの要求が拒否された事実と、その要求が通知の状態を変えなかったこと
+   - 将来の終端状態を示さないこと
+   - `currentState` が `scheduled` の通知は、次の 3 つを保証しないこと
+     - 将来の終端状態
+     - 終端状態の確定までの時間
+     - 終端状態が確定すること自体
+   - 上の `scheduled` の通知とは、開始が確定した `scheduled` である。DR-12 に従って確定するまで、`scheduled` のまま残り得る
+
+   本 DR は Proposed の間、DR-13 の既存決定を変更しない。Accepted になった時点で、上の範囲の置き換えが発効する。
+7. 決定 7: `currentState` は、観測された通知の状態である。状態遷移の原因や、操作の主体を識別する情報ではない。
+   このため、DR-09 決定 3 と R-EP-C-044 は変更しない。
+
+### Scope
+
+- Applies to: `notification.not_cancellable` で拒否するキャンセルの応答に載せる、通知の状態の示し方
+- Consistency: 次のものは変えない。
+  - 拒否の条件と code (R-EP-C-024、R-EP-C-026、DR-13 決定 3・決定 8)
+  - キャンセルを冪等な成功にしない方針 (DD-EP-04)
+  - 結果未確定のときにクライアントが結論を出さないこと (DR-09 決定 2・決定 3、R-EP-C-044)
+  - 単体取得による確認が SHOULD であること (DR-09 決定 4、R-EP-C-031)
+  - 成功レスポンスへのメンバーの追加の規則 (DR-15)。本 DR は成功レスポンスにメンバーを加えない
+  - 対処方法を表す拡張メンバーを加えない方針 (DR-04 決定 2)。`currentState` は通知の状態であり、対処方法ではない
+  - 取得への反映の保証 (DR-16)
+- Relation to DR-13: 決定 6 の範囲で部分的に置き換える。Proposed の間は DR-13 の決定を変えず、Accepted になった時点で発効する。決定 12 以外の DR-13 の決定 (決定 1 の状態の定義を含む) は変えない
+- Relation to DR-16: 本 DR は取得 API に新たな同期保証を加えない。`currentState` は判定した時点に観測された状態であり、取得 API の結果との一致は、各 API の観測時点と DR-16 の反映保証に従う
+- Relation to DR-04: 新しいエラー識別子を追加しないため、識別子の追加の評価 (DR-04 決定 8) は要らない。
+  拡張メンバーの追加の互換性は、R-ER-C-050 と DR-04 決定 8・決定 9 の条件で評価する。
+  条件は、成功条件、再送時の保証、クライアントに求める対処を変えないことである
+- Not decided here:
+  - `currentState` のスキーマの具体的な記述 → specifications-errors.md (`/deckrd spec` で反映する)。型は JSON string、許容値は決定 3 の 4 値と本 DR で定める。JSON オブジェクトのメンバーの順序は規定しない
+  - 仕様反映時の確認: `currentState: scheduled` の拒否が、R-EP-C-024 の開始が確定した通知に限られること
+  - 規則の具体的な文言と規則 ID、DR-13 決定 12 を反映した仕様書の記述の書き直し → specifications-endpoints.md と specifications-errors.md (別の変更)
+  - 本 DR の変更の互換性の分類と版の更新 → specifications-governance.md の既存の規則による評価
+  - `notification.not_cancellable` 以外のエラーに状態を載せるか → 未定 (必要になった時点で DR を追加する)
+  - 複数のタブや端末からのキャンセルで、操作の主体を区別するか → specifications-endpoints.md §Open Questions #21
+  - 単体取得による確認の MUST 化 → 本 DR の対象外とする。SHOULD を維持し、MUST 化の判断は DR-09 決定 4 と DR-16 Scope に従って別途行う
+
+### Alternatives Considered
+
+比較した案は、次の 4 つ。
+
+| 案  | 内容                                                         | 判定   |
+| --- | ------------------------------------------------------------ | ------ |
+| (1) | 現状を維持する                                               | 不採用 |
+| (2) | 拒否の応答に現在の状態を載せる                               | 採用   |
+| (3) | `cancelled` のときだけ別の code にする                       | 不採用 |
+| (4) | `cancelled` へのキャンセルを 200 の冪等な成功にする (ALT-02) | 不採用 |
+
+- (1) 現状を維持する。「状態を区別したい」という要望を満たさないため不採用。
+- (3) `cancelled` のときだけ別の code にする。新しい code の追加になり、DR-04 (識別子の追加を無条件に後方互換としない) の判断が要るため不採用。
+- (4) `cancelled` へのキャンセルを 200 の冪等な成功にする。「今回成功したのか以前に成功したのか」を区別できなくなるため不採用。
+
+### Rationale
+
+採用する理由は、既存の code と拒否の条件を変えずに、状態を区別できることにある。
+新しい code を足さないため、識別子の追加の評価 (DR-04 決定 8) は要らない。
+
+状態を載せる形に拡張メンバーを使う理由は、エラー応答の拡張に既存の規則があることにある。
+クライアントは未知の拡張メンバーを無視する (R-ER-C-049)。
+拡張メンバーの追加は、既知のメンバー (`status`・`type`・`code`・`title`・`detail`・`instance`) の意味を変えない限り、後方互換な変更である (R-ER-C-050)。
+本 DR は、既知のメンバーの意味、拒否の条件、再送時の保証、クライアントに求める対処を変えない。
+
+`currentState` を必須にする理由は、任意にすると、状態を区別できない応答が残り、「状態を区別したい」という要望を満たせないことにある。
+必須の範囲を絞る理由は、本 DR の問題がこの code の拒否だけにあることにある。
+
+値を既存の状態の定義と一致させる理由は、通知の状態の語彙を 2 つ持たないことにある (R-EP-C-021)。
+
+判定した時点の状態とする理由は、応答を受け取る時点まで状態が変わらないことを、契約が保証できないことにある。
+
+`currentState` と単体取得・一覧取得の結果は、次の 2 つの理由で食い違い得る。2 つは別の問題。
+
+- 観測時点の違い: `currentState` は判定した時点の状態であり、取得は別の時点の状態を返す。本 DR の決定 4 が扱う
+- 反映の遅れ: 確定した終端状態の取得への反映は最終的であり、時間の上限はない (DR-16 決定 3)。本 DR は扱わず、DR-16 に従う
+
+本 DR は取得 API に新たな同期保証を加えない。
+なお、キャンセルが 200 を返した後に開始された取得では `cancelled` が保証される (DR-16 決定 2)。
+
+`currentState` の値だけでは、開始の確定は分からない。
+`notification.not_cancellable` の拒否は、R-EP-C-024 により、`scheduled` の通知については開始が確定した場合に限られる。
+そのため、この code の拒否と `currentState: scheduled` の組み合わせは、開始が確定したことを示す。
+`scheduled` の意味は変わらない (DR-13 決定 1)。
+
+DR-09 決定 3 と R-EP-C-044 を変えない理由は、`currentState` が観測された通知の状態であることにある。
+`currentState` は、状態遷移の原因や操作の主体を識別する情報ではない。
+そのため、`currentState` があっても、再送の拒否から最初のキャンセルの結果は判断できない。
+
+### Consequences
+
+- Positive:
+  - 3 分類に属する 4 つの通知状態 (`scheduled`・`dispatched`・`missed`・`cancelled`) を、拒否応答の `currentState` によって識別できる
+  - 新しいエラー code を追加しない
+  - 拒否の条件、DD-EP-04、R-EP-C-024、R-EP-C-026 を変えない
+- Negative:
+  - `currentState` は判定した時点の状態であり、応答を受け取る時点の状態とは限らない
+  - `currentState` は、観測時点の違いと、DR-16 が許す取得への反映の遅れ (決定 3) により、単体取得・一覧取得の結果と食い違い得る。本 DR は取得 API に新たな同期保証を加えない
+  - `currentState` の値からは、状態遷移の原因や操作の主体は分からない。複数のタブや端末からのキャンセルを区別することは、本 DR では解決しない
+  - 既存のクライアントが受け取る `notification.not_cancellable` の応答のメンバーが増える
+  - 本 DR を Accepted にすると、DR-13 決定 12 の記述と、仕様書の次の記述が食い違う。Accepted にする変更と同時に、仕様書を改訂する必要がある
+    - specifications-endpoints.md の拒否が示すことの記述 (拒否の理由を応答で区別しない旨を含む) と §Open Questions #34
+    - specifications-errors.md の `notification.not_cancellable` の記述
+- Revisit Trigger:
+  - `notification.not_cancellable` 以外のエラーにも、通知の状態を載せる必要が出たら、本 DR を見直す
+  - 複数のタブや端末からのキャンセル (§Open Questions #21) で、操作の主体の識別が必要になったら、本 DR を見直す
+  - 通知の状態の集合が変わったら、`currentState` の値の定義について本 DR を見直す
+  - 判定した時点と応答を受け取る時点の状態の食い違いが原因で、クライアントの判断に問題が実際に起きたら、本 DR を見直す
+
+### Open Questions
+
+- DR-16 の取得への反映保証について、specifications-governance.md 3.3.3 の G-04・G-08 は未確認であり、G-05 と issue #5 の組には矛盾が記録されている。これらの照合は未完了である。本 DR は新たな同期保証を追加せず、既存の DR-16 を前提とする。照合の結果、DR-16 の保証が変更された場合は、本 DR の Decision、Rationale、Consequences への影響を再評価する。
+
+### Related
+
+- requirements/requirements.md: REQ-F-006
+- requirements/requirements.md: REQ-F-007
+- specifications/specifications-endpoints.md: DD-EP-04
+- specifications/specifications-endpoints.md: DD-EP-08
+- specifications/specifications-endpoints.md: R-EP-C-021
+- specifications/specifications-endpoints.md: R-EP-C-024
+- specifications/specifications-endpoints.md: R-EP-C-026
+- specifications/specifications-endpoints.md: R-EP-C-031
+- specifications/specifications-endpoints.md: R-EP-C-044
+- specifications/specifications-endpoints.md: §Open Questions #21
+- specifications/specifications-endpoints.md: §Open Questions #34
+- specifications/specifications-errors.md: R-ER-C-014
+- specifications/specifications-errors.md: R-ER-C-049
+- specifications/specifications-errors.md: R-ER-C-050
+- decision-records.md: DR-04
+- decision-records.md: DR-09
+- decision-records.md: DR-13
+- decision-records.md: DR-15
+- decision-records.md: DR-16
+
+---
+
 <!--
 Append new DR sections right after the last DR (above `## Deleted Decision Records` if present,
 otherwise above `## Change History`).
@@ -2821,3 +3009,4 @@ instead of adding another one (guideline E-4).
 | 2026-11-15 | 2.2.0   | Add DR-14: 停止中・スリープ中に発火時刻を過ぎ、引き渡し処理を開始していない通知は再開後に遅れて引き渡し、発火時刻の判定はサーバーの時計で行う                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | 2026-11-15 | 2.3.0   | Add DR-15: 成功レスポンスへのメンバーの追加は後方互換とし、クライアントは成功レスポンスの未知のメンバーを無視しなければならない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | 2026-11-16 | 2.4.0   | Add DR-16: 成功応答の後に開始された取得に結果の反映を保証し、確定した終端状態は最終的に反映して `scheduled` に戻さない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2026-11-16 | 2.5.0   | Add DR-17: `notification.not_cancellable` の拒否応答に、判定した時点の通知の状態を `currentState` として載せる                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |

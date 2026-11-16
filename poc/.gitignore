@@ -1,0 +1,21 @@
+# src: .gitignore
+# @(#) : ignore for PoC Obj/Bin
+#
+# Copyright (c) 2026- atsushifx <http://github.com/atsushifx>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+## C#/C++ PoC
+# track sourcecode, project
+!**/*.csproj
+!**/*.ps1
+!**/*.cs
+!**/*.cpp
+
+
+
+# ignore system output directory
+**/bin/
+**/obj/
+**/out/

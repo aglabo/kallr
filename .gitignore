@@ -123,9 +123,6 @@
 ## Project Specific: allow all files in the project directories
 !/poc/
 !/poc/**
-!/poc/**/*.cs
-!/poc/**/*.csproj
-
 
 ## ------------------------------------------------------------
 ##  Re-exclude: secrets and generated files

@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 2.6.0
+version: 3.0.0
 created: "2026-11-14"
 ---
 
@@ -1979,7 +1979,7 @@ OS ごとに条件を変えると、同じ事象の状態が端末によって�
 ## DR-13: 引き渡し処理の開始が確定した後は、終端状態が確定するまでキャンセルを拒否する - 2026-11-15 15:08:18
 
 **Phase**: spec
-**Status**: Accepted
+**Status**: Partially superseded by DR-17（決定 12）
 
 ### Context
 
@@ -3193,3 +3193,4 @@ instead of adding another one (guideline E-4).
 | 2026-11-16 | 2.4.0   | Add DR-16: 成功応答の後に開始された取得に結果の反映を保証し、確定した終端状態は最終的に反映して `scheduled` に戻さない                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | 2026-11-16 | 2.5.0   | Add DR-17: `notification.not_cancellable` の拒否応答に、判定した時点の通知の状態を `currentState` として載せる                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | 2026-11-16 | 2.6.0   | Add DR-18: 同一通知について引き渡し処理の開始の確定を高々 1 回とすることを、外部から観測できる保証として API 契約に含める                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 2026-11-16 | 3.0.0   | DR-17 の Accepted に伴い、DR-13 の Status を `Partially superseded by DR-17（決定 12）` に更新 (DR-authoring E-1)。置き換えるのは DR-13 決定 12 のうち DR-17 決定 6 が定める範囲だけで、決定 1〜11 と決定 13 は有効のまま。DR-13 の本文は変えない。既存 DR の Supersede のため MAJOR (E-4)                                                                                                                                                                                                                                                                                                                                                                              |

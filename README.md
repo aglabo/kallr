@@ -1,5 +1,6 @@
-# keneek (/kəˈniːk/)
+# Kallr
 
-**Pronunciation**: /kəˈniːk/ (keh-NEEK)
+**Pronunciation:** /ˈkɑːlər/ (KAHL-er)
 
-A Flutter-based, cross-platform local notification service for PWAs with offline scheduling.
+A cross-platform local notification service.
+

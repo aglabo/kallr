@@ -17,6 +17,8 @@
     // Programming languages
     "**/*.js",
     "**/*.ts",
+    "**/*.cs",
+    "**/*.cpp",
     // Config files
     "**/*.json",
     "**/*.jsonc",
@@ -42,11 +44,13 @@
   ],
   // Plugins
   "plugins": [
-    "npm:@dprint/typescript@0.100.0",
+    "npm:@dprint/typescript@0.101.0",
     "npm:@dprint/json@0.26.0",
     "npm:@dprint/markdown@0.29.0",
     "npm:dprint-plugin-yaml@0.6.0",
     "npm:@dprint/toml@0.10.0",
+    "npm:@dprint/clang-format@0.3.1",
+    "npm:@dprint/roslyn@0.24.1",
   ],
   // Language-specific settings
   "typescript": {

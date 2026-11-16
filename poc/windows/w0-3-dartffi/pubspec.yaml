@@ -1,0 +1,7 @@
+name: w03
+description: PoC W0-3 - schedule a toast from Dart FFI (same operations as W0-1)
+publish_to: none
+environment:
+  sdk: ^3.5.0
+dependencies:
+  ffi: ^2.1.0

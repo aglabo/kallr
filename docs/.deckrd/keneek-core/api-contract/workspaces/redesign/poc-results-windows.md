@@ -1,6 +1,6 @@
 ---
 title: "PoC Results: Windows"
-description: "Windows の PoC の結果。現時点では PoC-W0 手順 1 (.NET / C# コンソールからの AddToSchedule) と手順 2 (MSIX と未パッケージの比較)"
+description: "Windows の PoC の結果。現時点では PoC-W0 手順 1 (.NET / C# コンソールからの AddToSchedule)、手順 2 (MSIX と未パッケージの比較)、手順 3 (Dart FFI からの AddToSchedule)"
 date: "2026-11-17"
 status: draft
 ---
@@ -136,3 +136,71 @@ status: draft
 
 - MSIX: パッケージ `Kallr.Poc.W02` と、証明書 `CN=KallrPoc` (`LocalMachine\TrustedPeople` と `CurrentUser\My`) は削除済み
 - 未パッケージ: レジストリキーは `unregister-reg` で削除済み
+
+## PoC-W0 手順 3: Dart FFI から `AddToSchedule()` を呼ぶ
+
+調査メモ: 6.1。Issue: #17。手順 1 (#13) の結果が前提。
+
+### 環境
+
+- Windows 11 Pro 10.0.22621
+- Dart SDK 3.14.0 (`dart run` による実行。AOT コンパイルした exe は試していない)
+- 依存は `package:ffi` のみ。WinRT のバインディング用パッケージは使っていない
+- コード: `poc/windows/w0-3-dartffi/` (ブランチ `chore-17/poc/dart-ffi`)
+- 形態: パッケージ化なしの `dart.exe` プロセス。AUMID は手順 1 と同じ `Kallr.Poc.W01`
+
+### 実装方式
+
+- `combase.dll` の `RoGetActivationFactory`・`RoActivateInstance`・`WindowsCreateString` などを `dart:ffi` で直接呼ぶ
+- WinRT のインターフェースは、IID と vtable の位置を手で書いて呼ぶ。
+  対象は `ToastNotificationManager`、`ToastNotifier`、`ScheduledToastNotification` ほか
+- `win32` パッケージ 5.15.0 は `combase` と `IInspectable` までを持つが、トースト関連のインターフェースは含まない。そのため使わなかった (6.x は未確認)
+
+### 手順と結果
+
+手順 1 と同じ入力 (`--at`・`--title`・`--batch`・`--alarm`) で、同じ操作をした。
+
+| # | 内容                                                                | 結果                                                                            |
+| - | ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 1 | `list` (予約なし)                                                   | 例外なし。出力は空                                                              |
+| 2 | 約 3 分後の toast を `add` (group `B1`、tag `A1`)                   | 例外なし。Dart の `list` に予約が出た                                           |
+| 3 | 手順 2 の予約を、手順 1 の C# 版 `W01.exe list` で確認する          | group・tag・時刻が一致した (Dart の予約を WinRT 側が同内容で認識)               |
+| 4 | Dart の `cancel --batch B1 --alarm A1`                              | `removed`。C# 版の `list` は空になった                                          |
+| 5 | 過去の時刻 (`2020-01-01 00:00`) で `add`                            | `0x80070057` (`CreateScheduledToastNotification` の時点)。手順 2 の C# 版と同じ |
+| 6 | レジストリ登録 (`register-reg`) の後に即時の toast (`show`)         | 表示された (利用者の目視)                                                       |
+| 7 | 手順 6 の直後に、約 90 秒後の toast を `add` (group `B2`、tag `A2`) | 指定時刻に表示された (利用者の目視)                                             |
+
+- 手順 7 の `add` のプロセスは、予約の作成後すぐに終了している。toast は、そのプロセスが存在しない状態で表示された (W2 の予備的な所見。W2 としての合否はまだ判定しない)
+- 時刻の扱いは手順 1 と同じ (オフセットなしは JST とみなす)
+
+### 制約と気付き
+
+- Dart FFI から `AddToSchedule()` を呼べた。手順 1 の C# 版と同じ操作 (`add`・`list`・`cancel`・`show`) が通った
+- .NET の部分は不要だった。Dart 単独で WinRT の予約通知に届く
+- 手書きのバインディングは、IID と vtable の位置を間違えても、コンパイルでは検出できない
+  - 手順 3 (C# 版との照合) で、`IScheduledToastNotification2` の順序が正しいと確認できた。
+    対象は `put_Tag`/`get_Tag`/`put_Group`/`get_Group` である
+  - ほかのインターフェースの位置は、実際に呼べたことで確認した範囲にとどまる
+- 本番で使う場合の保守の方法 (バインディングの生成、パッケージの採用) は未検討
+- 参照の解放 (`Release`) は PoC では一部しか行っていない。長時間動くサーバーでは、リークの扱いを決める必要がある
+- toast の表示には、手順 1 と同じく AUMID の登録 (HKCU のレジストリ) が要った。登録していない状態での Dart からの表示は、確かめていない (手順 2 で予約した toast は、表示の確認前に取り消した)
+
+### 調査メモで未確認とされた事項
+
+| 事項                                           | 実機の結果                                                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------------- |
+| Dart の FFI から WinRT の予約通知 API に届くか | 届いた。`combase.dll` の直接呼び出しで、予約・一覧・取り消し・表示ができた |
+| Dart から予約した toast が、指定時刻に出るか   | 出た (AUMID をレジストリに登録した状態)                                    |
+
+### 設計への影響
+
+- W0 手順 3 は合格。Core を Dart に統一する案は、Windows の予約通知については成立する
+- Dart 単独で、手順 1 と同じ AUMID の登録方式 (HKCU のレジストリ) が使える。.NET の実行環境は要らない
+- 手順 4 (Dart の HTTP サーバーへの統合、PoC-W6) に進める
+- 未確認: パッケージ化 (MSIX) した Dart のプロセスからの呼び出し。`dart.exe` はパッケージ化されていないため、MSIX の AUMID を使う構成は別に確かめる必要がある
+- 未確認: AOT コンパイルした exe からの呼び出し
+
+### 後始末
+
+- レジストリキー `HKCU\Software\Classes\AppUserModelId\Kallr.Poc.W01` は `unregister-reg` で削除済み
+- 予約は、取り消しまたは発火により残っていない (`list` で確認済み)

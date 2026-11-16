@@ -12,10 +12,11 @@
 !**/*.ps1
 !**/*.cs
 !**/*.cpp
-
+!**/*.dart
 
 
 # ignore system output directory
 **/bin/
 **/obj/
 **/out/
+**/.dart_tool/

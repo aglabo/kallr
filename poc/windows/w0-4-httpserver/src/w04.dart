@@ -17,7 +17,8 @@ String? opt(List<String> args, String name) {
 /// Runs a W0-3 command and captures what it writes to stdout.
 ({int code, String out}) callW03(List<String> args) {
   final buf = StringBuffer();
-  final code = IOOverrides.runZoned(() => w03.run(args), stdout: () => _Capture(buf));
+  final code =
+      IOOverrides.runZoned(() => w03.run(args), stdout: () => _Capture(buf));
   return (code: code, out: buf.toString());
 }
 
@@ -32,7 +33,8 @@ class _Capture implements Stdout {
   dynamic noSuchMethod(Invocation i) => null;
 }
 
-Future<void> json(HttpResponse r, int status, Object body, [Map<String, String> h = const {}]) async {
+Future<void> json(HttpResponse r, int status, Object body,
+    [Map<String, String> h = const {}]) async {
   r.statusCode = status;
   r.headers.contentType = ContentType.json;
   h.forEach(r.headers.set);
@@ -51,7 +53,8 @@ void main(List<String> args) async {
     final origin = req.headers.value('origin');
     final r = req.response;
     final ok = origin != null && allowed.contains(origin);
-    stdout.writeln('${req.method} ${req.uri.path} origin=$origin -> ${ok ? 'allowed' : 'REJECT'}'
+    stdout.writeln(
+        '${req.method} ${req.uri.path} origin=$origin -> ${ok ? 'allowed' : 'REJECT'}'
         ' [pna=${req.headers.value('access-control-request-private-network')}]');
     if (!ok) {
       // No CORS headers on purpose: a browser then blocks the response, the server log / curl shows the 403 body.
@@ -71,15 +74,21 @@ void main(List<String> args) async {
     }
     try {
       if (req.uri.path == '/schedules' && req.method == 'POST') {
-        final b = jsonDecode(await utf8.decoder.bind(req).join()) as Map<String, dynamic>;
+        final b = jsonDecode(await utf8.decoder.bind(req).join())
+            as Map<String, dynamic>;
         final res = callW03([
           'add',
-          '--at', b['at'] as String,
-          '--title', (b['title'] ?? 'PoC W0-4') as String,
-          '--batch', (b['batch'] ?? 'B') as String,
-          '--alarm', (b['alarm'] ?? 'A') as String,
+          '--at',
+          b['at'] as String,
+          '--title',
+          (b['title'] ?? 'PoC W0-4') as String,
+          '--batch',
+          (b['batch'] ?? 'B') as String,
+          '--alarm',
+          (b['alarm'] ?? 'A') as String,
         ]);
-        return await json(r, res.code == 0 ? 201 : 500, {'exit': res.code, 'out': res.out.trim()}, cors);
+        return await json(r, res.code == 0 ? 201 : 500,
+            {'exit': res.code, 'out': res.out.trim()}, cors);
       }
       if (req.uri.path == '/schedules' && req.method == 'GET') {
         final res = callW03(['list']);

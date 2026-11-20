@@ -16,17 +16,21 @@ const defaultAumid = 'Kallr.Poc.W01';
 // ---- combase.dll ----------------------------------------------------------
 final _combase = DynamicLibrary.open('combase.dll');
 
-final _roInitialize = _combase.lookupFunction<Int32 Function(Int32), int Function(int)>('RoInitialize');
+final _roInitialize = _combase
+    .lookupFunction<Int32 Function(Int32), int Function(int)>('RoInitialize');
 final _roGetActivationFactory = _combase.lookupFunction<
     Int32 Function(IntPtr, Pointer<Guid>, Pointer<Pointer>),
-    int Function(int, Pointer<Guid>, Pointer<Pointer>)>('RoGetActivationFactory');
-final _roActivateInstance = _combase.lookupFunction<Int32 Function(IntPtr, Pointer<Pointer>),
+    int Function(
+        int, Pointer<Guid>, Pointer<Pointer>)>('RoGetActivationFactory');
+final _roActivateInstance = _combase.lookupFunction<
+    Int32 Function(IntPtr, Pointer<Pointer>),
     int Function(int, Pointer<Pointer>)>('RoActivateInstance');
 final _windowsCreateString = _combase.lookupFunction<
     Int32 Function(Pointer<Utf16>, Uint32, Pointer<IntPtr>),
     int Function(Pointer<Utf16>, int, Pointer<IntPtr>)>('WindowsCreateString');
 final _windowsDeleteString =
-    _combase.lookupFunction<Int32 Function(IntPtr), int Function(int)>('WindowsDeleteString');
+    _combase.lookupFunction<Int32 Function(IntPtr), int Function(int)>(
+        'WindowsDeleteString');
 final _windowsGetStringRawBuffer = _combase.lookupFunction<
     Pointer<Utf16> Function(IntPtr, Pointer<Uint32>),
     Pointer<Utf16> Function(int, Pointer<Uint32>)>('WindowsGetStringRawBuffer');
@@ -91,14 +95,16 @@ Pointer<NativeFunction<T>> _slot<T extends Function>(Pointer obj, int index) {
   return vtbl[index].cast<NativeFunction<T>>();
 }
 
-int release(Pointer obj) =>
-    _slot<Uint32 Function(Pointer)>(obj, 2).asFunction<int Function(Pointer)>()(obj);
+int release(Pointer obj) => _slot<Uint32 Function(Pointer)>(obj, 2)
+    .asFunction<int Function(Pointer)>()(obj);
 
 Pointer queryInterface(Pointer obj, String iid) {
   final g = guid(iid);
   final out = calloc<Pointer>();
-  final hr = _slot<Int32 Function(Pointer, Pointer<Guid>, Pointer<Pointer>)>(obj, 0)
-      .asFunction<int Function(Pointer, Pointer<Guid>, Pointer<Pointer>)>()(obj, g, out);
+  final hr = _slot<Int32 Function(Pointer, Pointer<Guid>, Pointer<Pointer>)>(
+              obj, 0)
+          .asFunction<int Function(Pointer, Pointer<Guid>, Pointer<Pointer>)>()(
+      obj, g, out);
   check(hr, 'QueryInterface $iid');
   final r = out.value;
   calloc.free(g);
@@ -128,7 +134,8 @@ void callPtr(Pointer obj, int index, Pointer arg, String where) => check(
 void callHstr(Pointer obj, int index, String value, String where) {
   final h = hstr(value);
   check(
-      _slot<Int32 Function(Pointer, IntPtr)>(obj, index).asFunction<int Function(Pointer, int)>()(obj, h),
+      _slot<Int32 Function(Pointer, IntPtr)>(obj, index)
+          .asFunction<int Function(Pointer, int)>()(obj, h),
       where);
   _windowsDeleteString(h);
 }
@@ -172,7 +179,8 @@ Pointer factory(String className, String iid) {
   final cn = hstr(className);
   final g = guid(iid);
   final out = calloc<Pointer>();
-  check(_roGetActivationFactory(cn, g, out), 'RoGetActivationFactory $className');
+  check(
+      _roGetActivationFactory(cn, g, out), 'RoGetActivationFactory $className');
   final r = out.value;
   _windowsDeleteString(cn);
   calloc.free(g);
@@ -208,12 +216,14 @@ Pointer createXml(String xml) {
 }
 
 Pointer createNotifier(String aumid) {
-  final statics = factory('Windows.UI.Notifications.ToastNotificationManager', iidToastManagerStatics);
+  final statics = factory('Windows.UI.Notifications.ToastNotificationManager',
+      iidToastManagerStatics);
   final h = hstr(aumid);
   final out = calloc<Pointer>();
   check(
       _slot<Int32 Function(Pointer, IntPtr, Pointer<Pointer>)>(statics, 7)
-          .asFunction<int Function(Pointer, int, Pointer<Pointer>)>()(statics, h, out),
+              .asFunction<int Function(Pointer, int, Pointer<Pointer>)>()(
+          statics, h, out),
       'CreateToastNotifierWithId');
   final n = out.value;
   _windowsDeleteString(h);
@@ -224,9 +234,11 @@ Pointer createNotifier(String aumid) {
 
 // ---- time ------------------------------------------------------------------
 const _ticksBetween1601And1970 = 116444736000000000; // 100 ns units
-int toWinRtTicks(DateTime utc) => utc.microsecondsSinceEpoch * 10 + _ticksBetween1601And1970;
+int toWinRtTicks(DateTime utc) =>
+    utc.microsecondsSinceEpoch * 10 + _ticksBetween1601And1970;
 DateTime fromWinRtTicks(int t) =>
-    DateTime.fromMicrosecondsSinceEpoch((t - _ticksBetween1601And1970) ~/ 10, isUtc: true);
+    DateTime.fromMicrosecondsSinceEpoch((t - _ticksBetween1601And1970) ~/ 10,
+        isUtc: true);
 
 /// No offset in the input (e.g. "2026-11-16 23:30") is read as Japan Standard Time (as in W0-1).
 DateTime parseAt(String raw) {
@@ -269,7 +281,8 @@ List<Scheduled> scheduled(Pointer notifier) {
     final out = calloc<Pointer>();
     check(
         _slot<Int32 Function(Pointer, Uint32, Pointer<Pointer>)>(vec, 6)
-            .asFunction<int Function(Pointer, int, Pointer<Pointer>)>()(vec, i, out),
+                .asFunction<int Function(Pointer, int, Pointer<Pointer>)>()(
+            vec, i, out),
         'IVectorView.GetAt');
     final item = out.value;
     calloc.free(out);
@@ -290,7 +303,8 @@ List<Scheduled> scheduled(Pointer notifier) {
 
 int run(List<String> args) {
   if (args.isEmpty) {
-    stderr.writeln('usage: add|show|list|cancel|register-reg|unregister-reg ...');
+    stderr
+        .writeln('usage: add|show|list|cancel|register-reg|unregister-reg ...');
     return 1;
   }
   final aumid = opt(args, 'aumid') ?? defaultAumid;
@@ -300,12 +314,14 @@ int run(List<String> args) {
 
   switch (args[0]) {
     case 'register-reg':
-      final r = Process.runSync('reg', ['add', regKey, '/v', 'DisplayName', '/d', 'Kallr PoC W03', '/f']);
+      final r = Process.runSync('reg',
+          ['add', regKey, '/v', 'DisplayName', '/d', 'Kallr PoC W03', '/f']);
       stdout.write(r.stdout);
       return r.exitCode;
     case 'unregister-reg':
       final r = Process.runSync('reg', ['delete', regKey, '/f']);
-      stdout.writeln(r.exitCode == 0 ? 'registry key removed' : 'registry key not found');
+      stdout.writeln(
+          r.exitCode == 0 ? 'registry key removed' : 'registry key not found');
       return 0;
   }
 
@@ -319,12 +335,14 @@ int run(List<String> args) {
       final title = opt(args, 'title') ?? 'PoC W0-3';
       final xml = createXml(
           '<toast><visual><binding template="ToastGeneric"><text>${esc(title)}</text></binding></visual></toast>');
-      final f = factory('Windows.UI.Notifications.ScheduledToastNotification', iidScheduledFactory);
+      final f = factory('Windows.UI.Notifications.ScheduledToastNotification',
+          iidScheduledFactory);
       final out = calloc<Pointer>();
       check(
           _slot<Int32 Function(Pointer, Pointer, Int64, Pointer<Pointer>)>(f, 6)
-              .asFunction<int Function(Pointer, Pointer, int, Pointer<Pointer>)>()(
-                  f, xml, toWinRtTicks(at), out),
+                  .asFunction<
+                      int Function(Pointer, Pointer, int, Pointer<Pointer>)>()(
+              f, xml, toWinRtTicks(at), out),
           'CreateScheduledToastNotification');
       final toast = out.value;
       calloc.free(out);
@@ -332,23 +350,29 @@ int run(List<String> args) {
       callHstr(t2, 6, alarm, 'put_Tag');
       callHstr(t2, 8, batch, 'put_Group');
       callPtr(notifier, 9, toast, 'AddToSchedule');
-      stdout.writeln('scheduled: aumid=$aumid group=$batch tag=$alarm at=${fmtJst(at)}');
+      stdout.writeln(
+          'scheduled: aumid=$aumid group=$batch tag=$alarm at=${fmtJst(at)}');
       return 0;
     case 'show':
       final xml = createXml(
           '<toast><visual><binding template="ToastGeneric"><text>PoC W0-3 immediate</text></binding></visual></toast>');
-      final f = factory('Windows.UI.Notifications.ToastNotification', iidToastFactory);
+      final f = factory(
+          'Windows.UI.Notifications.ToastNotification', iidToastFactory);
       final out = calloc<Pointer>();
       check(
           _slot<Int32 Function(Pointer, Pointer, Pointer<Pointer>)>(f, 6)
-              .asFunction<int Function(Pointer, Pointer, Pointer<Pointer>)>()(f, xml, out),
+              .asFunction<
+                  int Function(
+                      Pointer, Pointer, Pointer<Pointer>)>()(f, xml, out),
           'CreateToastNotification');
       callPtr(notifier, 6, out.value, 'Show');
-      stdout.writeln('shown: aumid=$aumid setting=${getInt32(notifier, 8, 'get_Setting')}');
+      stdout.writeln(
+          'shown: aumid=$aumid setting=${getInt32(notifier, 8, 'get_Setting')}');
       return 0;
     case 'list':
       for (final t in scheduled(notifier)) {
-        stdout.writeln('aumid=$aumid group=${t.group} tag=${t.tag} at=${fmtJst(t.at)}');
+        stdout.writeln(
+            'aumid=$aumid group=${t.group} tag=${t.tag} at=${fmtJst(t.at)}');
       }
       return 0;
     case 'cancel':

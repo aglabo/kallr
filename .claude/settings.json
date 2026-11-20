@@ -17,6 +17,8 @@
       "Bash(gh repo view:*)",
       "Bash(node:*)",
       "Bash(pnpm:*)",
+      "Bash(dart test:*)",
+      "Bash(dart format:*)",
       "Read(docs/**)"
     ],
     "defaultMode": "plan",

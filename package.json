@@ -1,8 +1,8 @@
 {
-  "name": "@aglabo/keneek",
+  "name": "@aglabo/kallr",
   "version": "0.0.1",
   "private": true,
-  "description": "keneek: cross-platform notification tool for PWAs",
+  "description": "kallr: cross-platform local notification service",
   "keywords": [
     "oss",
     "notification",
@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/aglabo/keneek.git"
+    "url": "https://github.com/aglabo/kallr.git"
   },
   "type": "module",
   "scripts": {
@@ -30,8 +30,9 @@
     "lint:spells": "cspell --config .vscode/cspell.json --cache --cache-location .cache/cspell/cSpellCache ",
     "lint:text": "cross-env MSYS='NOGLOB' bash runners/run-textlint.sh ",
     "lint:markdown": "cross-env MSYS='NOGLOB' bash runners/run-markdownlint.sh ",
-    "check:dart": "dart format --output=none --set-exit-if-changed apps packages",
-    "format:dart": "dart format apps packages"
+    "check:dart": "dart format --output=none --set-exit-if-changed apps packages poc",
+    "format:dart": "dart format apps packages poc",
+    "test:dart": "pnpm --dir poc/windows/w1-w7-verify run test"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.4"
@@ -40,5 +41,5 @@
   "engines": {
     "pnpm": ">=12"
   },
-  "@(#)": "keneek: cross-platform notification tool for PWAs"
+  "@(#)": "kallr: cross-platform local notification service"
 }

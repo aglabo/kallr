@@ -10,7 +10,7 @@
 **作る内容**
 
 - `requirements.md`
-  - テンプレートの 11 節を、LANG=ja・見出しは英語・図は ASCII で埋めます。
+  - テンプレートの 11 節を、LANG=ja で埋めます。見出しを英語、図を ASCII にします。
   - Functional Requirements は EARS 形式にします。対象は次のとおりです。
     - `add` / `cancel` の追加
     - W1〜W4(a〜e)
@@ -30,4 +30,4 @@
   - DR-03: W7 は再起動とログオフの両方
   - DR-04: 合否は W1〜W4 のみ
 
-承認をもらったら、`deckrd-rule-workflow.md` など 3 本のルールと DR 作成ガイドラインを先に読んでから書きます。その後、ID の重複、EARS の GIVEN/THEN、version と Change History の一致、markdownlint、`apps/` と `packages/` に変更がないことを確認します。
+承認をもらったら、`deckrd-rule-workflow.md` など 3 本のルールと DR 作成ガイドラインを先に読んでから書きます。その後、ID の重複と EARS の GIVEN/THEN を確認します。version と Change History の一致、markdownlint も確認します。`apps/` と `packages/` に変更がないことも確認します。

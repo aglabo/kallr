@@ -1,13 +1,17 @@
-計画を `C:\Users\atsushifx\.claude\plans\prompt-stateless-bachman.md` に書きました。プランモードのため、`requirements.md` と `decision-records.md` はまだ作っていません。plan 承認用の ExitPlanMode ツールがこの環境では使えませんでした。このメッセージで承認をお願いします。
+# Requirements: windows-dist-verify
 
-**確認で見つけたこと**
+計画を `C:\Users\atsushifx\.claude\plans\prompt-stateless-bachman.md` に書きました。
+プランモードのため、`requirements.md` と `decision-records.md` はまだ作っていません。
+plan 承認用の ExitPlanMode ツールがこの環境では使えませんでした。このメッセージで承認をお願いします。
+
+## 確認で見つけたこと
 
 - `docs/.deckrd/kallr/windows-dist-verify/requirements/requirements.md` が既にあります。ただし中身は要件文書ではなく、以前の計画メッセージ(チャット文)でした。新規作成ではなく、全面上書きが必要です。
 - `decision-records.md` はモジュール直下にまだありません。
 - `module.md` は雛形のままです(`owns` が TODO)。今回は変更しません。
 - `poc-results-windows.md` への追記は実装フェーズで行います。今回は触りません。
 
-**作る内容**
+## 作る内容
 
 - `requirements.md`
   - テンプレートの 11 節を、LANG=ja で埋めます。見出しを英語、図を ASCII にします。
@@ -30,4 +34,7 @@
   - DR-03: W7 は再起動とログオフの両方
   - DR-04: 合否は W1〜W4 のみ
 
-承認をもらったら、`deckrd-rule-workflow.md` など 3 本のルールと DR 作成ガイドラインを先に読んでから書きます。その後、ID の重複と EARS の GIVEN/THEN を確認します。version と Change History の一致、markdownlint も確認します。`apps/` と `packages/` に変更がないことも確認します。
+承認をもらったら、`deckrd-rule-workflow.md` など 3 本のルールと DR 作成ガイドラインを先に読んでから書きます。
+その後、ID の重複と EARS の GIVEN/THEN を確認します。
+version と Change History の一致、markdownlint も確認します。
+`apps/` と `packages/` に変更がないことも確認します。

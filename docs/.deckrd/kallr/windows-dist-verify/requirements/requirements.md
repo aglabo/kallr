@@ -2,7 +2,7 @@
 title: "Requirements: Windows Distribution Verify"
 module: "kallr/windows-dist-verify"
 status: Draft
-version: 1.0.0
+version: 1.1.1
 created: "2026-11-20"
 ---
 
@@ -26,7 +26,7 @@ Windows で OS の予約通知 (AddToSchedule) を、採用する配布形式 (�
 - W5 (AUMID・インストール方式・実行権限の記録と整合チェック)
 - W7 (再起動またはログオフ後の予約と、一括再登録による復旧の記録)
 - 任意の測定 (過去時刻、予約一覧、配信猶予) の記録
-- OS に依存しない純粋なロジック (Tag の生成) の実装
+- Tag の生成、対応表、予約の追加・置換・取り消し、通知可否の確認のインターフェースの実装 (テスト駆動)
 - 結果の `poc-results-windows.md` への追記
 
 **Out of Scope**:
@@ -458,7 +458,7 @@ ToastNotifier.Setting (通知の有効・無効) を使って確認する。
 ```
 
 **Rationale**: OS 固有の確認を本体から分離する (DR-06)。他の OS (Android など) の実装と差し替えられる。
-インターフェースは偽の実装に差し替えられるため、本体の判断を自動テストで確認できる。
+インターフェースは Mock に差し替えられるため、本体の判断を自動テストで確認できる。
 Android の実装は本検証の対象外とする。
 
 **Acceptance Criteria**:
@@ -471,7 +471,7 @@ Android の実装は本検証の対象外とする。
 
 ### REQ-NF-001: Maintainability
 
-実装は保守可能であるべきである (SHOULD)。OS に依存しない純粋なロジックは Tag の生成のみとし、FFI の呼び出しから分離する。
+実装は保守可能であるべきである (SHOULD)。OS 固有の呼び出し (FFI) は、インターフェースの背後に置き、OS に依存しないロジックから分離する。
 通知可否の確認とレジストリの操作は、仮想化したインターフェースの背後に置く (REQ-F-021)。
 
 ### REQ-NF-002: Testability
@@ -498,7 +498,7 @@ PoC のコードを `apps/` と `packages/` に置いてはならない。
 
 ### REQ-C-002: テスト駆動の範囲
 
-OS に依存しない純粋なロジック (Tag の生成) だけをテスト駆動で実装する。
+実装は、可能な限りすべて、テスト駆動 (BDD の RGR サイクル) で行う。インターフェースの背後にある OS 固有の部分は、Mock でテストする。
 FFI の呼び出しと実機での確認 (kill、再起動、ログオフ) は手動検証とする。
 
 ### REQ-C-003: ラベルの扱い
@@ -561,9 +561,9 @@ Scenario: 通知の設定が無効なら add が失敗する
 # AC-013: Kallr は仮想化したインターフェースだけを使う
 # Requirement: REQ-F-021
 Scenario: Kallr は仮想化したインターフェースだけを使う
-  Given 通知可否の確認が、偽の実装 (テスト用) に差し替えられている
+  Given 通知可否の確認が、Mock に差し替えられている
   When  add を実行する
-  Then  偽の実装の戻り値に従って add が成功または失敗し、レジストリと Windows API は呼ばれない
+  Then  Mock の戻り値に従って add が成功または失敗し、レジストリと Windows API は呼ばれない
 
 # AC-005: W5 の記録の不一致が記録の誤りとして扱われる
 # Requirement: REQ-F-011
@@ -678,6 +678,8 @@ Scenario: 2 回目の起動では同じマシン ID を使う
      Keep frontmatter `version` equal to the newest row below.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                            |
-| ---------- | ------- | ------------------------------------------------------ |
-| 2026-11-20 | 1.0.0   | Initial release (計画メッセージ(チャット文)を全面置換) |
+| Date       | Version | Description                                                                                        |
+| ---------- | ------- | -------------------------------------------------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial release (計画メッセージ(チャット文)を全面置換)                                             |
+| 2026-11-20 | 1.1.0   | Revise REQ-C-002, REQ-NF-001: test-driven development applies to all implementation where possible |
+| 2026-11-20 | 1.1.1   | Clarify the term: use Mock instead of 偽の実装                                                     |

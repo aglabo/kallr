@@ -2,7 +2,7 @@
 title: "Decision Records: kallr/windows-dist-verify"
 module: "kallr/windows-dist-verify"
 status: Active
-version: 1.0.1
+version: 1.0.2
 created: "2026-11-20"
 ---
 
@@ -416,10 +416,10 @@ poc-plan.md の W4 (e) は、この 4 つを「旧予約が残る」「新予約
 - requirements/requirements.md: REQ-F-009
 - requirements/requirements.md: REQ-F-020
 - decision-records.md: DR-04
-- universal-dictionary.md: UD-009
-- universal-dictionary.md: UD-010
-- universal-dictionary.md: UD-011
-- universal-dictionary.md: UD-012
+- universal-dictionary.md: UD-RPL-001
+- universal-dictionary.md: UD-RPL-002
+- universal-dictionary.md: UD-RPL-003
+- universal-dictionary.md: UD-RPL-004
 - GitHub Issue: #19
 
 ---
@@ -474,7 +474,7 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 
 ### Decision
 
-1. 決定 1: 通知可否の確認 (UD-013) と、AUMID の登録・確認・削除は、OS 非依存のインターフェースとして共通ライブラリに置く。
+1. 決定 1: 通知可否の確認 (UD-NTF-001) と、AUMID の登録・確認・削除は、OS 非依存のインターフェースとして共通ライブラリに置く。
 2. 決定 2: Kallr の本体 (add、cancel など) は、そのインターフェースだけを使う。
 3. 決定 3: Windows 向けの実装は、HKCU のレジストリ (AUMID の存在と DisplayName) と、ToastNotifier.Setting (通知の有効・無効) で確認する。
 4. 決定 4: Android など Windows 以外の実装は、本モジュールの対象外とする。
@@ -485,7 +485,7 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 - Not decided here:
   - 共通ライブラリの置き場所と、インターフェースの形 → requirements.md の Open Questions で扱う
   - Android を実装するモジュールと時期 → 未定
-  - 集中モードとロック状態の確認 → 本モジュールでは対象外 (UD-013)。Setting には出ない
+  - 集中モードとロック状態の確認 → 本モジュールでは対象外 (UD-NTF-001)。Setting には出ない
 
 ### Alternatives Considered
 
@@ -501,7 +501,7 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 最大の理由は、OS ごとに異なる確認の手段を、本体から切り離して共通のインターフェースの背後へ置く点だ。
 
 - Kallr は複数の OS への対応を候補にしている (DR-02)。インターフェースを使えば、他の OS の実装に差し替えられる。
-- インターフェースを Mock (UD-014) へ差し替えられるので、本体の判断を OS から独立して自動テストできる。
+- インターフェースを Mock (UD-TST-001) へ差し替えられるので、本体の判断を OS から独立して自動テストできる。
 - レジストリの確認だけでは、通知の設定が無効かは分からない。Setting は無効の理由まで返すので、Setting も使う。
 - Setting だけでは、AUMID の未登録を検出できない。U3 では、未登録でも Setting が有効を返し、通知が出なかった。そのため、レジストリの確認も必要になる。
 - 過去の PoC では、AUMID が未登録でも add が成功した。通知できない状態は、add の前に検出する必要がある。
@@ -525,8 +525,8 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 - requirements/requirements.md: REQ-F-002
 - requirements/requirements.md: REQ-F-021
 - decision-records.md: DR-02
-- universal-dictionary.md: UD-013
-- universal-dictionary.md: UD-014
+- universal-dictionary.md: UD-NTF-001
+- universal-dictionary.md: UD-TST-001
 - GitHub Issue: #19
 
 ---
@@ -537,3 +537,4 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 | ---------- | ------- | ------------------------------------------------------------- |
 | 2026-11-20 | 1.0.0   | Initial release with DR-01, DR-02, DR-03, DR-04, DR-05, DR-06 |
 | 2026-11-20 | 1.0.1   | Refine DR-06: clarify wording                                 |
+| 2026-11-21 | 1.0.2   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)   |

@@ -2,7 +2,7 @@
 title: "Decision Records: kallr/windows-dist-verify"
 module: "kallr/windows-dist-verify"
 status: Active
-version: 1.0.0
+version: 1.0.1
 created: "2026-11-20"
 ---
 
@@ -501,7 +501,7 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 最大の理由は、OS ごとに異なる確認の手段を、本体から切り離して共通のインターフェースの背後へ置く点だ。
 
 - Kallr は複数の OS への対応を候補にしている (DR-02)。インターフェースを使えば、他の OS の実装に差し替えられる。
-- インターフェースを偽の実装へ差し替えられるので、本体の判断を OS から独立して自動テストできる。
+- インターフェースを Mock (UD-014) へ差し替えられるので、本体の判断を OS から独立して自動テストできる。
 - レジストリの確認だけでは、通知の設定が無効かは分からない。Setting は無効の理由まで返すので、Setting も使う。
 - Setting だけでは、AUMID の未登録を検出できない。U3 では、未登録でも Setting が有効を返し、通知が出なかった。そのため、レジストリの確認も必要になる。
 - 過去の PoC では、AUMID が未登録でも add が成功した。通知できない状態は、add の前に検出する必要がある。
@@ -526,6 +526,7 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 - requirements/requirements.md: REQ-F-021
 - decision-records.md: DR-02
 - universal-dictionary.md: UD-013
+- universal-dictionary.md: UD-014
 - GitHub Issue: #19
 
 ---
@@ -535,3 +536,4 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 | Date       | Version | Description                                                   |
 | ---------- | ------- | ------------------------------------------------------------- |
 | 2026-11-20 | 1.0.0   | Initial release with DR-01, DR-02, DR-03, DR-04, DR-05, DR-06 |
+| 2026-11-20 | 1.0.1   | Refine DR-06: clarify wording                                 |

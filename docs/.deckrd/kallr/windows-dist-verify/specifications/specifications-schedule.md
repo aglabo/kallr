@@ -2,7 +2,7 @@
 title: "Design Specification: Windows Distribution Verify (schedule)"
 based-on: requirements.md v1.2.0
 status: Draft
-version: 1.0.0
+version: 1.0.1
 created: "2026-11-20"
 ---
 
@@ -27,7 +27,7 @@ created: "2026-11-20"
 - 対応表の保存内容 (SQLite) と、その不変条件
 
 Tag の書式と生成、通知可否の確認、検証の手順と記録は別の仕様書が扱う (6 章を参照)。
-用語は `universal-dictionary.md` (UD-001〜UD-017) に従う。
+用語は `universal-dictionary.md` (UD-RSV-001〜UD-REC-003) に従う。
 
 ---
 
@@ -282,7 +282,7 @@ cancel で対応表に無いキー (見つからない) は終了コード 2 と
 2. 対応表を、置換後の Tag・通知時刻・title・登録時刻に更新する
 3. 置換前の予約を OS から削除する
 
-各段階で停止または失敗したときの状態を次に示す。状態の名称は UD-012 に従う。
+各段階で停止または失敗したときの状態を次に示す。状態の名称は UD-RPL-004 に従う。
 
 | 停止・失敗した段階       | OS の予約一覧    | 対応表の指す Tag | 置換の失敗状態         | 備考                                 |
 | ------------------------ | ---------------- | ---------------- | ---------------------- | ------------------------------------ |
@@ -485,6 +485,7 @@ SCH-R-014 の成功後は、OS の予約一覧にその Tag の要素が含ま�
      `based-on` must cite a three-part version that exists in requirements.md.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description           |
-| ---------- | ------- | --------------------- |
-| 2026-11-20 | 1.0.0   | Initial specification |
+| Date       | Version | Description                                                 |
+| ---------- | ------- | ----------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial specification                                       |
+| 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change) |

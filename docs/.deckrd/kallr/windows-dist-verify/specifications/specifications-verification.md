@@ -2,7 +2,7 @@
 title: "Design Specification: Windows Distribution Verify (verification)"
 based-on: requirements.md v1.2.0
 status: Draft
-version: 1.0.0
+version: 1.0.1
 created: "2026-11-20"
 ---
 
@@ -30,7 +30,7 @@ Windows で OS の予約通知を、未パッケージ + HKCU 登録の配布形
 
 本ファイルが扱う FR は REQ-F-003 / 008 / 009 / 012 / 013 / 014 / 015 / 018 の 8 件。
 ほかの FR は Section 6 に示すファイルが扱う。
-用語は universal-dictionary.md (UD-001 から UD-017) に従う。
+用語は universal-dictionary.md (UD-RSV-001 から UD-REC-003) に従う。
 
 ---
 
@@ -328,6 +328,7 @@ VER-R-009 の判定対象の補足:
 
 ## 8. 変更履歴
 
-| Date       | Version | Description           |
-| ---------- | ------- | --------------------- |
-| 2026-11-20 | 1.0.0   | Initial specification |
+| Date       | Version | Description                                                 |
+| ---------- | ------- | ----------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial specification                                       |
+| 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change) |

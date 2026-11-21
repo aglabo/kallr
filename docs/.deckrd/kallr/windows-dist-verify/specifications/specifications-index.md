@@ -2,7 +2,7 @@
 title: "Design Specification: Windows Distribution Verify (Index)"
 based-on: requirements.md v1.2.0
 status: Draft
-version: 1.0.0
+version: 1.0.1
 created: "2026-11-20"
 ---
 
@@ -20,7 +20,7 @@ Windows で OS の予約通知 (AddToSchedule) を、未パッケージ + HKCU �
 この仕様全体では、Windows Distribution Verify の振る舞いの規則を定める。
 実装の詳細は対象外とする。具体的な規則は各分割ファイルに記載し、この索引には記載しない。
 
-用語は `universal-dictionary.md` (UD-001〜UD-017) に従う。
+用語は `universal-dictionary.md` (UD-RSV-001〜UD-REC-003) に従う。
 この仕様で使う用語は、予約、予約一覧、Tag、Group、登録時刻、通知時刻、マシン ID、対応表、置換、置換前の予約、置換後の予約、置換の失敗状態、通知可否の確認、Mock、記載なし、未確認、未明確の 17 語。
 
 ### 1.3 分割ファイル
@@ -248,7 +248,7 @@ IDX-R-004 と IDX-R-005 は、分類 (Step 2) の結果に応じて、どちら�
 | 通知設定が無効、または AUMID が未登録のまま add を実行する | 終了コード 3。副作用なし                                                      | REQ-F-002            | 通知が表示されない状態を、早期に検出する                                 |
 | 対応表の Tag が予約一覧にない (発火済み) 状態で add する   | 置換ではなく新規の予約として扱う                                              | REQ-F-006            | 発火後の登録は新しい予約とする                                           |
 | 対応表の更新に失敗した後、予約が残る                       | 対応表にない Tag の予約 (孤児) として list が報告する                         | REQ-F-005, REQ-F-020 | 2 つの保存先は食い違うため、状態を隠さず報告する                         |
-| 置換の途中で、置換前の予約の削除に失敗する                 | 「両方が残る」(UD-012)。対応表は置換後の Tag を指す                           | REQ-F-005, REQ-F-009 | 追加を先にするため、予約が消えることはない。置換前の予約は発火する       |
+| 置換の途中で、置換前の予約の削除に失敗する                 | 「両方が残る」(UD-RPL-004)。対応表は置換後の Tag を指す                       | REQ-F-005, REQ-F-009 | 追加を先にするため、予約が消えることはない。置換前の予約は発火する       |
 | 一括再登録の対象に、通知時刻が過去の記録がある             | 登録せず一覧で報告し、処理を続ける                                            | REQ-F-012            | 過去の時刻の登録は OS が拒否する                                         |
 | 2 つの CLI プロセスが同時に実行される                      | 対象外                                                                        | (なし)               | 同時実行は仕様の範囲に含めない。最初の起動でのマシン ID の同時作成も含む |
 | 通知できない状態で re-register-all を実行する              | 終了コード 3。何も登録しない                                                  | REQ-F-012            | 通知できない状態では登録しても表示されない                               |
@@ -359,6 +359,7 @@ REQ-F-012 は、記録の手順を verification、一括再登録の動作を sc
      `based-on` must cite a three-part version that exists in requirements.md.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description           |
-| ---------- | ------- | --------------------- |
-| 2026-11-20 | 1.0.0   | Initial specification |
+| Date       | Version | Description                                                 |
+| ---------- | ------- | ----------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial specification                                       |
+| 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change) |

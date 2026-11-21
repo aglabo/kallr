@@ -2,7 +2,7 @@
 title: "Requirements: Windows Distribution Verify"
 module: "kallr/windows-dist-verify"
 status: Draft
-version: 1.2.0
+version: 1.2.1
 created: "2026-11-20"
 ---
 
@@ -209,7 +209,7 @@ THEN the system SHALL 置換後の予約を新しい Tag で追加し、対応�
 
 **Rationale**: W4 (a) の合格条件。置換は「追加してから削除」とし (DR-05)、AddToSchedule が同じ Tag/Group を自動で置換する挙動には依存しない。
 追加を先にする目的は、途中で停止しても予約を消さないこと。置換のたびに、登録時刻と乱数から置換後の Tag を生成する。
-置換前の予約、置換後の予約、置換の失敗状態の意味は、universal-dictionary.md の UD-009 から UD-012 に従う。
+置換前の予約、置換後の予約、置換の失敗状態の意味は、universal-dictionary.md の UD-RPL-001 から UD-RPL-004 に従う。
 
 **Acceptance Criteria**:
 
@@ -286,7 +286,7 @@ THEN 検証担当者 SHALL 「置換前の予約だけが残る」「置換後�
 
 **Rationale**: W4 (e) の確認項目。再現の具体的な手段は plan に「各段階の間に kill を差し込む」とだけ書かれており、Open Questions に記す。
 追加の後で削除の前に停止すると、「両方が残る」になると予想される。
-4 つの状態の名称は、poc-plan.md の W4 (e) の「旧予約が残る」「新予約だけ」「両方残る」「どちらも無い」に対応する (UD-012)。
+4 つの状態の名称は、poc-plan.md の W4 (e) の「旧予約が残る」「新予約だけ」「両方残る」「どちらも無い」に対応する (UD-RPL-004)。
 
 ### REQ-F-010: W5 の記録
 
@@ -715,3 +715,4 @@ Scenario: 2 回目の起動では同じマシン ID を使う
 | 2026-11-20 | 1.1.0   | Revise REQ-C-002, REQ-NF-001: test-driven development applies to all implementation where possible                                                                                                                                                                                                                                                         |
 | 2026-11-20 | 1.1.1   | Clarify the term: use Mock instead of 偽の実装                                                                                                                                                                                                                                                                                                             |
 | 2026-11-21 | 1.2.0   | W7: accept either a restart or a logoff-and-login; REQ-F-010: check W5 completeness in w5-check (add AC-014); fix inconsistencies found in review; state that W6 belongs to Issue #18; separate 記載なし (record placeholder) from 未確認 (unconfirmed in sources); cite sources for assumptions; rewrite User Stories as facts and cover all requirements |
+| 2026-11-21 | 1.2.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                                                                                                                                                                                                                                                                                |

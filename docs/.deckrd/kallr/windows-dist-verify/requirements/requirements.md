@@ -2,7 +2,7 @@
 title: "Requirements: Windows Distribution Verify"
 module: "kallr/windows-dist-verify"
 status: Draft
-version: 1.1.1
+version: 1.2.0
 created: "2026-11-20"
 ---
 
@@ -16,27 +16,28 @@ created: "2026-11-20"
 ### 1.1 Purpose
 
 Windows で OS の予約通知 (AddToSchedule) を、採用する配布形式 (未パッケージ + HKCU 登録) で使えるかを確認する。
-未確認の点には、プロセスを kill した後も通知が出るか、Tag の一意性と置換が成り立つか、などがある。
-本文書は Issue #19 の検証項目 W1〜W7 と合否基準を定める。
+確認する点は、プロセスを kill した後も通知が出ること、Tag の一意性と置換が成り立つこと。
+本文書は Issue #19 の検証項目 W1〜W5 と W7、および合否基準を定める。W6 は Issue #18 で扱うため、本文書の対象外とする。
 
 ### 1.2 Scope
 
 - W1〜W4 (予約作成、kill 後の表示、別プロセスからのキャンセル、同一 ID の置換)
 - W4-c として、Tag の文字数の上限と予約件数の上限の測定
 - W5 (AUMID・インストール方式・実行権限の記録と整合チェック)
-- W7 (再起動またはログオフ後の予約と、一括再登録による復旧の記録)
+- W7 (再起動またはログオフ→ログイン後の予約と、一括再登録による復旧の記録)
 - 任意の測定 (過去時刻、予約一覧、配信猶予) の記録
 - Tag の生成、対応表、予約の追加・置換・取り消し、通知可否の確認のインターフェースの実装 (テスト駆動)
 - 結果の `poc-results-windows.md` への追記
 
 **Out of Scope**:
 
+- W6 (PWA から localhost の Dart HTTP サーバーを呼ぶ検証。Issue #18 で扱う)
 - Windows 以外の OS
 - `apps/` と `packages/` への PoC コードの配置
 - MSIX + Dart と AOT exe の検証 (未確認事項として Open Questions に記録)
 - 任意の測定の合否判定
 - Android など Windows 以外の、通知可否の確認の実装 (インターフェースは REQ-F-021 で OS 非依存にする)
-- `mapToastKey` の採用 (本検証では、ハッシュで Tag を短縮しない。既存コードの扱いは spec で決める)
+- `mapToastKey` の採用 (本検証では、ハッシュで Tag を短縮しない。既存コードの削除は spec で決めた)
 
 ## 2. Context
 
@@ -52,17 +53,27 @@ Windows で OS の予約通知 (AddToSchedule) を、採用する配布形式 (�
     - 登録先: `HKCU\Software\Classes\AppUserModelId\<aumid>`
   - `poc-results-windows.md` (過去の PoC 結果と本検証の追記先)
     - 場所: `docs/.deckrd/keneek-core/api-contract/workspaces/redesign/` 配下
-  - `docs/.deckrd/keneek-core/api-contract/workspaces/redesign/poc-plan.md` (PoC-W 合格条件、70〜113 行目。正式な基準)
+  - `docs/.deckrd/keneek-core/api-contract/workspaces/redesign/poc-plan.md`
+    - PoC-W 合格条件の出典 (70〜113 行目)
+    - W4-c は本文書が置き換える
 - Assumptions:
   - 過去の PoC 結果: 未パッケージ + HKCU の AUMID 登録は管理者権限なしで動く
-  - 過去の PoC 結果: MSIX は署名が必要で、署名証明書の導入に管理者権限が必要 (MSIX の実行自体に必要かは記載なし)
+    - 出典: `poc-results-windows.md` (レジストリ登録だけなら管理者権限は要らない)
+  - 過去の PoC 結果: MSIX は自己署名で署名し、証明書の導入は管理者権限で実行した
+    - 管理者権限なしで同じ手順が失敗するかは未確認 (同ファイルの注 1)
+    - 出典: `poc-results-windows.md` の導入方法と権限の比較表
   - 過去の PoC 結果: AUMID が未登録だと add は成功するが通知は表示されない。過去の時刻は 0x80070057 になる
+    - 過去の時刻の 0x80070057 の出典: `poc-results-windows.md` (2 回とも指定ミスによる)
   - 過去の PoC 結果: add のプロセス終了後に通知が表示された (W2 の予備結果)
   - Tag と Group の文字数の上限は、公式ドキュメントでは 64 文字 (Windows 10 ビルド 15063 以降。それ以前は 16 文字)
+    - 出典: Microsoft Learn の ToastNotification.Tag と ToastNotification.Group (<https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastnotification.tag>)
   - 上の上限は ToastNotification の記述であり、ScheduledToastNotification での値は未測定
+    - ScheduledToastNotification.Id の文字数の上限は、公式ドキュメントでは 16 文字。Tag とは別のプロパティとして区別する
   - 文字数は UTF-16 code unit 数で数える
   - 予約件数の上限は、公式ドキュメントでは 4096 件 (超えると 0x80070718)
-  - 件数の上限の適用範囲 (アプリ単位、システム全体) と、発火済みの予約を数えるかは記載なし
+    - 4096 件の出典: Microsoft Learn の ToastNotifier.AddToSchedule (<https://learn.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastnotifier.addtoschedule>)
+    - 0x80070718 との対応は、Microsoft の公式ページに直接の記述が見つからず、転載ページの記述による。実機で確認する
+  - 件数の上限の適用範囲 (アプリ単位、システム全体) と、発火済みの予約を数えるかは未確認
   - PoC のラベル (W1 など) はテストケース ID ではない
 
 ### System Context Diagram
@@ -94,7 +105,7 @@ Windows で OS の予約通知 (AddToSchedule) を、採用する配布形式 (�
 | DR-05 | 置換は、置換後の予約を追加してから置換前の予約を削除する方式とする                    | ../decision-records.md#DR-05 |
 | DR-06 | 通知可否の確認は、OS に依存しないインターフェースに仮想化する                         | ../decision-records.md#DR-06 |
 
-DR 本体は `/deckrd dr --add` で別途作成する。
+DR 本体は `../decision-records.md` に置く。
 
 ## 4. Functional Requirements
 
@@ -120,7 +131,7 @@ Tag は REQ-F-016 の書式で生成する。
 | ------ | ---------------------- |
 | AC-001 | add で予約が作成される |
 
-### REQ-F-002: 未登録 AUMID での add の拒否
+### REQ-F-002: 通知できない状態での add の拒否
 
 - EARS Type: Unwanted behavior
 
@@ -150,8 +161,8 @@ GIVEN add が予約を作成し、その add のプロセスを kill した
   WHEN --at で指定した時刻に到達する
 THEN the system SHALL 通知を表示し、予約一覧 (GetScheduledToastNotifications) から
      該当の予約が消え、通知履歴に該当の通知が存在する状態にする。
-     通知履歴を取得できない場合は、予約一覧から該当の予約が消えたことと、
-     検証担当者が通知の表示を目視で確認したことの両方を、合格の条件とする。
+     通知履歴を取得できない場合の合格の条件は、予約一覧から該当の予約が消えたことと、
+     検証担当者が通知の表示を目視で確認したことの両方とする。
 ```
 
 **Rationale**: W2 の合格条件。判定は、通知履歴 (アクションセンターに残る通知) を API で取得して機械的に行うことを優先する。
@@ -176,7 +187,7 @@ THEN the system SHALL 対応表から該当の Tag を引いて予約を取り�
      GetScheduledToastNotifications の戻り値にその Tag の要素が含まれない状態にする。
 ```
 
-**Rationale**: W3 の合格条件。Tag は乱数を含み ID から再計算できないため、対応表を使う (REQ-F-020)。
+**Rationale**: W3 の合格条件。Tag は乱数を含み ID から再計算できないため、対応表を使う (理由は REQ-F-020)。
 
 **Acceptance Criteria**:
 
@@ -287,10 +298,17 @@ GIVEN 検証担当者が W5 の確認を実施した
 THEN 検証担当者 SHALL AUMID、インストール方式、実行権限の 3 項目のそれぞれに記録欄を設け、
      各欄を「確認した値」で埋め、3 項目すべてを明確にする。
      「記載なし」の欄が 1 つでも残る場合は、W5 を合格としない。
+  AND the system SHALL 3 項目の記録が完備しているかを w5-check で機械的に判定し、未明確の欄を報告する。
 ```
 
 **Rationale**: W5 の合格条件。poc-plan.md は、必要なアプリの識別子、インストール方式、実行権限が明確になっていることを求める。
 値の良し悪しは問わない。確認できていない値を推測で埋めてはならない。確認できるまでは、W5 は合格としない。
+
+**Acceptance Criteria**:
+
+| AC ID  | Scenario                                      |
+| ------ | --------------------------------------------- |
+| AC-014 | W5 の「記載なし」の欄が未明確として報告される |
 
 ### REQ-F-011: W5 の整合チェック
 
@@ -318,12 +336,13 @@ THEN the system SHALL 記録した値と、実際に観測できる状態
 
 ```text
 GIVEN 予約が存在する状態である
-  WHEN 検証担当者が再起動またはログオフを行い、その後に予約一覧を確認し、一括再登録を実行する
-THEN 検証担当者 SHALL 再起動またはログオフの後の予約の有無と、
+  WHEN 検証担当者が再起動、またはログオフ→ログインのいずれかを行い、その後に予約一覧を確認し、一括再登録を実行する
+THEN 検証担当者 SHALL 実施した操作 (再起動か、ログオフ→ログインか) と、その後の予約の有無と、
      一括再登録で復旧できたかどうかを記録する。
+     再起動だけ、またはログオフ→ログインだけの実施でも、W7 の記録として足りる。
 ```
 
-**Rationale**: W7 の記録項目。対象を再起動とログオフの両方にするかは未確定とする (Open Questions 参照)。
+**Rationale**: W7 の記録項目。Issue は「再起動またはログオフ」とするため、どちらか一方の実施でよい。記録のときに、実施した操作も記録する。
 
 ### REQ-F-013: 任意の測定の記録
 
@@ -357,7 +376,7 @@ THEN 検証担当者 SHALL 結果を poc-results-windows.md に追記し、既�
 GIVEN W1〜W4、W5、W7 の確認が完了した
   WHEN 検証担当者が全体の合否を判定する
 THEN 検証担当者 SHALL W1〜W4 がすべて成功し、W5 の 3 項目がすべて明確で、
-     かつ W7 の記録が揃っている場合に限り合格と判定する。
+     かつ W7 の記録 (再起動、ログオフ→ログインのどちらか 1 つ以上) が揃っている場合に限り合格と判定する。
 ```
 
 **Rationale**: poc-plan.md の PoC-W 合格条件に基づくゲート。
@@ -413,7 +432,7 @@ GIVEN 本検証の成果物を作成する
 THEN the system SHALL PoC コードを poc/ 配下にのみ置く。
 ```
 
-**Rationale**: 制約。
+**Rationale**: REQ-C-001 の制約を満たすため。
 
 ### REQ-F-019: マシン ID の生成と保存
 
@@ -444,7 +463,7 @@ the system SHALL (batchId, alarmId) から Tag を引ける対応表を持ち、
 ```
 
 **Rationale**: Tag は乱数を含み、ID から再計算できない。cancel と置換は、この表で置換前の Tag を探す。
-保存場所と形式、更新の順序は spec で決める (Open Questions 参照)。
+保存場所と形式、更新の順序は spec で決めた。
 
 ### REQ-F-021: 通知可否の確認と設定の仮想化
 
@@ -471,20 +490,21 @@ Android の実装は本検証の対象外とする。
 
 ### REQ-NF-001: Maintainability
 
-実装は保守可能であるべきである (SHOULD)。OS 固有の呼び出し (FFI) は、インターフェースの背後に置き、OS に依存しないロジックから分離する。
+実装は保守可能でなければならない (MUST)。OS 固有の呼び出し (FFI) は、インターフェースの背後に置き、OS に依存しないロジックから分離する。
 通知可否の確認とレジストリの操作は、仮想化したインターフェースの背後に置く (REQ-F-021)。
 
 ### REQ-NF-002: Testability
 
 W1〜W4 の各合格条件は、「どの値になれば合格か」の形で書かなければならない (MUST)。
 値には、観測できるもの (GetScheduledToastNotifications の戻り値、通知履歴、終了コードなど) を使う。
-測定: REQ-F-001〜REQ-F-005 の THEN 節の 100% が観測可能な値で記述されている。
+測定: REQ-F-001〜REQ-F-007 の THEN 節の 100% が観測可能な値で記述されている。
 自動化の方法は spec / impl で決める。
 
 ### REQ-NF-003: No Speculation
 
 ドキュメントに書かれていない事項を、推測で埋めてはならない (MUST NOT)。
-未確認の項目は「記載なし」と書く。測定: 結果の記録欄の空欄と推測値が 0 件であること。
+使い分けは次のとおり。結果の記録欄で確認できていない値は、「記載なし」と書く。資料から確認できない事項は、「未確認」と書く。
+測定: 結果の記録欄の空欄と推測値が 0 件であること。ただし W5 の 3 欄に「記載なし」が残る場合は、REQ-F-010 により W5 を合格としない。
 
 ### REQ-NF-004: Portability
 
@@ -499,7 +519,7 @@ PoC のコードを `apps/` と `packages/` に置いてはならない。
 ### REQ-C-002: テスト駆動の範囲
 
 実装は、可能な限りすべて、テスト駆動 (BDD の RGR サイクル) で行う。インターフェースの背後にある OS 固有の部分は、Mock でテストする。
-FFI の呼び出しと実機での確認 (kill、再起動、ログオフ) は手動検証とする。
+FFI の呼び出しと実機での確認 (kill、再起動、ログオフ→ログイン) は手動検証とする。
 
 ### REQ-C-003: ラベルの扱い
 
@@ -511,14 +531,23 @@ PoC のラベル (W1 など) は、テストケース ID と別物とする。�
 
 ## 7. User Stories
 
-| Story ID | Role       | Goal                                                        | Reason                                                 | Related Requirements |
-| -------- | ---------- | ----------------------------------------------------------- | ------------------------------------------------------ | -------------------- |
-| US-001   | 検証担当者 | add で未発火の予約を作成し、予約一覧で確認したい            | 予約通知が採用する配布形式で使えるかを判断するため     | REQ-F-001            |
-| US-002   | 検証担当者 | 未登録の AUMID では add がエラーで終了してほしい            | 通知が表示されない状態を見逃さないため                 | REQ-F-002            |
-| US-003   | 検証担当者 | プロセスを kill しても通知が表示されることを確認したい      | アプリ終了後も予約通知が働くかを判断するため           | REQ-F-003            |
-| US-004   | 検証担当者 | 別の起動から予約をキャンセルし、同じ ID で置換したい        | 再起動後のプロセスから予約を管理できるかを判断するため | REQ-F-004, REQ-F-005 |
-| US-005   | 検証担当者 | AUMID・インストール方式・実行権限を記録し、実態と照合したい | 配布形式の前提を根拠のある値で残すため                 | REQ-F-010, REQ-F-011 |
-| US-006   | 検証担当者 | 再起動またはログオフ後の予約と一括再登録の結果を記録したい  | 予約が失われた場合の復旧手段を判断するため             | REQ-F-012            |
+| Story ID | Role         | Goal                                                                                  | Reason                                                 | Related Requirements            |
+| -------- | ------------ | ------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------- |
+| US-001   | 検証担当者   | add で未発火の予約を作成し、予約一覧で確認する                                        | 予約通知が採用する配布形式で使えるかを判断する         | REQ-F-001                       |
+| US-002   | 検証担当者   | 通知できない状態 (AUMID の未登録、DisplayName が空、通知設定が無効) で add を実行する | 通知が表示されない状態を、add のエラーで見逃さない     | REQ-F-002                       |
+| US-003   | 検証担当者   | プロセスを kill した後に、指定時刻の通知の表示を確認する                              | アプリ終了後も予約通知が働くかを判断する               | REQ-F-003                       |
+| US-004   | 検証担当者   | 別の起動から予約をキャンセルし、同じ ID で置換する                                    | 再起動後のプロセスから予約を管理できるかを判断する     | REQ-F-004, REQ-F-005            |
+| US-005   | 検証担当者   | AUMID・インストール方式・実行権限を記録し、実態と照合する                             | 配布形式の前提を、根拠のある値で残す                   | REQ-F-010, REQ-F-011            |
+| US-006   | 検証担当者   | 再起動またはログオフ→ログイン後の予約と一括再登録の結果を記録する                     | 予約が失われた場合の復旧手段を判断する                 | REQ-F-012                       |
+| US-007   | 検証担当者   | 発火後に同じ ID で add を実行し、新しい予約になることを確認する                       | 置換と、発火後の登録を区別する                         | REQ-F-006                       |
+| US-008   | 検証担当者   | 上限の件数まで add で登録し、Tag の重複と文字数を確認する                             | 衝突しないことを、実機で測定した範囲で確認する         | REQ-F-007                       |
+| US-009   | 検証担当者   | 置換の方式と、停止時の 4 つの失敗状態を記録する                                       | 置換が原子的かどうかが未確認のため、観測した状態を残す | REQ-F-008, REQ-F-009            |
+| US-010   | 検証担当者   | 任意の測定結果を、合否に含めず記録する                                                | Issue #19 の指定に従い、測定結果だけを残す             | REQ-F-013                       |
+| US-011   | 検証担当者   | 結果を poc-results-windows.md に追記し、全体の合否を判定する                          | 既存の記述を残し、合否の基準を 1 つに固定する          | REQ-F-014, REQ-F-015            |
+| US-012   | 検証担当者   | PoC コードを poc/ 配下にのみ置く                                                      | apps/ と packages/ に PoC コードを混ぜない             | REQ-F-018                       |
+| US-013   | Kallr の本体 | 登録時刻・マシン ID・乱数から Tag を生成し、重複を避ける                              | 予約ごとに衝突しない一意な Tag を付ける                | REQ-F-016, REQ-F-017, REQ-F-019 |
+| US-014   | Kallr の本体 | (batchId, alarmId) から Tag を対応表で引く                                            | Tag は乱数を含み、ID から再計算できない                | REQ-F-020                       |
+| US-015   | Kallr の本体 | 通知可否の確認を、OS 非依存のインターフェース経由で実行する                           | OS 固有の確認を本体から分離し、Mock で自動テストする   | REQ-F-021                       |
 
 ## 8. Acceptance Criteria
 
@@ -528,7 +557,7 @@ PoC のラベル (W1 など) は、テストケース ID と別物とする。�
 Scenario: add で予約が作成される
   Given AUMID が HKCU に登録済みである
   When  --batch, --alarm, --at, --title を指定して add を実行する
-  Then  対応表に生成した Tag が記録され、GetScheduledToastNotifications の戻り値に その Tag, Group=kallr, 配信時刻=--at の要素がちょうど 1 件含まれる
+  Then  対応表に生成した Tag が記録され、GetScheduledToastNotifications の戻り値に、その Tag、Group=kallr、配信時刻=--at の要素がちょうど 1 件含まれる
 
 # AC-002: kill 後も指定時刻に表示される
 # Requirement: REQ-F-003
@@ -572,11 +601,18 @@ Scenario: W5 の記録の不一致が記録の誤りとして扱われる
   When  E2E の整合チェックを実行する
   Then  不一致が記録の誤りとして報告され、W5 の合否は記録の完備のみで判定される
 
+# AC-014: W5 の「記載なし」の欄が未明確として報告される
+# Requirement: REQ-F-010
+Scenario: W5 の「記載なし」の欄が未明確として報告される
+  Given W5 の記録欄のうち 1 つが「記載なし」である
+  When  w5-check を実行する
+  Then  その欄が未明確として報告され、W5 は合格としない
+
 # AC-006: 発火前の予約を置換できる
 # Requirement: REQ-F-005
 Scenario: 発火前の予約を置換できる
   Given 同じ batchId/alarmId の未発火の予約が存在する
-  When  同じ --batch と --alarm で別の --at を指定して add を実行する
+  When  同じ --batch と --alarm で別の --at または --title を指定して add を実行する
   Then  予約一覧に置換前の Tag の要素がなく、置換後の Tag の要素が新しい --at でちょうど 1 件含まれる
 
 # AC-007: 発火後の同じ ID の登録は新しい予約になる
@@ -591,7 +627,7 @@ Scenario: 発火後の同じ ID の登録は新しい予約になる
 Scenario: Tag が決められた書式になる
   Given 登録時刻 (ローカル日時)、マシン ID、64 bit の乱数が与えられている
   When  Tag を生成する
-  Then  Tag は `YYYYMMDDHHmmss-<8 桁>-<16 桁>` の 40 文字で、同じ入力からは同じ値が得られる
+  Then  Tag は `<YYYYMMDDHHmmss>-<マシン ID 8 桁>-<乱数 16 桁>` の 40 文字で、同じ入力からは同じ値が得られる
 
 # AC-009: 上限の件数まで登録しても Tag が重複しない
 # Requirement: REQ-F-007
@@ -626,15 +662,10 @@ Scenario: 2 回目の起動では同じマシン ID を使う
 | MSIX + Dart と AOT exe の検証                                                                                            | Scope        | REQ-F-010         | TBD        |
 | ScheduledToastNotification での Tag の文字数の上限 (公式ドキュメントは 64 文字。実機で測定)                              | Measurement  | REQ-F-007         | 検証担当者 |
 | 予約件数の上限 (公式ドキュメントは 4096 件) が、アプリ単位かシステム全体か、発火済みを数えるか                           | Measurement  | REQ-F-007         | 検証担当者 |
-| W7 の対象を、再起動とログオフの両方にするか (Issue は「再起動またはログオフ」)                                           | Scope        | REQ-F-012         | TBD        |
 | ToastNotifier.Setting が、AUMID の登録済みの構成で Enabled を返すか。通知を無効にしたとき、無効の値を返すか (実機で測定) | Measurement  | REQ-F-002, 021    | 検証担当者 |
 | 共通ライブラリの置き場所とインターフェースの形。Android の実装を行うモジュールと時期                                     | Design       | REQ-F-021         | TBD        |
-| 未登録 AUMID の検出方法 (spec で決める)                                                                                  | Design       | REQ-F-002         | TBD        |
 | 検証の成果物 (結果の追記) の担当者は検証担当者でよいか                                                                   | Ownership    | REQ-F-014         | TBD        |
 | REQ-F-006: 発火後の登録の成否を、終了コード 0 と予約一覧の値で判定する条件を定めた。API が返す具体的な値は未確認         | EARS/THEN    | REQ-F-006 outcome | TBD        |
-| 対応表の保存場所と形式。追加と削除の間、追加と対応表の更新の間で停止したときの回復 (対応表に無い Tag の予約の扱いを含む) | Design       | REQ-F-005, 020    | TBD        |
-| --batch と --alarm を必須にするか (w03.dart は未指定時に既定値 B と A を使う)                                            | Design       | REQ-F-001, 004    | TBD        |
-| 既存の `mapToastKey` とそのテスト (T-WDV-MTK-*) を、削除するか、別の用途で残すか                                         | Scope        | REQ-C-002         | TBD        |
 | poc-plan.md の W4-c (ID の長さをハッシュで収める案) と、4096 件の測定を任意とする記述を、本文書に合わせて改訂するか      | Consistency  | REQ-F-007, 013    | TBD        |
 
 ## 10. Traceability
@@ -642,7 +673,7 @@ Scenario: 2 回目の起動では同じマシン ID を使う
 | REQ ID     | AC IDs         | Type           |
 | ---------- | -------------- | -------------- |
 | REQ-F-001  | AC-001         | Functional     |
-| REQ-F-002  | AC-004         | Functional     |
+| REQ-F-002  | AC-004, AC-012 | Functional     |
 | REQ-F-003  | AC-002         | Functional     |
 | REQ-F-004  | AC-003         | Functional     |
 | REQ-F-005  | AC-006         | Functional     |
@@ -650,7 +681,7 @@ Scenario: 2 回目の起動では同じマシン ID を使う
 | REQ-F-007  | AC-009         | Functional     |
 | REQ-F-008  | N/A            | Functional     |
 | REQ-F-009  | N/A            | Functional     |
-| REQ-F-010  | N/A            | Functional     |
+| REQ-F-010  | AC-014         | Functional     |
 | REQ-F-011  | AC-005         | Functional     |
 | REQ-F-012  | N/A            | Functional     |
 | REQ-F-013  | N/A            | Functional     |
@@ -678,8 +709,9 @@ Scenario: 2 回目の起動では同じマシン ID を使う
      Keep frontmatter `version` equal to the newest row below.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                                                        |
-| ---------- | ------- | -------------------------------------------------------------------------------------------------- |
-| 2026-11-20 | 1.0.0   | Initial release (計画メッセージ(チャット文)を全面置換)                                             |
-| 2026-11-20 | 1.1.0   | Revise REQ-C-002, REQ-NF-001: test-driven development applies to all implementation where possible |
-| 2026-11-20 | 1.1.1   | Clarify the term: use Mock instead of 偽の実装                                                     |
+| Date       | Version | Description                                                                                                                                                                                                                                                                                                                                                |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial release (計画メッセージ(チャット文)を全面置換)                                                                                                                                                                                                                                                                                                     |
+| 2026-11-20 | 1.1.0   | Revise REQ-C-002, REQ-NF-001: test-driven development applies to all implementation where possible                                                                                                                                                                                                                                                         |
+| 2026-11-20 | 1.1.1   | Clarify the term: use Mock instead of 偽の実装                                                                                                                                                                                                                                                                                                             |
+| 2026-11-21 | 1.2.0   | W7: accept either a restart or a logoff-and-login; REQ-F-010: check W5 completeness in w5-check (add AC-014); fix inconsistencies found in review; state that W6 belongs to Issue #18; separate 記載なし (record placeholder) from 未確認 (unconfirmed in sources); cite sources for assumptions; rewrite User Stories as facts and cover all requirements |

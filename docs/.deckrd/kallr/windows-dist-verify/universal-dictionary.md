@@ -2,7 +2,7 @@
 title: "Universal Dictionary: kallr/windows-dist-verify"
 module: "kallr/windows-dist-verify"
 status: Draft
-version: 1.0.0
+version: 1.1.0
 created: "2026-11-20"
 ---
 
@@ -183,14 +183,62 @@ Kallr が持つ、(batchId, alarmId) から Tag を引く表。
 - 定義根拠: DR-06
 - 関連規則: DR-06、requirements.md REQ-F-002、REQ-F-021
 
+## 6. テスト
+
+### UD-014 Mock
+
+テストで、インターフェースの背後にある実装の代わりに差し替える、テスト用の実装。戻り値を指定でき、呼び出されたかを確認できる。
+
+- 抽象度: 概念
+- 確定状況: 確定
+- 対立・区別: 実機での手動検証 (OS を実際に呼ぶ確認)
+- 関連: UD-013
+- 定義根拠: requirements.md REQ-C-002
+- 関連規則: DR-06、requirements.md REQ-C-002、REQ-F-021
+
+## 7. 記録の値
+
+### UD-015 記載なし
+
+結果の記録欄で、確認できていない値に書く語。欄を空にしたり、推測した値を入れたりしない。
+
+- 抽象度: 状態・判断
+- 確定状況: 確定
+- 対立・区別: UD-016 (資料から確認できない事項。記録欄の値ではない)
+- 関連: UD-017
+- 定義根拠: requirements.md REQ-NF-003
+- 関連規則: DR-03、requirements.md REQ-NF-003、REQ-F-010
+
+### UD-016 未確認
+
+資料や過去の結果から確認できない事項。Assumptions と Open Questions で使う。確認するまで、推測で埋めない。
+
+- 抽象度: 状態・判断
+- 確定状況: 確定
+- 対立・区別: UD-015 (結果の記録欄で、確認できていない値に書く語)
+- 関連: UD-017
+- 定義根拠: requirements.md REQ-NF-003
+- 関連規則: requirements.md REQ-NF-003
+
+### UD-017 未明確
+
+W5 の記録欄が、確認した値で埋まっていない状態。欄が空、空白だけ、または「記載なし」のとき、未明確になる。w5-check が報告する。
+
+- 抽象度: 状態・判断
+- 確定状況: 確定
+- 関連: UD-015
+- 定義根拠: requirements.md REQ-F-010
+- 関連規則: DR-03、requirements.md REQ-F-010
+
 ---
 
-## 6. Change History
+## 8. Change History
 
 <!-- SemVer: MAJOR = a term's meaning changed or a term removed, MINOR = a term or an item added,
      PATCH = clarification that keeps the meaning. Keep frontmatter `version` equal to the newest row.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                            |
-| ---------- | ------- | ------------------------------------------------------ |
-| 2026-11-20 | 1.0.0   | Initial release。予約、Tag、置換などの 13 語を定義する |
+| Date       | Version | Description                                                        |
+| ---------- | ------- | ------------------------------------------------------------------ |
+| 2026-11-20 | 1.0.0   | Initial release。予約、Tag、置換などの 13 語を定義する             |
+| 2026-11-20 | 1.1.0   | Add UD-014 Mock; add UD-015 記載なし, UD-016 未確認, UD-017 未明確 |

@@ -2,7 +2,7 @@
 title: "Decision Records: keneek-core/api-contract"
 module: "keneek-core/api-contract"
 status: Active
-version: 3.0.0
+version: 3.0.1
 created: "2026-11-14"
 ---
 
@@ -944,12 +944,12 @@ Content-Encoding を identity だけにする理由は、決定 10 の比較対�
 - specifications/specifications-idempotency.md: R-ID-I-102
 - specifications/specifications-idempotency.md: R-ID-I-105
 - specifications/specifications-idempotency.md: R-ID-I-402
-- universal-dictionary.md: UD-030
-- universal-dictionary.md: UD-031
-- universal-dictionary.md: UD-035
-- universal-dictionary.md: UD-041
-- universal-dictionary.md: UD-042
-- universal-dictionary.md: UD-055
+- universal-dictionary.md: UD-IDM-002
+- universal-dictionary.md: UD-IDM-003
+- universal-dictionary.md: UD-IDM-007
+- universal-dictionary.md: UD-IDM-013
+- universal-dictionary.md: UD-IDM-014
+- universal-dictionary.md: UD-IDM-027
 - decision-records.md: DR-02
 - decision-records.md: DR-03
 - decision-records.md: DR-04
@@ -1608,8 +1608,8 @@ specifications-endpoints.md v2.2.2 は、状態を次のように定める (本 
 
 universal-dictionary.md v1.1.2 は、次のように定義する。
 
-- UD-011 `dispatched`: 発火時刻に Keneek が OS へ通知を引き渡したことを表す
-- UD-012 `missed`: 発火時刻に OS へ通知を引き渡せなかったことを表す
+- UD-NST-003 `dispatched`: 発火時刻に Keneek が OS へ通知を引き渡したことを表す
+- UD-NST-004 `missed`: 発火時刻に OS へ通知を引き渡せなかったことを表す
 
 両 OS の通知 API の公式ドキュメント (Microsoft Learn と Android Developers) を、2026-11-15 に確認した。
 本 DR に関わる事実は次のとおりとする (確認結果の一部)。
@@ -1743,7 +1743,7 @@ G-04 の照合対象には、照会・キャンセル (issue #5) と永続化 (i
     - 一意の復元の条件 (決定 6): 確定した終端状態を、再開後に一意に復元できること
   - 照合 (d-1) (specifications-governance.md G-04、issue #5・issue #7) → specifications-governance.md の照合の記録 (DR-05)
   - 規則の具体的な文言と規則 ID → specifications-endpoints.md (本 DR とは別の変更)
-  - R-EP-C-022 と 3.6 の `dispatched`・`missed` の意味と遷移表の書き直し、UD-011・UD-012 の定義の改訂 → specifications-endpoints.md と universal-dictionary.md (本 DR とは別の変更として、同じ変更単位で整合させる)
+  - R-EP-C-022 と 3.6 の `dispatched`・`missed` の意味と遷移表の書き直し、UD-NST-003・UD-NST-004 の定義の改訂 → specifications-endpoints.md と universal-dictionary.md (本 DR とは別の変更として、同じ変更単位で整合させる)
 - Relation to DR-05: 本 DR では次の 3 つを区別する
   - 照合待ちの規則の有効性: 照合待ちの規則も有効であり、拘束力を持つ。この扱いは specifications-endpoints.md 4 章の冒頭が定めており、DR-05 が定めたものではない
   - 本 DR の採用: 照合 (d-1) の完了は、本 DR を Accepted とする条件ではない
@@ -1919,7 +1919,7 @@ OS ごとに条件を変えると、同じ事象の状態が端末によって�
     - specifications-endpoints.md v2.2.2 の DD-EP-08 の「OS への引き渡しだけを意味し」の言い回し
       - 決定 (状態の集合、表示と確認を含めないこと、`missed` を v1 から含めること) は変えず、R-EP-C-022 と同じ意味に揃える
     - specifications-endpoints.md v2.2.2 の 7 章 Open Questions #10 (本 DR で解決する)
-    - universal-dictionary.md v1.1.2 の UD-011 (`dispatched`) と UD-012 (`missed`) の定義
+    - universal-dictionary.md v1.1.2 の UD-NST-003 (`dispatched`) と UD-NST-004 (`missed`) の定義
       - どちらも意味が変わり、「発火時刻に」も合わない
       - 辞書の MAJOR の改訂として、仕様と同じ変更単位で整合させる
 - Revisit Trigger:
@@ -1949,8 +1949,8 @@ OS ごとに条件を変えると、同じ事象の状態が端末によって�
 - specifications/specifications-endpoints.md: §Open Questions #28
 - specifications/specifications-governance.md: G-04
 - specifications/specifications-governance.md: DD-GV-13
-- universal-dictionary.md: UD-011
-- universal-dictionary.md: UD-012
+- universal-dictionary.md: UD-NST-003
+- universal-dictionary.md: UD-NST-004
 - decision-records.md: DR-03
 - decision-records.md: DR-05
 - decision-records.md: DR-08
@@ -2280,7 +2280,7 @@ specifications-endpoints.md §Open Questions #18 は、この 2 つを問うて�
 specifications-endpoints.md v3.0.0 は、この通知を次のように扱う (本 DR に関わる部分)。
 
 - 3.6.1 は、引き渡しの試みを場合 A〜F に分ける (DR-12 決定 5)。場合 D (引き渡し処理の未開始) だけ、確定の根拠と状態を 7 章 #18 に委ねている
-- 引き渡し処理の開始 (UD-057) は、有効な開始の記録が、再開の後で復元できる状態となったことを指す。その時点まで、通知可否の確認と OS の通知 API の呼び出しを始めない (R-EP-I-009)
+- 引き渡し処理の開始 (UD-NST-005) は、有効な開始の記録が、再開の後で復元できる状態となったことを指す。その時点まで、通知可否の確認と OS の通知 API の呼び出しを始めない (R-EP-I-009)
 - 再開の後の場合 D と場合 E の区別は、有効な開始の記録の有無で行う (R-EP-I-009)
 - 場合 E の通知は、再開の後に OS の通知 API を呼び出し直さず、`missed` に確定する (R-EP-I-008)
 - R-EP-I-010 は、再開の後の各通知を判定区分 (a)〜(d) に分ける。(d) の場合 D の状態は 7 章 #18 で決めるとし、決まるまでは `scheduled` として観測され、キャンセルを受け付けるとする
@@ -2295,7 +2295,7 @@ specifications-endpoints.md v3.0.0 は、この通知を次のように扱う (�
 - R-EP-I-009 の区別: 場合 E を場合 D と取り違えないことと、開始の記録が復元できる状態となるまで通知可否の確認と呼び出しを始めないことだけ
 
 同じ通知について引き渡しの試みが並行したとき、開始の確定が 1 回だけになること (開始の確定の一意性) を定めた規則は無い。
-UD-057 も、開始を「有効な開始の記録が復元できる状態となったこと」とだけ定義している。
+UD-NST-005 も、開始を「有効な開始の記録が復元できる状態となったこと」とだけ定義している。
 
 DR-12 と DR-13 は、場合 D の扱いが決まったときに見直す条件を残している。
 
@@ -2477,8 +2477,8 @@ R-EP-I-009 は、場合 D と場合 E の区別と、記録と呼び出しの順
 - specifications/specifications-idempotency.md: §Design Assumptions
 - specifications/specifications-governance.md: G-04
 - specifications/specifications-governance.md: DD-GV-13
-- universal-dictionary.md: UD-057
-- universal-dictionary.md: UD-058
+- universal-dictionary.md: UD-NST-005
+- universal-dictionary.md: UD-NST-006
 - decision-records.md: DR-03
 - decision-records.md: DR-05
 - decision-records.md: DR-08
@@ -2525,7 +2525,7 @@ specifications-governance.md v2.1.0 の 3.5 の判断基準表には、成功レ
 メンバーの追加が「レスポンス形状の変更」にあたるかは、この表からは決まらない。
 そのため、成功レスポンスへのメンバーの追加は、判断に迷う変更として破壊的と評価され得る (推測)。
 
-後方互換性は、既存クライアントが変更なしに動作し続けられることと定義されている (UD-022)。
+後方互換性は、既存クライアントが変更なしに動作し続けられることと定義されている (UD-VER-001)。
 その対象には、レスポンスとクライアントに求める対処が含まれる。
 
 成功レスポンスへのメンバーの追加を前提にする未決定の事項がある。
@@ -2562,7 +2562,7 @@ specifications-governance.md v2.1.0 の 3.5 の判断基準表には、成功レ
 - Applies to: 通知 REST API の成功レスポンスのうち、登録済み通知と応答本文へのメンバーの追加、その後方互換性の判断、
   および未知のメンバーを受け取るクライアントの扱い。応答本文に含まれる登録済み通知も対象とする
 - Consistency:
-  - 互換性を変更の形ではなく既存クライアントへの影響で決める方針 (DR-04 決定 8・9、UD-022) と整合させる。本 DR は DR-04 を変更しない
+  - 互換性を変更の形ではなく既存クライアントへの影響で決める方針 (DR-04 決定 8・9、UD-VER-001) と整合させる。本 DR は DR-04 を変更しない
   - 成功レスポンスとエラーレスポンスの判定は、どちらもメンバーの追加を後方互換とし、既知のメンバーの意味の変更を認めない点で一致する。
     エラーレスポンスで既存クライアントに求める対処が変わる変更は、DR-04 決定 9 により破壊的と評価される
   - DR-02 が決めたバッチ登録のレスポンスの形状 (成功と失敗の 2 つだけ、部分成功の形状を持たない) は変えない
@@ -2596,7 +2596,7 @@ specifications-governance.md v2.1.0 の 3.5 の判断基準表には、成功レ
 エラーレスポンスと成功レスポンスで追加の扱いが同じなら、クライアントはレスポンスの種類によらず、未知のメンバーを同じ方法で扱える。
 
 追加を後方互換と言えるのは、クライアントが未知のメンバーを無視する場合に限られる。
-後方互換性は、既存クライアントが変更なしに動作し続けられることと定義されている (UD-022)。
+後方互換性は、既存クライアントが変更なしに動作し続けられることと定義されている (UD-VER-001)。
 クライアントが未知のメンバーを無視すれば、既存クライアントはメンバーの追加の後も変更なしに動作を続けられる。
 そのため、無視をクライアントの MUST とする。
 
@@ -2629,7 +2629,7 @@ specifications-governance.md v2.1.0 の 3.5 の判断基準表には、成功レ
 
 - requirements/requirements.md: REQ-F-010
 - requirements/requirements.md: REQ-F-011
-- universal-dictionary.md: UD-022
+- universal-dictionary.md: UD-VER-001
 - specifications/specifications-endpoints.md: DD-EP-02
 - specifications/specifications-endpoints.md: DD-EP-03
 - specifications/specifications-endpoints.md: R-EP-C-045
@@ -2979,7 +2979,7 @@ DR-09 決定 3 と R-EP-C-044 を変えない理由は、`currentState` が観�
 ### Context
 
 同一通知について、引き渡し処理の開始の確定を高々 1 回にすることを定めた規則は、契約に無い (specifications-endpoints.md §Open Questions #41)。
-引き渡し処理の開始 (UD-057) は、有効な開始の記録が、再開の後で復元できる状態となったことを指す。
+引き渡し処理の開始 (UD-NST-005) は、有効な開始の記録が、再開の後で復元できる状態となったことを指す。
 
 既存の規則が保証する範囲は、次の 2 つに限られる。
 
@@ -3021,8 +3021,8 @@ G-04 と issue #5 の組も、未確認のままとなっている。
 
 ### Decision
 
-1. 決定 1: 同一通知について、引き渡し処理の開始の確定 (UD-057) を高々 1 回とすることを、外部から観測できる保証として API 契約に含める (DR-03 決定 1)。
-   - この保証は、有効な開始の記録 (UD-057) に対する性質とする
+1. 決定 1: 同一通知について、引き渡し処理の開始の確定 (UD-NST-005) を高々 1 回とすることを、外部から観測できる保証として API 契約に含める (DR-03 決定 1)。
+   - この保証は、有効な開始の記録 (UD-NST-005) に対する性質とする
    - 保証の範囲は、並行する引き渡しの試みと、停止・再起動をまたぐ場合の両方とする。どちらでも、同一通知の開始の確定は高々 1 回とする
    - 本 DR は、DR-13 のキャンセルの確定と開始の確定の排他 (R-EP-C-025、R-EP-I-007) を変えない。DR-14 が未規定とした、開始の確定どうしの一意性を補う
    - 場合 D と場合 E の区別 (R-EP-I-009) は変えない
@@ -3141,7 +3141,7 @@ issue #7 の下書きは、トランザクションによる原子的な保存�
 - specifications/specifications-endpoints.md: §Open Questions #41
 - specifications/specifications-governance.md: G-04
 - specifications/specifications-governance.md: DD-GV-13
-- universal-dictionary.md: UD-057
+- universal-dictionary.md: UD-NST-005
 - decision-records.md: DR-03
 - decision-records.md: DR-05
 - decision-records.md: DR-12
@@ -3194,3 +3194,4 @@ instead of adding another one (guideline E-4).
 | 2026-11-16 | 2.5.0   | Add DR-17: `notification.not_cancellable` の拒否応答に、判定した時点の通知の状態を `currentState` として載せる                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | 2026-11-16 | 2.6.0   | Add DR-18: 同一通知について引き渡し処理の開始の確定を高々 1 回とすることを、外部から観測できる保証として API 契約に含める                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 2026-11-16 | 3.0.0   | DR-17 の Accepted に伴い、DR-13 の Status を `Partially superseded by DR-17（決定 12）` に更新 (DR-authoring E-1)。置き換えるのは DR-13 決定 12 のうち DR-17 決定 6 が定める範囲だけで、決定 1〜11 と決定 13 は有効のまま。DR-13 の本文は変えない。既存 DR の Supersede のため MAJOR (E-4)                                                                                                                                                                                                                                                                                                                                                                              |
+| 2026-11-21 | 3.0.1   | UD-ID を `UD-<CODE>-NNN` に置き換え (意味の変更なし)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |

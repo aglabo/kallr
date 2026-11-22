@@ -22,7 +22,7 @@ version: 1.0.0
 
 | Test Target           | Scenarios | Cases | Status  |
 | --------------------- | --------: | ----: | ------- |
-| T-10: ARG parseArgs   |        22 |    47 | pending |
+| T-10: ARG parseArgs   |        27 |    52 | pending |
 | T-11: CLI run()       |        24 |    88 | pending |
 | T-12: NID normalizeId |         6 |     6 | pending |
 
@@ -122,6 +122,34 @@ version: 1.0.0
   - Target: `parseArgs`
   - Scenario: Given `add --batch b1 --alarm a1 --at 2026-12-01T09:00:00+09:00 --title t --aumid " app.x "`, When `parseArgs` を呼ぶ
   - Expected: Then `options['aumid']` が `app.x` である
+
+#### T-10-23: `--` で始まる値
+
+- [ ] **T-10-23-01**: `--name` の直後の語が `--` で始まっても、値として取る
+  - Target: `parseArgs`
+  - Scenario: Given `add --batch b1 --alarm a1 --at 2026-12-01T09:00:00+09:00 --title --foo --aumid app.x`, When `parseArgs` を呼ぶ
+  - Expected: Then 例外を投げず、`options['title']` が `--foo` である
+
+#### T-10-24: `=` を含む値 (`--name=value` 形式)
+
+- [ ] **T-10-24-01**: `--title=a=b` は最初の `=` だけで分割する
+  - Target: `parseArgs`
+  - Scenario: Given `add --batch b1 --alarm a1 --at 2026-12-01T09:00:00+09:00 --title=a=b --aumid app.x`, When `parseArgs` を呼ぶ
+  - Expected: Then `options['title']` が `a=b` である
+
+#### T-10-25: `=` を含む値 (`--name value` 形式)
+
+- [ ] **T-10-25-01**: `--title a=b` の値は `a=b` のまま保持する
+  - Target: `parseArgs`
+  - Scenario: Given `add --batch b1 --alarm a1 --at 2026-12-01T09:00:00+09:00 --title a=b --aumid app.x`, When `parseArgs` を呼ぶ
+  - Expected: Then `options['title']` が `a=b` である
+
+#### T-10-26: 識別子の値が `--` で始まる
+
+- [ ] **T-10-26-01**: `--batch --foo` は識別子 `--foo` として扱う
+  - Target: `parseArgs`
+  - Scenario: Given `add --batch --foo --alarm a1 --at 2026-12-01T09:00:00+09:00 --title t --aumid app.x`, When `parseArgs` を呼ぶ
+  - Expected: Then 例外を投げず、`options['batch']` が `--foo` である (欠落とは扱わない)
 
 ### [異常] Error Cases
 
@@ -316,6 +344,13 @@ version: 1.0.0
   - Target: `parseArgs`
   - Scenario: Given `cancel --aumid app.x --alarm a1 --batch b1` (T-10-02-01 と逆順), When `parseArgs` を呼ぶ
   - Expected: Then `options` が T-10-02-01 と同じ内容になる
+
+#### T-10-27: 値として取った語の後に余分な引数が残る
+
+- [ ] **T-10-27-01**: `--title` の直後の `--at` は値になり、続く語が余分な引数でエラーになる
+  - Target: `parseArgs`
+  - Scenario: Given `add --batch b1 --alarm a1 --title --at 2026-12-01T09:00:00+09:00 --aumid app.x` (`--title` の値が無いまま `--at` が続く), When `parseArgs` を呼ぶ
+  - Expected: Then `--at` を title の値として取り、続く `2026-12-01T09:00:00+09:00` が `--` で始まらない余分な引数のため `UsageException` を投げる (T-10-06-04)
 
 ---
 
@@ -887,6 +922,7 @@ version: 1.0.0
 | impl §4.2 前後の空白を削除した値を使う (batch/alarm/aumid。仕様 3.3, specifications-index 3.1)       | T-10-20-01, T-10-21-01, T-10-22-01, T-11-24-01                                                                                               |
 | 識別子の正規化 (specifications-index 3.1。implementation-index §3.3)                                 | T-12-01-01〜T-12-06-01                                                                                                                       |
 | impl §4.2 UTF-8 のまま扱う (REQ-NF-004)                                                              | T-10-16-01, T-10-17-01                                                                                                                       |
+| impl §4.2 `--` で始まる値・`=` を含む値 (直後の語は常に値、`=` は最初の 1 つで分割。specifications-index 3.1) | T-10-23-01, T-10-24-01, T-10-25-01, T-10-26-01, T-10-27-01                                                                         |
 | ENV-R-019 `--recorded-*` の空白は ARG で拒否しない                                                   | T-10-18-01                                                                                                                                   |
 | impl §4.3 正常終了 → 終了コード 0                                                                    | T-11-01-01〜T-11-01-08                                                                                                                       |
 | impl §4.3 `UsageException` / `ArgumentError` → 1                                                     | T-11-10-01, T-11-10-02, T-11-13-03, T-11-15-06                                                                                               |

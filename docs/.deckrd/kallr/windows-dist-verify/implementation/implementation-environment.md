@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Environment)"
 based-on: specifications-environment.md v1.0.0
 status: Draft
-version: 1.0.1
+version: 1.0.5
 created: "2026-11-22"
 ---
 
@@ -43,6 +43,14 @@ abstract interface class NotificationEnvironment {
 }
 ```
 
+`NotificationEnvironment` は、上層のインターフェースとする。
+実装 (`DefaultNotificationEnvironment`) の 4 つのメソッドは、それぞれ最初に `normalizeId` を呼ぶ。
+結果が空なら `UsageException` を投げ、以降は正規化後の値だけを使う (implementation-index.md §3.3)。
+下層の `AumidRegistry`、`NotificationSettingSource`、`PermissionProbe` は、正規化済みの aumid を受け取る。
+下層は、正規化と検査をしない。公開もしない。
+確認は、まず Mock の `AumidRegistry` を使う自動テスト (`NEV`) で行う。
+最後に、実機のレジストリで手動検証する (implementation-verification.md §4)。
+
 OS に触れる観測を、さらに 3 つの IF に分ける。`evaluateAvailability` と `w5_check` はこれらだけを使う。
 
 ```dart
@@ -68,7 +76,7 @@ Availability evaluateAvailability(
 
 ENV-R-001〜007 を次の順に実装する。
 
-1. `aumid.trim().isEmpty` → `UsageException` (確認しない)。
+1. `aumid` を `normalizeId` で正規化し、以降は戻り値を使う。空なら `UsageException` (確認しない)。
 2. `registry.exists(aumid)` が偽なら、`Availability` を返す。値は次のとおり。
    - `registered: false`
    - `displayNameSet: false`
@@ -89,9 +97,9 @@ ENV-R-001〜007 を次の順に実装する。
 
 2〜3 で打ち切るとき、`settings.read` は呼ばない (ENV-DD-03)。`evaluateAvailability` は書き込みをしない (ENV-R-012)。
 
-### 2.3 Windows 実装と Mock
+### 2.3 実装と Mock
 
-- `WinNotificationEnvironment` (`windows/`) は `AumidRegistry` と `NotificationSettingSource` を受け取る。
+- `DefaultNotificationEnvironment` (`env/`) は `AumidRegistry` と `NotificationSettingSource` を受け取る。OS を直接呼ばない。
   - `check`: `evaluateAvailability` に委譲する。
   - `register`: AUMID と DisplayName を検査し、空白だけなら `UsageException`。通れば `registry.write` を呼ぶ。
   - `unregister`: `registry.delete` が偽なら `NotFoundException`。
@@ -101,7 +109,7 @@ ENV-R-001〜007 を次の順に実装する。
   - `register` / `unregister`: 呼び出しを記録するだけで、レジストリと OS のどちらも呼ばない (ENV-R-013, AC-013)。
   - 7 つの状態を作る名前付きコンストラクタを持つ。状態は OK、未登録、DisplayName 空、無効 4 種。
 - `kallr_verify` の本体 (`SchedulingService`、`run()`) は `NotificationEnvironment` だけを型として知る。
-  `WinNotificationEnvironment` を直接 import しない (REQ-NF-001)。
+  `DefaultNotificationEnvironment` を直接 import しない (REQ-NF-001)。組み立ては `bin/kallr_verify.dart` だけが行う。
 
 ### 2.4 W5 の完備判定と整合チェック (`w5_check.dart`)
 
@@ -133,8 +141,11 @@ W5Report w5Check(W5Input input, NotificationEnvironment env, PermissionProbe pro
 手順 (ENV-R-014, 015, 016, 019):
 
 1. 各欄が未明確か判定する。値が null、`trim()` で空、または `記載なし` なら `unclear`。この欄は照合しない。
-2. aumid 欄が明確なら `env.isRegistered(recordedAumid)` が真で `match`、偽で `mismatch` (`observed` に「登録なし」)。
-3. permission 欄が明確なら、`user` / `administrator` 以外の値は `UsageException`。照合は大文字小文字を区別する完全一致とし、`Administrator` は `UsageException` (ENV-DD-12)。それ以外は `probe.current()` と比べて `match` / `mismatch`。
+2. aumid 欄が明確なら、`recordedAumid` を `normalizeId` した値で `env.isRegistered` を呼ぶ。
+   真なら `match`、偽なら `mismatch` (`observed` に「登録なし」)。
+3. permission 欄が明確なら、`user` / `administrator` 以外の値は `UsageException`。
+   照合は大文字小文字を区別する完全一致とし、`Administrator` も `UsageException` (ENV-DD-12)。
+   それ以外は `probe.current()` と比べて `match` / `mismatch`。
 4. install-method 欄が明確なら `status = notChecked` とし、記録した値を `recorded` に入れて「照合していない」と報告する (ENV-DD-04)。
 5. `exitCode` は、`unclear` または `mismatch` が 1 つでもあれば 2、そうでなければ 0。W5 の合否は変えず、報告するだけ (ENV-DD-05)。
 
@@ -215,14 +226,16 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 
 テスト ID の略語と採番は implementation-index.md §5 に従う。このファイルは、担当する対象の略語と、確認する値だけを示す。
 
-| 略語  | 対象                           | 主な spec の規則               |
-| ----- | ------------------------------ | ------------------------------ |
-| `AVL` | `evaluateAvailability` と Mock | ENV-R-001〜007, ENV-R-012, 013 |
-| `W5C` | `w5Check`                      | ENV-R-014〜016, ENV-R-019      |
+| 略語  | 対象                             | 主な spec の規則               |
+| ----- | -------------------------------- | ------------------------------ |
+| `AVL` | `evaluateAvailability` と Mock   | ENV-R-001〜007, ENV-R-012, 013 |
+| `W5C` | `w5Check`                        | ENV-R-014〜016, ENV-R-019      |
+| `NEV` | `DefaultNotificationEnvironment` | specifications-index 3.1       |
 
 | 対象 | 確認する値                                                                                                                                                    |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AVL  | 未登録、DisplayName なし/空/空白、無効 4 種、有効、未知の値で `RegistryException`、打ち切り時に `settings.read` が呼ばれない、`setting == null`、書き込みなし |
+| NEV  | 4 メソッドが aumid を正規化して下層に渡す、空・空白だけで `UsageException` を投げて下層を呼ばない                                                             |
 | W5C  | 3 欄完備で一致、AUMID 不一致、権限不一致、install-method の `notChecked`、`記載なし`/空白/未指定で `unclear` と exitCode 2、権限の値が不正で `UsageException` |
 
 ---
@@ -234,7 +247,11 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
      `based-on` must cite a three-part version that exists in the specifications.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                    |
-| ---------- | ------- | -------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged) |
-| 2026-11-22 | 1.0.1   | State that the permission value match is case-sensitive (clarification) |
+| Date       | Version | Description                                                                                                                             |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                                          |
+| 2026-11-22 | 1.0.1   | State that the permission value match is case-sensitive (clarification)                                                                 |
+| 2026-11-22 | 1.0.2   | evaluateAvailability and w5Check trim the AUMID at their entry (specifications-index v1.1.3)                                            |
+| 2026-11-22 | 1.0.3   | NotificationEnvironment methods, evaluateAvailability and w5Check normalize the AUMID with requireId / normalizeId                      |
+| 2026-11-22 | 1.0.4   | Use normalizeId with a check in each method; the lower IFs take normalized values and are not public                                    |
+| 2026-11-22 | 1.0.5   | The environment implementation is DefaultNotificationEnvironment in env/; add NEV (automated with a Mock registry, then a manual check) |

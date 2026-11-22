@@ -1,8 +1,8 @@
 ---
 title: "Implementation Specification: Windows Distribution Verify (Verification)"
-based-on: specifications-verification.md v1.0.2
+based-on: specifications-verification.md v1.0.3
 status: Draft
-version: 1.0.0
+version: 1.0.3
 created: "2026-11-22"
 ---
 
@@ -35,7 +35,7 @@ index の値は `w03.dart` と WinRT のメタデータで確認してから書�
 ```dart
 Future<void> main(List<String> args) async {
   exit(await run(args,
-      env: WinNotificationEnvironment(WinRegistry(), WinNotificationSetting()),
+      env: DefaultNotificationEnvironment(WinRegistry(), WinNotificationSetting()),
       schedulerFor: (aumid) => WinToastScheduler(aumid),
       permissionProbe: WinPermissionProbe(),
       clock: SystemClock(),
@@ -44,7 +44,8 @@ Future<void> main(List<String> args) async {
 }
 ```
 
-`schedulerFor` は `--aumid` の値を受けて `ToastScheduler` を作る。AUMID の検査 (空を拒否) は `run()` 側で済んでいる。
+`schedulerFor` は `--aumid` の値を受けて `ToastScheduler` を作る。
+`run()` は、`parseArgs` が `trim()` した値を渡す。AUMID の正規化と検査は、上層の各メソッドも行う (implementation-index.md §3.3)。
 
 ---
 
@@ -52,17 +53,31 @@ Future<void> main(List<String> args) async {
 
 実施と記録は verification spec (VER-R-001〜009) に従う。実装が用意するのは、観測に使う CLI (`list`、`show`、`re-register-all`、`w5-check`) だけです。
 
-| 項目                 | 手順の要点                                                                            | 記録先                          |
-| -------------------- | ------------------------------------------------------------------------------------- | ------------------------------- |
-| W1                   | `register-reg` → `add` → `list` で予約を確認 → 通知の表示                             | `poc-results-windows.md` に追記 |
-| W2                   | `add` の直後に kill → 時刻到達後に `list` と通知履歴/目視                             | 同上 (根拠を併記)               |
-| W3                   | 別プロセスで `cancel` → `list`                                                        | 同上                            |
-| W4 (a)(b)(c)(d)(e)   | 置換、発火後の登録、N 件の登録、同じ Tag/Group の AddToSchedule 単独、各段階での kill | 同上 ((d)(e) は記録のみ)        |
-| W5                   | `w5-check` で 3 欄を照合。`ToastNotifier.Setting` の実測値も記録                      | 同上                            |
-| W7                   | 再起動/ログオフ後に `list`、`re-register-all`                                         | 同上                            |
-| 任意の測定           | 過去時刻、予約一覧の上限範囲、配信猶予                                                | 同上 (合否に含めない)           |
-| コンソールの文字化け | 日本語の `--title` と AUMID を登録し、表示と保存が一致するか                          | 同上                            |
-| 全体の合否           | VER-R-009 の 3 条件 (W1〜W4、W5 の 3 欄、W7 の記録) を確認                            | 同上                            |
+| 項目                               | 手順の要点                                                                                                                                                                                                                        | 記録先                          |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| W1                                 | `register-reg` → `add` → `list` で予約を確認 → 通知の表示                                                                                                                                                                         | `poc-results-windows.md` に追記 |
+| W2                                 | `add` の直後に kill → 時刻到達後に `list` と通知履歴/目視                                                                                                                                                                         | 同上 (根拠を併記)               |
+| W3                                 | 別プロセスで `cancel` → `list`                                                                                                                                                                                                    | 同上                            |
+| W4 (a)(b)(c)(d)(e)                 | 置換、発火後の登録、N 件の登録、同じ Tag/Group の AddToSchedule 単独、各段階での kill                                                                                                                                             | 同上 ((d)(e) は記録のみ)        |
+| W5                                 | `w5-check` で 3 欄を照合。`ToastNotifier.Setting` の実測値も記録                                                                                                                                                                  | 同上                            |
+| W7                                 | 再起動/ログオフ後に `list`、`re-register-all`                                                                                                                                                                                     | 同上                            |
+| 任意の測定                         | 過去時刻、予約一覧の上限範囲、配信猶予                                                                                                                                                                                            | 同上 (合否に含めない)           |
+| `NotificationEnvironment` の正規化 | 自動テスト (`NEV`、Mock の `AumidRegistry`) が通ってから、最後に実機で確かめる。`DefaultNotificationEnvironment(WinRegistry(), …)` の `register`、`unregister`、`isRegistered` を、小さな Dart スクリプトから直接呼ぶ。手順は下記 | 同上 (記録のみ。合否に含めない) |
+| コンソールの文字化け               | 日本語の `--title` と AUMID を登録し、表示と保存が一致するか                                                                                                                                                                      | 同上                            |
+| 全体の合否                         | VER-R-009 の 3 条件 (W1〜W4、W5 の 3 欄、W7 の記録) を確認                                                                                                                                                                        | 同上                            |
+
+`NotificationEnvironment` の正規化は、まず自動テストで、Mock の `AumidRegistry` を使って確かめる (`NEV`)。
+ここでは、Mock ではなく、実機のレジストリで動くことを最後に確かめる。
+CLI は `parseArgs` が先に `trim()` するため、CLI 経由では確かめられない。スクリプトから直接呼ぶ。
+テスト用の AUMID を 1 つ決め、次の順に確認する。
+
+1. `register(" <aumid> ", "<表示名>")` を呼ぶ。HKCU のキー名が、前後の空白を含まない `<aumid>` であること。
+2. `isRegistered(" <aumid> ")` を呼ぶ。`true` を返すこと。
+3. `unregister(" <aumid> ")` を呼ぶ。HKCU の `<aumid>` のキーが消えること。
+4. `register("   ", "<表示名>")` を呼ぶ。`UsageException` を投げ、HKCU に何も作らないこと。
+5. `isRegistered("   ")` と `unregister("   ")` も呼ぶ。どちらも `UsageException` を投げること。
+
+確認したら、後始末として、テスト用の AUMID のキーが残っていないことを確かめる。
 
 追記は追記のみとし、既存の記述は書き換えない (VER-R-008)。観測していない値は「記載なし」と書き、推測で埋めない。
 
@@ -90,6 +105,9 @@ Future<void> main(List<String> args) async {
      `based-on` must cite a three-part version that exists in the specifications.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                    |
-| ---------- | ------- | -------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged) |
+| Date       | Version | Description                                                                                                 |
+| ---------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                              |
+| 2026-11-22 | 1.0.1   | Follow specifications-verification v1.0.3 (DR-08 citation)                                                  |
+| 2026-11-22 | 1.0.2   | Add the manual check of the NotificationEnvironment normalization (4); fix the note on the AUMID check in 3 |
+| 2026-11-22 | 1.0.3   | The manual check of the normalization runs last, after the automated test with a Mock registry              |

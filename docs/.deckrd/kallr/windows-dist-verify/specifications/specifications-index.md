@@ -2,7 +2,7 @@
 title: "Design Specification: Windows Distribution Verify (Index)"
 based-on: requirements.md v1.2.0
 status: Draft
-version: 1.2.0
+version: 1.3.0
 created: "2026-11-20"
 ---
 
@@ -190,6 +190,8 @@ Windows で OS の予約通知 (AddToSchedule) を、未パッケージ + HKCU �
   - オプションの値は文字列として扱う。`--name` の直後の 1 語は、`--` で始まっていても値とする。
     `--name=value` は最初の `=` だけで分割し、値に `=` を含んでもよい。
     引用符はシェルが外すため、引用符の有無は区別しない。値が無いのは、直後の語が無いときだけとする
+  - 各コマンドが受け付けるオプションは、そのコマンドの必須と任意だけとする。他のコマンド用のオプションも未知として使い方の誤りにする
+    (例: `show --db x`、`cancel ... --title x`)
   - `--db <path>` は任意で、対応表を使うすべてのコマンドの保存先を差し替える (IDX-DD-11)
   - Tag と Group の文字数は UTF-16 code unit 数で数える
   - 各コマンドの入力の詳細は、対応する分割ファイルが定める
@@ -369,14 +371,15 @@ REQ-F-012 は、記録の手順を verification、一括再登録の動作を sc
      `based-on` must cite a three-part version that exists in requirements.md.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                                                                   |
-| ---------- | ------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-11-20 | 1.0.0   | Initial specification                                                                                         |
-| 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                                   |
-| 2026-11-22 | 1.1.0   | Replace with the database written first (DR-07): IDX-R-005                                                    |
-| 2026-11-22 | 1.1.1   | Cite DR-08, which replaces the stage count and the current-row timing of DR-07 (clarification)                |
-| 2026-11-22 | 1.1.2   | `--aumid` is trimmed and the trimmed value is used as the AUMID (3.1)                                         |
-| 2026-11-22 | 1.1.3   | Identifiers are trimmed at the entry of each function, not only in the CLI (3.1)                              |
-| 2026-11-22 | 1.1.4   | Each library method calls the normalizing function first and checks the normalized identifier (3.1)           |
-| 2026-11-22 | 1.1.5   | Identifiers are normalized at the upper interface; each method checks them; the lower API is not public (3.1) |
+| Date       | Version | Description                                                                                                              |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2026-11-20 | 1.0.0   | Initial specification                                                                                                    |
+| 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                                              |
+| 2026-11-22 | 1.1.0   | Replace with the database written first (DR-07): IDX-R-005                                                               |
+| 2026-11-22 | 1.1.1   | Cite DR-08, which replaces the stage count and the current-row timing of DR-07 (clarification)                           |
+| 2026-11-22 | 1.1.2   | `--aumid` is trimmed and the trimmed value is used as the AUMID (3.1)                                                    |
+| 2026-11-22 | 1.1.3   | Identifiers are trimmed at the entry of each function, not only in the CLI (3.1)                                         |
+| 2026-11-22 | 1.1.4   | Each library method calls the normalizing function first and checks the normalized identifier (3.1)                      |
+| 2026-11-22 | 1.1.5   | Identifiers are normalized at the upper interface; each method checks them; the lower API is not public (3.1)            |
 | 2026-11-22 | 1.2.0   | Option values are plain strings: the word after `--name` is always the value, and `=` splits only at the first one (3.1) |
+| 2026-11-22 | 1.3.0   | Options of other commands are unknown options and a usage error (3.1)                                                    |

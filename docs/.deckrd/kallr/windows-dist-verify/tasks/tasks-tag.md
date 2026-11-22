@@ -19,11 +19,11 @@ version: 1.0.0
 
 ## Task Summary
 
-| Test Target                                          | Scenarios | Cases | Status      |
-|------------------------------------------------------|-----------|-------|-------------|
-| T-01: `generateTag` (TAG)                            | 10        | 23    | in progress |
-| T-02: `allocateTag` (TAL)                            | 11        | 15    | pending     |
-| T-03: `MachineIdProvider` 実装 / `SqliteStore` (MID) | 13        | 21    | pending     |
+| Test Target                                          | Scenarios | Cases | Status  |
+| ---------------------------------------------------- | --------- | ----- | ------- |
+| T-01: `generateTag` (TAG)                            | 10        | 23    | pending |
+| T-02: `allocateTag` (TAL)                            | 11        | 15    | pending |
+| T-03: `MachineIdProvider` 実装 / `SqliteStore` (MID) | 13        | 21    | pending |
 
 ---
 
@@ -48,7 +48,7 @@ version: 1.0.0
   - Scenario: Given registeredAt が 2026-01-02 03:04:05 (ローカル)、machineId が `a1b2c3d4`、random が `0123456789abcdef`, When `generateTag` を呼ぶ
   - Expected: Then 日時部分が `20260102030405` になる (TAG-R-002)
 
-- [ ] **T-01-01-04**: ローカル日時を UTC に変換せずに使う
+- [ ] **T-01-01-04**: ローカル日時を UTC へ変換せず、そのまま使う
   - Target: `generateTag`
   - Scenario: Given registeredAt が 2026-12-31 23:59:59 のローカル日時 (isUtc が false)、machineId が `a1b2c3d4`、random が `0123456789abcdef`, When `generateTag` を呼ぶ
   - Expected: Then 日時部分が `20261231235959` になる (DR-04 決定 2、実装 §2.2 の `toUtc()` 不使用)
@@ -168,7 +168,7 @@ version: 1.0.0
 - [ ] **T-01-10-01**: 同じ登録時刻でも乱数が違えば異なる Tag になる
   - Target: `generateTag`
   - Scenario: Given 同じ registeredAt (2026-11-01 01:30:00 ローカル) と machineId `a1b2c3d4`、乱数が `0000000000000001` と `0000000000000002` の 2 通り, When 乱数ごとに `generateTag` を呼ぶ
-  - Expected: Then 2 つの日時部分は等しく、Tag 全体は異なる (5 章の夏時間の行、区別は乱数部分が担う)
+  - Expected: Then 2 つの日時部分は等しく、Tag 全体は異なる (仕様 5 章の夏時間の行、区別は乱数部分が担う)
 
 ---
 
@@ -223,10 +223,10 @@ version: 1.0.0
 
 #### T-02-06: 乱数の取得元が不正な値を返した
 
-- [ ] **T-02-06-01**: 乱数が 16 桁の 16 進でなければ `ArgumentError` を伝える
+- [ ] **T-02-06-01**: 乱数が小文字 16 進 16 桁でなければ `ArgumentError` を伝える
   - Target: `allocateTag`
   - Scenario: Given `existingTags` が空で、乱数の取得元が `xyz` を返す, When `allocateTag` を呼ぶ
-  - Expected: Then `ArgumentError` を投げる。再生成で隠さず、Tag を返さない (2.1 失敗は黙って補わない、TAG-R-001)
+  - Expected: Then `ArgumentError` を投げる。再生成で隠さず、Tag を返さない (仕様 2.1 の「失敗は黙って補わない」、TAG-R-001)
 
 #### T-02-07: マシン ID を取得できない
 
@@ -275,7 +275,7 @@ version: 1.0.0
 - [ ] **T-02-12-01**: 同じ登録時刻で 2 回目に呼び、1 回目の Tag が `existingTags` にあれば別の Tag を返す
   - Target: `allocateTag`
   - Scenario: Given 1 回目の `allocateTag` の戻り値を `existingTags` に入れ、2 回目の呼び出しでも 1 回目と同じ乱数が先に返る (次の乱数は別の値), When `allocateTag` を再度呼ぶ
-  - Expected: Then 2 回目の戻り値は 1 回目と異なる Tag である (DR-05、5 章の置換の行)
+  - Expected: Then 2 回目の戻り値は 1 回目と異なる Tag である (DR-05、仕様 5 章の置換の行)
 
 ---
 
@@ -305,7 +305,7 @@ version: 1.0.0
 - [ ] **T-03-02-02**: 行の `id` が 1 以外でも key から `id` を引いて値を読む
   - Target: `MachineIdProvider.machineId` (`SqliteStore`)
   - Scenario: Given `settings` に key `machine_id`、value `a1b2c3d4` の行 (id が 42) がある, When `machineId()` を呼ぶ
-  - Expected: Then `a1b2c3d4` を返す (実装 §3 手順 1、db-migration §2 の物理 ID 経由の読み取り)
+  - Expected: Then `a1b2c3d4` を返す (実装 §3 手順 1、db-migration.md §2 の物理 ID 経由の読み取り)
 
 #### T-03-03: 再オープンしても同じ値を返す
 
@@ -381,7 +381,7 @@ version: 1.0.0
 - [ ] **T-03-09-01**: key `machine_id` の行が既にあるとき、同じ key の 2 行目の INSERT は拒否される
   - Target: `SqliteStore` (`settings_key` ユニークインデックス)
   - Scenario: Given `settings` に key `machine_id` の行が 1 件あり, When 同じ key `machine_id` の行を INSERT する
-  - Expected: Then 一意制約違反で INSERT が失敗し、`settings` の `machine_id` の行は 1 件のままである (db-migration §2)
+  - Expected: Then 一意制約違反で INSERT が失敗し、`settings` の `machine_id` の行は 1 件のままである (db-migration.md §2)
 
 ### [エッジケース] Edge Cases
 
@@ -423,7 +423,7 @@ version: 1.0.0
 ## Coverage Check
 
 | Source item                                                       | Task ID(s)                                                                                             |
-|-------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | TAG-R-001                                                         | T-01-04-01〜02, T-01-05-01〜05, T-01-06-01〜04, T-01-08-01〜02, T-01-09-01〜02, T-02-06-01, T-02-08-01 |
 | TAG-R-002                                                         | T-01-01-01, T-01-01-03, T-01-01-04, T-01-07-01, T-01-08-01〜02                                         |
 | TAG-R-003                                                         | T-01-03-01                                                                                             |
@@ -463,17 +463,17 @@ version: 1.0.0
 | 実装 §4: `key` の重複を拒否 (ユニークインデックス)                | T-03-09-01                                                                                             |
 | 実装 §4: `id` 経由で読む                                          | T-03-02-02                                                                                             |
 
-[UNCOVERED]: なし
+**[UNCOVERED]**: なし。
 
 ---
 
 ## Category Balance
 
-| Test Target                        | Normal | Error | Edge | Result |
-| ---------------------------------- | -----: | ----: | ---: | ------ |
-| T-01: `generateTag`                | 6      | 11    | 6    | [OK]   |
-| T-02: `allocateTag`                | 5      | 5     | 5    | [OK]   |
-| T-03: `MachineIdProvider` (MID)    | 6      | 10    | 5    | [OK]   |
+| Test Target                     | Normal | Error | Edge | Result |
+| ------------------------------- | -----: | ----: | ---: | ------ |
+| T-01: `generateTag`             |      6 |    11 |    6 | [OK]   |
+| T-02: `allocateTag`             |      5 |     5 |    5 | [OK]   |
+| T-03: `MachineIdProvider` (MID) |      6 |    10 |    5 | [OK]   |
 
 - T-01: `Normal: 6 | Error: 11 | Edge: 6`
 - T-02: `Normal: 5 | Error: 5 | Edge: 5` (T-02-04 は削除。番号は欠番)

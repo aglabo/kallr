@@ -19,12 +19,12 @@ version: 1.0.0
 
 ## Task Summary
 
-| Test Target                            | Scenarios | Cases | Status      |
-| -------------------------------------- | --------- | ----- | ----------- |
-| T-04: parseAt (ATP)                    | 15        | 22    | in progress |
-| T-05: MappingTable / SqliteStore (MAP) | 22        | 42    | pending     |
-| T-06: 置換キュー (RPQ)                 | 12        | 28    | pending     |
-| T-07: SchedulingService (SVC)          | 56        | 143   | pending     |
+| Test Target                            | Scenarios | Cases | Status  |
+| -------------------------------------- | --------- | ----- | ------- |
+| T-04: parseAt (ATP)                    | 15        | 22    | pending |
+| T-05: MappingTable / SqliteStore (MAP) | 22        | 44    | pending |
+| T-06: 置換キュー (RPQ)                 | 12        | 28    | pending |
+| T-07: SchedulingService (SVC)          | 73        | 164   | pending |
 
 <!-- Status may be: pending | in progress | done -->
 
@@ -118,7 +118,7 @@ version: 1.0.0
   - Scenario: Given `"2026-11-01T01:30:00"` と NY 規則の `offsetAt`, When `parseAt` を呼ぶ
   - Expected: Then 早いほうの `2026-11-01T05:30:00Z` と同じ瞬間を返す (遅いほうの `06:30:00Z` ではない)
 
-#### T-04-11: Given: 曖昧な時間帯の明示オフセット付き文字列 (contrast)
+#### T-04-11: Given: 曖昧な時間帯の明示オフセット付き文字列 (T-04-10 との対比)
 
 - [ ] **T-04-11-01**: 明示オフセットは夏時間の規則に左右されない
   - Target: `parseAt`
@@ -230,7 +230,7 @@ version: 1.0.0
 
 - [ ] **T-05-03-01**: 2 回目の値で上書きされる
   - Target: `MappingTable.put`
-  - Scenario: Given `b1` / `a1` に tag `...-0123456789abcdef` を `put` 済み, When 同じキーに別の tag と at と title で `put` する
+  - Scenario: Given `b1` / `a1` に tag `...-0123456789abcdef` を `put` 済み, When 同じキーに別の tag・at・title で `put` する
   - Expected: Then `get('b1','a1')` が 2 回目の値を返す
 
 - [ ] **T-05-03-02**: 上書きでも物理 ID は変わらない
@@ -313,7 +313,7 @@ version: 1.0.0
 #### T-05-10: Given: `--db` が無いときの既定の保存先 (SCH-R-029, SCH-DD-12)
 
 - [ ] **T-05-10-01**: LOCALAPPDATA 配下の既定のパスを返す
-  - Target: `default_db_path.dart` の既定の保存先の解決
+  - Target: `defaultDbPath`
   - Scenario: Given 環境変数 `LOCALAPPDATA` が `C:\Users\tester\AppData\Local`, When 既定の保存先を求める
   - Expected: Then `C:\Users\tester\AppData\Local\kallr\w1-w7-verify\mappings.sqlite3` を返す
 
@@ -331,7 +331,7 @@ version: 1.0.0
   - Scenario: Given `b1`/`a1` が tag `T1` を持つ, When `b2`/`a2` に同じ tag `T1` で `put` して失敗した
   - Expected: Then `all()` が失敗前と同じ 1 件のままである
 
-#### T-05-12: Given: batchId が空文字の項目 (3.3 の制約)
+#### T-05-12: Given: 識別子 (batchId, alarmId) が空文字の項目 (specifications-schedule.md 3.3 の制約)
 
 - [ ] **T-05-12-01**: 空の batchId は StorageException になる
   - Target: `MappingTable.put`
@@ -341,6 +341,16 @@ version: 1.0.0
 - [ ] **T-05-12-02**: 空の batchId の項目は保存されない
   - Target: `MappingTable.put`
   - Scenario: Given batchId が `""` の項目, When `put` して失敗した
+  - Expected: Then `all()` が空である
+
+- [ ] **T-05-12-03**: 空の alarmId は StorageException になる
+  - Target: `MappingTable.put`
+  - Scenario: Given alarmId が `""` の項目, When `put` する
+  - Expected: Then `StorageException` を投げる
+
+- [ ] **T-05-12-04**: 空の alarmId の項目は保存されない
+  - Target: `MappingTable.put`
+  - Scenario: Given alarmId が `""` の項目, When `put` して失敗した
   - Expected: Then `all()` が空である
 
 #### T-05-13: Given: Tag の長さが 40 でない項目 (db-migration.md §2.2 の CHECK)
@@ -394,7 +404,7 @@ version: 1.0.0
 #### T-05-17: Given: 環境変数 LOCALAPPDATA が無い
 
 - [ ] **T-05-17-01**: 既定の保存先を決められず StorageException になる
-  - Target: `default_db_path.dart` の既定の保存先の解決
+  - Target: `defaultDbPath`
   - Scenario: Given 環境変数 `LOCALAPPDATA` が未設定, When 既定の保存先を求める
   - Expected: Then `StorageException` を投げる
 
@@ -424,7 +434,7 @@ version: 1.0.0
   - Scenario: Given 何も `put` していない対応表, When `tags()` を呼ぶ
   - Expected: Then 空の `Set` を返す
 
-#### T-05-20: Given: 親ディレクトリが無い保存先 (db-migration.md / impl §2.1)
+#### T-05-20: Given: 親ディレクトリが無い保存先 (db-migration.md / implementation-schedule.md §2.1)
 
 - [ ] **T-05-20-01**: 親ディレクトリを作って開く
   - Target: `SqliteStore.open`
@@ -440,7 +450,7 @@ version: 1.0.0
 
 #### T-05-22: Given: 0 バイトの既存ファイル (テーブルが 1 つも無い)
 
-- [ ] **T-05-22-01**: 0 バイトの既存ファイルは新規作成と同じに初期化され、例外を投げない
+- [ ] **T-05-22-01**: 0 バイトの既存ファイルは新規作成と同じように初期化され、例外を投げない
   - Target: `SqliteStore.open`
   - Scenario: Given 0 バイトの既存ファイル, When `open` する
   - Expected: Then 例外を投げず、`PRAGMA user_version` が 1 になる (db-migration.md §3.1: `empty` から `initial` へ)
@@ -482,7 +492,7 @@ version: 1.0.0
   - Scenario: Given 旧行が current, When 置換後の `MappingRecord` で `replace` する
   - Expected: Then 戻り値が `replacement_queue.id` と等しい
 
-#### T-06-02: Given: replace 直後の参照 (impl §2.4)
+#### T-06-02: Given: replace 直後の参照 (implementation-schedule.md §2.4)
 
 - [ ] **T-06-02-01**: get は置換後の行を返す
   - Target: `MappingTable.get`
@@ -640,6 +650,7 @@ version: 1.0.0
 > - 生成される Tag: 1 回目 `ADD1`=`20261122100000-a1b2c3d4-0123456789abcdef`、乱数を再生成したとき `ADD2`=`20261122100000-a1b2c3d4-fedcba9876543210`。
 > - 既存の Tag: `OLD`=`20261122090000-a1b2c3d4-0123456789abcdef` (b1/a1 の現行)、`PND`=`20261122093000-a1b2c3d4-0123456789abcdef`。
 > - `at` の例: `A1`=`2026-11-22T12:00:00+09:00` (now より後)。
+> - `at` に時差が無い値 (`2026-11-22T10:00:00` など) は、マシンのローカル時刻として扱う (IDX-DD-03)。時差を付けた値は、その時差のまま絶対時刻として扱う。
 > - 停止状態 (置換の保留。キー b1/a1、旧行 `OLD` が superseded、新行 `PND` が pending (at `2026-11-22T13:00:00+09:00`, title `再開後`)):
 >   - P2 (段階 2 の前): 予約一覧に `OLD` だけ。
 >   - P3 (段階 3 の前): 予約一覧に `OLD` と `PND` の両方。
@@ -674,7 +685,7 @@ version: 1.0.0
   - Scenario: Given 空の対応表と空の予約一覧, When `add(aumid: 'Kallr.Test')` を呼ぶ
   - Expected: Then `env.check` が `Kallr.Test` で 1 回呼ばれる
 
-#### T-07-02: Given: 対応表の Tag が予約一覧にある同じキーで add する (置換。SCH-R-005, SCH-R-009, SCH-R-011, IDX-R-005, DR-05, DR-07)
+#### T-07-02: Given: 対応表の Tag が予約一覧にある同じキーで add する (置換。SCH-R-005, SCH-R-009, SCH-R-011, IDX-R-005, DR-05, DR-07, DR-08)
 
 - [ ] **T-07-02-01**: 新しい Tag の MappingRecord を返す
   - Target: `SchedulingService.add`
@@ -703,12 +714,12 @@ version: 1.0.0
 
 #### T-07-03: Given: 同じ at と title での再 add (SCH-E-09)
 
-- [ ] **T-07-03-01**: 内容が同じでも置換になり新しい Tag になる
+- [ ] **T-07-03-01**: 内容が同じでも置換として扱い、新しい Tag を付ける
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD`・at `A1`・title `t1` で対応表と予約一覧にある, When 同じ at `A1` と title `t1` で `add` する
   - Expected: Then 返り値の tag が `ADD1` で、`scheduler.list('kallr')` が `ADD1` の 1 件だけを返す
 
-#### T-07-04: Given: 対応表に項目があり、その Tag が予約一覧に無い (発火後。SCH-R-006, SCH-E-08, REQ-F-006)
+#### T-07-04: Given: 対応表に項目があり、その Tag が予約一覧に無い (発火済み。SCH-R-006, SCH-E-08, REQ-F-006)
 
 - [ ] **T-07-04-01**: 新しい MappingRecord を返す
   - Target: `SchedulingService.add`
@@ -851,7 +862,7 @@ version: 1.0.0
   - Scenario: Given `OLD` が予約一覧にだけある, When `list()` を呼ぶ
   - Expected: Then その要素の `record` が null で、`toast` が `OLD` の予約である
 
-#### T-07-13: Given: 複数の項目と複数の孤立した予約がある (並び。impl §3.3 list)
+#### T-07-13: Given: 複数の項目と複数の孤立した予約がある (並び。implementation-schedule.md §3.3 list)
 
 - [ ] **T-07-13-01**: 項目は (batchId, alarmId) の順に並ぶ
   - Target: `SchedulingService.list`
@@ -925,6 +936,53 @@ version: 1.0.0
   - Target: `SchedulingService.reRegisterAll`
   - Scenario: Given P3 の状態, When `reRegisterAll` を呼ぶ
   - Expected: Then `table.pendingRemovals()` が空である
+
+#### T-07-65: Given: add の batchId の前後に空白がある (契約。仕様 3.3)
+
+- [ ] **T-07-65-01**: 返り値の batchId は前後の空白を削除した値になる
+  - Target: `SchedulingService.add`
+  - Scenario: Given `batchId` が `" b1 "`、`alarmId` が `a1`, When `add` を呼ぶ
+  - Expected: Then 返り値の `batchId` が `b1` である
+
+- [ ] **T-07-65-02**: 対応表は前後の空白を削除したキーで保存される
+  - Target: `SchedulingService.add`
+  - Scenario: Given `batchId` が `" b1 "`、`alarmId` が `a1`, When `add` を呼ぶ
+  - Expected: Then `table.get('b1','a1')` が項目を返す
+
+#### T-07-66: Given: add の alarmId の前後に空白がある (契約。仕様 3.3)
+
+- [ ] **T-07-66-01**: 返り値の alarmId は前後の空白を削除した値になる
+  - Target: `SchedulingService.add`
+  - Scenario: Given `batchId` が `b1`、`alarmId` が `" a1 "`, When `add` を呼ぶ
+  - Expected: Then 返り値の `alarmId` が `a1` である
+
+#### T-07-67: Given: cancel の batchId の前後に空白がある (契約。仕様 3.3)
+
+- [ ] **T-07-67-01**: 前後の空白を削除したキーの項目を取り消す
+  - Target: `SchedulingService.cancel`
+  - Scenario: Given 対応表と予約一覧に `b1`/`a1` の項目と予約があり、`batchId` が `" b1 "`, When `cancel` を呼ぶ
+  - Expected: Then `table.get('b1','a1')` が null になり、予約一覧から該当の予約が消える
+
+#### T-07-68: Given: cancel の alarmId の前後に空白がある (契約。仕様 3.3)
+
+- [ ] **T-07-68-01**: 前後の空白を削除したキーの項目を取り消す
+  - Target: `SchedulingService.cancel`
+  - Scenario: Given 対応表と予約一覧に `b1`/`a1` の項目と予約があり、`alarmId` が `" a1 "`, When `cancel` を呼ぶ
+  - Expected: Then `table.get('b1','a1')` が null になり、予約一覧から該当の予約が消える
+
+#### T-07-70: Given: add の aumid の前後に空白がある (契約。specifications-index 3.1)
+
+- [ ] **T-07-70-01**: 前後の空白を削除した aumid で通知可否の確認をする
+  - Target: `SchedulingService.add`
+  - Scenario: Given `aumid` が `" Kallr.Test "`、ほかは有効な値, When `add` を呼ぶ
+  - Expected: Then `env.check` が `Kallr.Test` で呼ばれる
+
+#### T-07-71: Given: reRegisterAll の aumid の前後に空白がある (契約。specifications-index 3.1)
+
+- [ ] **T-07-71-01**: 前後の空白を削除した aumid で通知可否の確認をする
+  - Target: `SchedulingService.reRegisterAll`
+  - Scenario: Given `aumid` が `" Kallr.Test "`, When `reRegisterAll` を呼ぶ
+  - Expected: Then `env.check` が `Kallr.Test` で呼ばれる
 
 ### [異常] Error Cases
 
@@ -1256,6 +1314,91 @@ version: 1.0.0
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.pendingRemovals()` が 1 件を返す
 
+#### T-07-57: Given: add の batchId が空文字 (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-57-01**: `UsageException` を投げる
+  - Target: `SchedulingService.add`
+  - Scenario: Given `batchId` が `""`、ほかは有効な値, When `add` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+- [ ] **T-07-57-02**: `env.check` を呼ばない
+  - Target: `SchedulingService.add`
+  - Scenario: Given `batchId` が `""`、呼び出しを記録する Fake `env`, When `add` を呼ぶ
+  - Expected: Then `env.check` が 1 度も呼ばれない
+
+- [ ] **T-07-57-03**: `table` と `scheduler` に触れない
+  - Target: `SchedulingService.add`
+  - Scenario: Given `batchId` が `""`, When `add` を呼ぶ
+  - Expected: Then `table` と `scheduler` の呼び出し記録が空である
+
+#### T-07-58: Given: add の alarmId が空文字 (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-58-01**: `UsageException` を投げる
+  - Target: `SchedulingService.add`
+  - Scenario: Given `alarmId` が `""`、ほかは有効な値, When `add` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-07-59: Given: add の batchId が空白だけ (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-59-01**: `UsageException` を投げる
+  - Target: `SchedulingService.add`
+  - Scenario: Given `batchId` が `"   "`、ほかは有効な値, When `add` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-07-60: Given: add の alarmId が空白だけ (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-60-01**: `UsageException` を投げる
+  - Target: `SchedulingService.add`
+  - Scenario: Given `alarmId` が `"   "`、ほかは有効な値, When `add` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-07-61: Given: cancel の batchId が空文字 (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-61-01**: `UsageException` を投げる
+  - Target: `SchedulingService.cancel`
+  - Scenario: Given `batchId` が `""`, When `cancel` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+- [ ] **T-07-61-02**: `table` に触れない
+  - Target: `SchedulingService.cancel`
+  - Scenario: Given `batchId` が `""`, When `cancel` を呼ぶ
+  - Expected: Then `table` の呼び出し記録が空で、`NotFoundException` ではない
+
+#### T-07-62: Given: cancel の alarmId が空文字 (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-62-01**: `UsageException` を投げる
+  - Target: `SchedulingService.cancel`
+  - Scenario: Given `alarmId` が `""`, When `cancel` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-07-63: Given: cancel の batchId が空白だけ (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-63-01**: `UsageException` を投げる
+  - Target: `SchedulingService.cancel`
+  - Scenario: Given `batchId` が `"   "`, When `cancel` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-07-64: Given: cancel の alarmId が空白だけ (契約。仕様 3.3, IDX-DD-02, SCH-R-001)
+
+- [ ] **T-07-64-01**: `UsageException` を投げる
+  - Target: `SchedulingService.cancel`
+  - Scenario: Given `alarmId` が `"   "`, When `cancel` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-07-72: Given: add の aumid が空白だけ (契約。specifications-index 3.1)
+
+- [ ] **T-07-72-01**: `UsageException` を投げ、`env.check` を呼ばない
+  - Target: `SchedulingService.add`
+  - Scenario: Given `aumid` が `"   "`、ほかは有効な値, When `add` を呼ぶ
+  - Expected: Then `UsageException` を投げ、`env.check` が 1 度も呼ばれない
+
+#### T-07-73: Given: reRegisterAll の aumid が空白だけ (契約。specifications-index 3.1)
+
+- [ ] **T-07-73-01**: `UsageException` を投げ、何も登録しない
+  - Target: `SchedulingService.reRegisterAll`
+  - Scenario: Given `aumid` が `"   "`, When `reRegisterAll` を呼ぶ
+  - Expected: Then `UsageException` を投げ、`scheduler` の呼び出し記録が空である
+
 ### [エッジケース] Edge Cases
 
 #### T-07-37: Given: 生成した Tag が予約一覧にだけある Tag と重複する (SCH-R-007, TAG 重複の確認先)
@@ -1346,7 +1489,7 @@ version: 1.0.0
 
 #### T-07-44: Given: 保留 (P3) があるキーと同じキーで add する (SCH-R-036)
 
-- [ ] **T-07-44-01**: 保留を処理してから新しい置換を行い、予約が 1 件になる
+- [ ] **T-07-44-01**: 保留を処理してから新たに置換し、予約が 1 件になる
   - Target: `SchedulingService.add`
   - Scenario: Given P3 の状態, When 同じ `b1`/`a1` で `add` する
   - Expected: Then `scheduler.list('kallr')` が tag `ADD1` の 1 件だけを返す
@@ -1399,14 +1542,14 @@ version: 1.0.0
   - Scenario: Given 同上, When `cancel('b1','a1')` を呼ぶ
   - Expected: Then `table.get('b1','a1')` が null を返す
 
-#### T-07-49: Given: 対応表も予約一覧も空
+#### T-07-49: Given: 対応表と予約一覧がどちらも空
 
 - [ ] **T-07-49-01**: list は空のリストを返す
   - Target: `SchedulingService.list`
-  - Scenario: Given 対応表も予約一覧も空, When `list()` を呼ぶ
+  - Scenario: Given 対応表と予約一覧がどちらも空, When `list()` を呼ぶ
   - Expected: Then 空のリストを返す
 
-#### T-07-50: Given: list の予約一覧の取得対象 (2.2)
+#### T-07-50: Given: list の予約一覧の取得対象 (specifications-schedule.md 2.2)
 
 - [ ] **T-07-50-01**: Group を kallr に固定して予約一覧を取得する
   - Target: `SchedulingService.list`
@@ -1482,6 +1625,13 @@ version: 1.0.0
   - Scenario: Given 対応表が空, When `reRegisterAll` を呼ぶ
   - Expected: Then `registered`・`failed`・`skippedPast`・`alreadyPresent` がすべて空で、`exitCode` が 0 である
 
+#### T-07-69: Given: 対応表に `b1`/`a1` があり、前後に空白のある `" b1 "` で add する (契約。仕様 3.3)
+
+- [ ] **T-07-69-01**: 空白を削除した同じキーなので、新規ではなく置換として扱う
+  - Target: `SchedulingService.add`
+  - Scenario: Given 対応表と予約一覧に `b1`/`a1` の項目と予約があり、`batchId` が `" b1 "`, When `add` を呼ぶ
+  - Expected: Then 置換の手順になり、`scheduler.add` の後に `scheduler.remove(OLD)` が呼ばれる
+
 ---
 
 ## Coverage Check
@@ -1496,48 +1646,50 @@ version: 1.0.0
 
 ### 判定規則 (Section 4)
 
-| Source item                       | Task ID(s)                                                                                                                                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SCH-R-002                         | T-04-01-01, T-04-01-02, T-04-02-01, T-04-03-01, T-04-04-01, T-04-05-01                                                                                                                                     |
-| SCH-R-031                         | T-04-09-01, T-04-10-01, T-04-11-01, T-04-13-01〜04, T-04-14-01〜04, T-04-15-01                                                                                                                             |
-| SCH-R-001 (c) の解釈不能な `--at` | T-04-06-01, T-04-07-01, T-04-08-01                                                                                                                                                                         |
-| SCH-R-003                         | T-07-18-01〜04                                                                                                                                                                                             |
-| SCH-R-004                         | T-07-01-01〜05                                                                                                                                                                                             |
-| SCH-R-005                         | T-07-02-01〜05, T-07-03-01                                                                                                                                                                                 |
-| SCH-R-006                         | T-07-04-01〜04                                                                                                                                                                                             |
-| SCH-R-007                         | T-07-22-01〜03, T-07-37-01, T-07-38-01                                                                                                                                                                     |
-| SCH-R-008                         | T-07-01-02〜04, T-07-19-01, T-07-19-02, T-07-20-01                                                                                                                                                         |
-| SCH-R-009                         | T-06-01-01〜04, T-06-05-01〜05, T-07-02-01〜05                                                                                                                                                             |
-| SCH-R-010                         | T-06-06-01〜05, T-07-21-01〜04, T-07-24-01〜06, T-07-34-01〜04, T-07-48-01                                                                                                                                 |
-| SCH-R-011                         | T-07-01-02, T-07-02-02                                                                                                                                                                                     |
-| SCH-R-036                         | T-07-05-01〜04, T-07-06-01〜03, T-07-07-01〜02, T-07-09-01〜03, T-07-17-01〜02, T-07-34-01〜04, T-07-35-01〜03, T-07-36-01〜02, T-07-41-01〜04, T-07-42-01〜02, T-07-43-01, T-07-44-01〜02, T-07-48-01〜02 |
-| SCH-R-013                         | T-07-27-01〜03                                                                                                                                                                                             |
-| SCH-R-014                         | T-07-08-01〜03                                                                                                                                                                                             |
-| SCH-R-015                         | T-07-28-01〜02, T-07-29-01〜04                                                                                                                                                                             |
-| SCH-R-030                         | T-07-07-01, T-07-40-01〜03, T-07-45-01〜02                                                                                                                                                                 |
-| SCH-R-016                         | T-07-30-01, T-07-31-01                                                                                                                                                                                     |
-| SCH-R-017                         | T-07-10-01〜02                                                                                                                                                                                             |
-| SCH-R-018                         | T-07-12-01〜02                                                                                                                                                                                             |
-| SCH-R-019                         | T-07-11-01〜02                                                                                                                                                                                             |
-| SCH-R-020                         | T-07-13-01〜02, T-07-49-01, T-07-51-01〜02                                                                                                                                                                 |
-| SCH-R-033                         | T-07-12-01〜02, T-07-51-01〜02                                                                                                                                                                             |
-| SCH-R-034                         | T-07-32-01〜02                                                                                                                                                                                             |
-| SCH-R-021                         | T-07-14-01〜04, T-07-54-01                                                                                                                                                                                 |
-| SCH-R-022                         | T-07-16-01〜03, T-07-53-01                                                                                                                                                                                 |
-| SCH-R-023                         | T-07-15-01〜02                                                                                                                                                                                             |
-| SCH-R-024                         | T-07-14-04, T-07-33-02, T-07-55-01〜05, T-07-56-01                                                                                                                                                         |
-| SCH-R-035                         | T-07-33-01〜04, T-07-55-01〜02                                                                                                                                                                             |
-| SCH-R-025                         | T-05-03-01〜03, T-05-11-01〜02                                                                                                                                                                             |
-| SCH-R-026                         | T-05-11-02, T-05-12-02, T-06-07-01〜03, T-06-08-01〜02                                                                                                                                                     |
-| SCH-R-027                         | T-05-14-01〜02, T-05-15-01〜02, T-05-16-01〜02, T-05-22-01〜02                                                                                                                                                                 |
-| SCH-R-029                         | T-05-09-01, T-05-10-01, T-05-17-01, T-05-20-01                                                                                                                                                             |
+| Source item                                                                                                 | Task ID(s)                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SCH-R-002                                                                                                   | T-04-01-01, T-04-01-02, T-04-02-01, T-04-03-01, T-04-04-01, T-04-05-01                                                                                                                                                 |
+| SCH-R-031                                                                                                   | T-04-09-01, T-04-10-01, T-04-11-01, T-04-13-01〜04, T-04-14-01〜04, T-04-15-01                                                                                                                                         |
+| SCH-R-001 (c) の解釈不能な `--at`                                                                           | T-04-06-01, T-04-07-01, T-04-08-01                                                                                                                                                                                     |
+| SCH-R-003                                                                                                   | T-07-18-01〜04                                                                                                                                                                                                         |
+| SCH-R-004                                                                                                   | T-07-01-01〜05                                                                                                                                                                                                         |
+| SCH-R-005                                                                                                   | T-07-02-01〜05, T-07-03-01                                                                                                                                                                                             |
+| SCH-R-006                                                                                                   | T-07-04-01〜04                                                                                                                                                                                                         |
+| SCH-R-007                                                                                                   | T-07-22-01〜03, T-07-37-01, T-07-38-01                                                                                                                                                                                 |
+| 契約 (仕様 3.3。batchId と alarmId を trim し、削除後の値を ID に使う。空なら実行前の検査で UsageException) | T-07-65-01〜02, T-07-66-01, T-07-70-01, T-07-71-01, T-07-72-01, T-07-73-01, T-07-67-01, T-07-68-01, T-07-69-01, T-07-57-01〜03, T-07-58-01, T-07-59-01, T-07-60-01, T-07-61-01〜02, T-07-62-01, T-07-63-01, T-07-64-01 |
+| D8 (Tag の重複確認は予約一覧と対応表の両方。specifications-index.md 7.2)                                    | T-07-37-01, T-07-38-01                                                                                                                                                                                                 |
+| SCH-R-008                                                                                                   | T-07-01-02〜04, T-07-19-01, T-07-19-02, T-07-20-01                                                                                                                                                                     |
+| SCH-R-009                                                                                                   | T-06-01-01〜04, T-06-05-01〜05, T-07-02-01〜05                                                                                                                                                                         |
+| SCH-R-010                                                                                                   | T-06-06-01〜05, T-07-21-01〜04, T-07-24-01〜06, T-07-34-01〜04, T-07-48-01                                                                                                                                             |
+| SCH-R-011                                                                                                   | T-07-01-02, T-07-02-02                                                                                                                                                                                                 |
+| SCH-R-036                                                                                                   | T-07-05-01〜04, T-07-06-01〜03, T-07-07-01〜02, T-07-09-01〜03, T-07-17-01〜02, T-07-34-01〜04, T-07-35-01〜03, T-07-36-01〜02, T-07-41-01〜04, T-07-42-01〜02, T-07-43-01, T-07-44-01〜02, T-07-48-01〜02             |
+| SCH-R-013                                                                                                   | T-07-27-01〜03                                                                                                                                                                                                         |
+| SCH-R-014                                                                                                   | T-07-08-01〜03                                                                                                                                                                                                         |
+| SCH-R-015                                                                                                   | T-07-28-01〜02, T-07-29-01〜04                                                                                                                                                                                         |
+| SCH-R-030                                                                                                   | T-07-07-01, T-07-40-01〜03, T-07-45-01〜02                                                                                                                                                                             |
+| SCH-R-016                                                                                                   | T-07-30-01, T-07-31-01                                                                                                                                                                                                 |
+| SCH-R-017                                                                                                   | T-07-10-01〜02                                                                                                                                                                                                         |
+| SCH-R-018                                                                                                   | T-07-12-01〜02                                                                                                                                                                                                         |
+| SCH-R-019                                                                                                   | T-07-11-01〜02                                                                                                                                                                                                         |
+| SCH-R-020                                                                                                   | T-07-13-01〜02, T-07-49-01, T-07-51-01〜02                                                                                                                                                                             |
+| SCH-R-033                                                                                                   | T-07-12-01〜02, T-07-51-01〜02                                                                                                                                                                                         |
+| SCH-R-034                                                                                                   | T-07-32-01〜02                                                                                                                                                                                                         |
+| SCH-R-021                                                                                                   | T-07-14-01〜04, T-07-54-01                                                                                                                                                                                             |
+| SCH-R-022                                                                                                   | T-07-16-01〜03, T-07-53-01                                                                                                                                                                                             |
+| SCH-R-023                                                                                                   | T-07-15-01〜02                                                                                                                                                                                                         |
+| SCH-R-024                                                                                                   | T-07-14-04, T-07-33-02, T-07-55-01〜05, T-07-56-01                                                                                                                                                                     |
+| SCH-R-035                                                                                                   | T-07-33-01〜04, T-07-55-01〜02                                                                                                                                                                                         |
+| SCH-R-025                                                                                                   | T-05-03-01〜03, T-05-11-01〜02                                                                                                                                                                                         |
+| SCH-R-026                                                                                                   | T-05-11-02, T-05-12-02, T-05-12-04, T-06-07-01〜03, T-06-08-01〜02                                                                                                                                                     |
+| SCH-R-027                                                                                                   | T-05-14-01〜02, T-05-15-01〜02, T-05-16-01〜02, T-05-22-01〜02                                                                                                                                                         |
+| SCH-R-029                                                                                                   | T-05-09-01, T-05-10-01, T-05-17-01, T-05-20-01                                                                                                                                                                         |
 
 ### 例外的なケース (Section 5)
 
 | Source item                                          | Task ID(s)                                             |
 | ---------------------------------------------------- | ------------------------------------------------------ |
 | SCH-E-03                                             | T-04-04-01, T-04-05-01                                 |
-| SCH-E-04                                             | T-04-12-01, T-07-19-01, T-07-19-02                     |
+| SCH-E-04                                             | T-04-12-01, T-07-19-01, T-07-19-02, T-07-24-01〜06     |
 | SCH-E-05                                             | T-04-09-01, T-04-10-01, T-04-13-01〜04, T-04-14-01〜04 |
 | SCH-E-06                                             | T-07-18-01〜04                                         |
 | SCH-E-07                                             | T-07-02-01〜05                                         |
@@ -1603,8 +1755,9 @@ version: 1.0.0
 | Source item                                                    | Task ID(s)                                     |
 | -------------------------------------------------------------- | ---------------------------------------------- |
 | DR-05 (追加してから削除)                                       | T-07-02-05, T-07-24-06, T-07-25-02, T-07-40-03 |
-| DR-07 決定 1 (DB に意図を先に書く)                             | T-06-01-01〜04, T-07-02-05, T-07-23-02         |
-| DR-07 決定 3 (保留からの再開: 段階 2 / 3 / 4)                  | T-07-05-01〜04, T-07-06-01〜03, T-07-07-01〜02 |
+| DR-08 決定 1 (DB を先に書く 4 段。DR-07 決定 1 を置き換え)     | T-06-01-01〜04, T-07-02-05, T-07-23-02         |
+| DR-08 決定 2 (置換後の行は段 4 まで pending。段 4 で current)  | T-06-01-01, T-06-02-02, T-06-05-02             |
+| DR-08 決定 3 / DR-07 決定 3 (保留からの再開: 段階 2 / 3 / 4)   | T-07-05-01〜04, T-07-06-01〜03, T-07-07-01〜02 |
 | DR-07 決定 4 (再開は冪等。置換後の Tag が既にあれば追加しない) | T-07-06-01                                     |
 | 3.5 段階 1 の失敗 (置換前の予約だけが残る)                     | T-07-23-01〜04                                 |
 | 3.5 段階 2 の拒否 (置換前の予約だけが残る)                     | T-07-24-01〜06                                 |
@@ -1625,9 +1778,9 @@ version: 1.0.0
 | Test Target                      | Normal     | Error     | Edge     | Result |
 | -------------------------------- | ---------- | --------- | -------- | ------ |
 | T-04: parseAt                    | Normal: 6  | Error: 4  | Edge: 12 | [OK]   |
-| T-05: MappingTable / SqliteStore | Normal: 21 | Error: 13 | Edge: 8  | [OK]   |
+| T-05: MappingTable / SqliteStore | Normal: 21 | Error: 15 | Edge: 8  | [OK]   |
 | T-06: 置換キュー                 | Normal: 19 | Error: 5  | Edge: 4  | [OK]   |
-| T-07: SchedulingService          | Normal: 49 | Error: 58 | Edge: 36 | [OK]   |
+| T-07: SchedulingService          | Normal: 56 | Error: 71 | Edge: 37 | [OK]   |
 
 <!--
 Task ID Format: T-<TestTarget>-<Scenario>-<Case>

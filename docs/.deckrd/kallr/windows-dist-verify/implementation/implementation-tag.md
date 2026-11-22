@@ -78,7 +78,7 @@ String allocateTag({
 
 `machineId()` は次の順で評価する (TAG-R-010 → 008 → 009)。
 
-0. 壊れたファイル (`quick_check` が `ok` でない) は、`SqliteStore.open` が `StorageException` を投げる (SCH-R-027)。`machineId()` に届く前に失敗する。
+0. 壊れたファイル (`quick_check` が `ok` でない) は、`SqliteStore.open` が `StorageException` を投げる (SCH-R-027)。`machineId()` へ届く前に失敗する。
 1. `settings` の `machine_id` の行を読む (key から `id` を引き、`id` で値を読む)。読み取りに失敗、または値が `^[0-9a-f]{8}$` でなければ `StorageException` (新しい値を作らない)。
 2. 値があればそれを返す。
 3. 行が無ければ、`Random.secure()` の 4 バイトから 8 桁を作り、`settings` に `INSERT` して (トランザクション) 返す。保存に失敗したら値を返さず `StorageException`。
@@ -113,8 +113,8 @@ String allocateTag({
      `based-on` must cite a three-part version that exists in the specifications.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                    |
-| ---------- | ------- | -------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged) |
-| 2026-11-22 | 1.0.1   | Remove the unused `clock` parameter from `allocateTag` (clarification) |
+| Date       | Version | Description                                                                                                                       |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                                    |
+| 2026-11-22 | 1.0.1   | Remove the unused `clock` parameter from `allocateTag` (clarification)                                                            |
 | 2026-11-22 | 1.0.2   | State that a corrupt file fails in `SqliteStore.open`; `machineId()` fails only on an unreadable or invalid value (clarification) |

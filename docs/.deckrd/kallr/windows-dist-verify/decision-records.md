@@ -2,7 +2,7 @@
 title: "Decision Records: kallr/windows-dist-verify"
 module: "kallr/windows-dist-verify"
 status: Active
-version: 2.0.0
+version: 3.0.0
 created: "2026-11-20"
 ---
 
@@ -24,7 +24,7 @@ created: "2026-11-20"
 
 Kallr の Windows 向け配布形式が決まっていない。予約通知 (AddToSchedule) を使うには、AUMID (AppUserModelID) を OS に認識させる必要がある。
 
-過去の PoC で、次の事実を確認した。
+過去の PoC (概念実証) で、次の事実を確認した。
 
 - 未パッケージの実行ファイルは、`HKCU\Software\Classes\AppUserModelId\<aumid>` に DisplayName を登録するだけで通知を表示できた。
 - この登録に管理者権限は要らなかった (HKCU への書き込みのため)。
@@ -32,7 +32,7 @@ Kallr の Windows 向け配布形式が決まっていない。予約通知 (Add
 - MSIX は署名が必要である。PoC では自己署名証明書を `LocalMachine\TrustedPeople` に入れるため、管理者権限で実行した。
 - MSIX の実行自体に管理者権限が要るかは、記載がない。
 
-本検証 (Issue #19) の W1〜W7 は、配布形式を前提に結果を判断する。このため、検証の前に配布形式を決める。
+本検証 (Issue #19) の検証項目 W1〜W7 は、配布形式を前提に結果を判断する。W1〜W5 と W7 の内容は DR-03 に示す。このため、検証の前に配布形式を決める。
 
 ### Decision
 
@@ -98,7 +98,7 @@ AUMID は `HKCU\Software\Classes\AppUserModelId\<aumid>` に登録する。
 Kallr の実装は、複数の OS に対応する観点から、Dart / Flutter を候補にしている。
 本検証 (W1〜W7) は、その候補のうち Windows での動作を確かめる。
 
-過去の PoC (PoC-W0 手順 3) で、次の事実を確認した。
+過去の PoC (概念実証。PoC-W0 手順 3) で、次の事実を確認した。
 
 - Dart FFI から AddToSchedule を呼べた。予約・一覧・取り消し・表示が通った。
 - AUMID (AppUserModelID) の登録は HKCU のレジストリのまま使えた。
@@ -170,7 +170,7 @@ W1〜W5 と W7 の検証は、Dart FFI (`combase.dll` を `dart:ffi` で直接�
 - W5 は、配布形式の制約 (AUMID、インストール方式、実行権限) を特定する。
 - W7 は、再起動またはログオフの後に予約が残るかを確かめる。残らない場合は、一括再登録で復旧できるかを確かめる。
 
-PoC の計画 (poc-plan.md の「PoC-W: 合格条件」) は、次のように定めている。
+PoC (概念実証) の計画 (poc-plan.md の「PoC-W: 合格条件」) は、次のように定めている。
 
 - W1〜W4 は、すべて通す。
 - W5 は制約の特定であり、必要なアプリの識別子、インストール方式、実行権限が明確になっていれば合格とする。
@@ -186,7 +186,11 @@ PoC の計画 (poc-plan.md の「PoC-W: 合格条件」) は、次のように�
 
 ### Decision
 
-本検証は、W1〜W4 がすべて成功し、W5 の 3 項目 (AUMID、インストール方式、実行権限) がすべて明確で、W7 の結果を記録できている場合に合格とする。
+本検証は、次の 3 つをすべて満たす場合に合格とする。
+
+- W1〜W4 がすべて成功している。
+- W5 の 3 項目 (AUMID、インストール方式、実行権限) がすべて明確である。
+- W7 の結果を記録できている。
 
 W5 の項目が 1 つでも「記載なし」のままの場合は、合格としない。
 W7 の確認を行えず、結果を記録できない場合は、合格としない。
@@ -251,7 +255,7 @@ W5 の項目が不明なことは、良くない結果ではなく、結果が�
 
 予約通知の Tag と Group に、何を設定するかが決まっていない。Tag と Group の組は、予約を特定する複合主キーとして扱われる。
 
-PoC とコードの事実は、次のとおり。
+PoC (概念実証) とコードの事実は、次のとおり。
 
 - `poc/windows/w0-3-dartffi/src/w03.dart` は、Group に batch、Tag に alarm をそのまま設定している。ID の長さを Tag と Group の制約に合わせる処理はない。
 - `poc/windows/w1-w7-verify/lib/map_toast_key.dart` の `mapToastKey` は、id が maxLength を超えると FNV-1a 64 の 16 桁ハッシュを返す。
@@ -306,6 +310,8 @@ ScheduledToastNotification での Tag の上限は、実機で測っていない
 
 - 40 文字は、公式ドキュメントの上限 64 文字に収まる。実機での上限は、REQ-F-007 で測る。
 - 乱数 64 bit は、予約件数の上限 4096 件の中で、衝突の確率を約 4.5×10^-13 に抑える。誕生日問題の近似式 N^2 / 2^65 (N = 4096) による。
+- マシン ID は、Tag の名前空間を区別する補助識別子であり、単独でのグローバルな一意性は求めない。Tag 全体の衝突は、64 bit の乱数との組み合わせで防ぐ。
+- 識別空間と Tag の長さの釣り合いから、マシン ID は 32 bit (8 桁の 16 進数) にしている。
 - 登録時の既存 Tag の確認で、確率に頼らず重複を防げる。
 - 日時を先頭に置くので、通常は Tag の文字列順が登録時刻の順になる。
 - 登録時刻をローカル日時にするので、Tag はマシンの中で完結し、読みやすい。
@@ -326,7 +332,7 @@ ScheduledToastNotification での Tag の上限は、実機で測っていない
 - Revisit Trigger:
   - 実機で測定した Tag の上限が 40 文字未満だったときは、本 DR を見直す。
   - 予約件数の上限の範囲で Tag の重複が起きたときは、本 DR を見直す。
-  - Tag の文字列順が登録時刻の順と一致しないことが、運用で問題になったとき。
+  - Tag の文字列順が登録時刻の順と一致しないことが、運用で問題になったときは、本 DR を見直す。
 
 ### Related
 
@@ -352,7 +358,7 @@ ScheduledToastNotification での Tag の上限は、実機で測っていない
 事実は、次のとおり。
 
 - 公式ドキュメントに、同じ Tag と Group で AddToSchedule を呼んだときの挙動の記載は見つかっていない。poc-plan.md の W4 (d) も、調査メモは記載なしとしている。
-- `poc/windows/w0-3-dartffi/src/w03.dart` の add は、既存の予約を確認せず、削除もしないで AddToSchedule を呼ぶだけである。
+- `poc/windows/w0-3-dartffi/src/w03.dart` の add は、既存の予約を確認せず、削除もしないで AddToSchedule を呼ぶだけだ。
 - DR-04 により、Tag は登録のたびに別の値を取る。置換前の予約と置換後の予約が、同じ Tag になることはない。
 
 置換の途中で止まったときの状態は、置換の失敗状態として 4 つに分ける。
@@ -368,7 +374,10 @@ poc-plan.md の W4 (e) は、この 4 つを「旧予約が残る」「新予約
 
 同じ (batchId, alarmId) の未発火の予約を置換するときは、次の順で行う。
 
-1. 決定 1: 置換後の Tag を生成し、AddToSchedule で置換後の予約を追加する。次に、対応表を置換後の Tag に更新する。最後に、置換前の Tag を持つ置換前の予約を RemoveFromSchedule で削除する。
+1. 決定 1: 置換は、次の順で行う。
+   1. 置換後の Tag を生成し、AddToSchedule で置換後の予約を追加する。
+   2. 対応表を置換後の Tag に更新する。
+   3. 置換前の Tag を持つ置換前の予約を RemoveFromSchedule で削除する。
 2. 決定 2: AddToSchedule が同じ Tag と Group を自動で置換する挙動には、依存しない。
 
 ### Scope
@@ -393,7 +402,7 @@ poc-plan.md の W4 (e) は、この 4 つを「旧予約が残る」「新予約
 - 削除を先にすると、止まった時点で、置換前の予約も置換後の予約も無くなる。通知は 1 件も出ない。
 - 追加を先にすると、止まっても、少なくとも 1 件の予約が残る。
 - DR-04 により Tag は登録のたびに異なる。置換後の予約の追加は、置換前の Tag と衝突しない。
-- 同じ Tag と Group の挙動は、公式ドキュメントと PoC のどちらにも根拠が無い。確認できていない挙動を、置換の前提にしない。
+- 同じ Tag と Group の挙動は、公式ドキュメントと PoC (概念実証) のどちらにも根拠が無い。確認できていない挙動を、置換の前提にしない。
 
 出典: `keneek-core/api-contract/workspaces/redesign/poc-plan.md` の W4 (d) と (e)。
 
@@ -437,7 +446,7 @@ poc-plan.md の W4 (e) は、この 4 つを「旧予約が残る」「新予約
 
 - Kallr の実装は、複数の OS に対応する観点から、Dart / Flutter を候補にしている (DR-02)。
 - 通知を出せるかを確かめる手段は、OS ごとに異なる。
-- 過去の PoC では、AUMID (AppUserModelID) が未登録でも AddToSchedule は成功した。通知だけが表示されなかった。
+- 過去の PoC (概念実証) では、AUMID (AppUserModelID) が未登録でも AddToSchedule は成功した。通知だけが表示されなかった。
 - `poc/windows/w0-3-dartffi/src/w03.dart` の add は、AUMID の登録状態も通知の設定も確認せず、AddToSchedule を呼ぶだけだ。
 
 Windows には、通知の設定を調べる ToastNotifier.Setting がある。
@@ -498,7 +507,7 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 
 ### Rationale
 
-最大の理由は、OS ごとに異なる確認の手段を、本体から切り離して共通のインターフェースの背後へ置く点だ。
+最大の理由は、OS ごとに異なる確認の手段を、本体から切り離して共通のインターフェースの背後へ置く点にある。
 
 - Kallr は複数の OS への対応を候補にしている (DR-02)。インターフェースを使えば、他の OS の実装に差し替えられる。
 - インターフェースを Mock (UD-TST-001) へ差し替えられるので、本体の判断を OS から独立して自動テストできる。
@@ -534,12 +543,12 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 ## DR-07: 置換は、DB に意図を先に書き、各段が独立して再開できる 3 段で行う - 2026-11-22 12:02:32
 
 **Phase**: impl
-**Status**: Accepted
+**Status**: Partially superseded by DR-08（決定 1・2）
 **Supersedes**: DR-05 (決定 1: 置換で DB を更新する順序の部分)
 
 ### Context
 
-DR-05 の置換手順では、OS への追加の直後にプロセスが止まると、DB に無い予約が OS に残る。
+DR-05 の置換手順では、OS への追加の直後にプロセスが止まると、DB (Kallr の sqlite3 データベース) に無い予約が OS に残る。
 
 DR-05 の決定 1 は、次の順序を定めている。
 
@@ -603,7 +612,6 @@ Kallr の CLI は 1 回の実行で終わる。使う sqlite3 の API は同期�
   - 段 1 と段 3 で DB のトランザクションが 2 回になり、状態 (pending、current、superseded) と置換キューを持つ必要がある。
   - 段 2 の途中で止まった間は、置換前の予約が OS に残り、置換前の時刻に発火しうる。再開するまで続く。
   - 置換後の行が OS に追加されなかった場合の扱いが決まるまで、その状態の回復は決められない。
-  - specifications-schedule.md の SCH-DD-01、SCH-R-009、SCH-R-010 と 3.5 は、改訂前の順序で書かれている。本 DR に合わせた改訂が要る。
 - Revisit Trigger:
   - OS が、追加と削除を原子的に行う機構を提供したときは、本 DR を見直す。
   - 再開の処理が、add と re-register-all の応答時間に影響すると分かったときは、本 DR を見直す。
@@ -626,11 +634,92 @@ Kallr の CLI は 1 回の実行で終わる。使う sqlite3 の API は同期�
 
 ---
 
+## DR-08: 置換は、DB を先に書く 4 段で行い、置換後の行は段 4 まで pending とする - 2026-11-22 14:21:47
+
+**Phase**: tasks
+**Status**: Accepted
+**Supersedes**: DR-07 (決定 1: 3 段の手順の部分、決定 2: 置換後の行が current になる時点の部分)
+
+### Context
+
+DR-07 の決定 1 は、OS への追加と OS からの削除を 1 つの段 (段 2) にまとめている。この 3 段の手順は、段ごとの再開ができない。
+
+- 追加の後、削除の前でプロセスが止まると、進み具合を段として区別できない。
+- そのため、各段を独立して再開できるという DR-07 の目的を満たせない。
+
+DR-07 の決定 2 は、OS への追加が済んだ時点で置換後の行を current にする。この規則には、次の問題がある。
+
+- 削除の前に止まると、置換前の行と置換後の行が、どちらも current になる。
+- 置換前の予約が発火したとき、対応表は正しい状態を示せない。
+
+DR-07 のそれ以外の決定 (決定 3〜6) は、そのまま有効だ。
+
+### Decision
+
+1. 決定 1: 置換は、DB を先に書く 4 段で行う。
+   - 段 1 (DB): 置換後の行と置換キューを記録する。
+   - 段 2 (OS): 置換後の予約を追加する。
+   - 段 3 (OS): 置換前の予約を削除する。
+   - 段 4 (DB): 置換前の行を削除し、置換後の行を current にする。
+2. 決定 2: 置換後の行は、段 4 が済むまで pending とする。段 4 で current にする。
+3. 決定 3: 各段は、保留の置換キューから独立して再開できる。
+
+### Scope
+
+- Applies to: 置換の段の分け方と、置換後の行が current になる時点
+- Not decided here:
+  - 段 2 の拒否と、再開が拒否されたときの扱い → specifications-schedule.md の SCH-R-010 と SCH-R-036
+  - 各段で止まったときの状態の一覧と終了コード → specifications-schedule.md の 3.5 置換の失敗状態
+  - 置換キューと状態を持つ表の構造 → implementation/db-migration.md
+  - DR-07 の決定 3〜6 (再開の契機、冪等な再開、非同期の扱い、DR-05 の順序の維持) → DR-07 のまま変えない
+
+### Alternatives Considered
+
+| 案                                                     | 不採用の理由                                                                                                              |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| DR-07 の 3 段 (OS の追加と削除を 1 段にまとめる)       | 追加の後、削除の前に止まると、進み具合を段として区別できない。各段を独立して再開できないため不採用。                      |
+| 置換後の行を、OS への追加が済んだ時点で current にする | 削除の前に止まると、置換前の行と置換後の行がどちらも current になる。置換前の予約が発火したとき、対応表が正しく示せない。 |
+
+### Rationale
+
+最大の理由は、追加と削除を別の段に分ければ、どこで止まっても段を区別して再開できる点にある。
+
+- 追加と削除を別の段にすると、止まった位置が段として分かる。
+- 置換後の行を pending のままにすると、置換前の予約を削除するまで、current の行は置換前の 1 つだけになる。
+- 置換前の予約が発火しても、対応表は正しい状態を示せる。
+- 本 DR は DR-07 の方針 (DB に意図を先に書く) を変えない。変えるのは、段の分け方と current になる時点だけである。
+
+### Consequences
+
+- Positive:
+  - 追加の後、削除の前に止まっても、段 3 から再開できる。
+  - 置換前の予約を削除するまで、同じ (batchId, alarmId) の current の行は 1 つに保たれる。
+- Negative:
+  - 段が 4 つになり、DR-07 の 3 段より段の管理が増える。
+  - 段 3 が済んでから段 4 が済むまでの間も、置換後の行は pending のままである。
+- Revisit Trigger:
+  - 4 段の手順でも、止まった位置を区別できない状態が見つかったときは、本 DR を見直す。
+
+### Related
+
+- decision-records.md: DR-05
+- decision-records.md: DR-07
+- requirements/requirements.md: REQ-F-005
+- requirements/requirements.md: REQ-F-009
+- specifications/specifications-schedule.md: SCH-DD-01 (改訂後は `Promoted → DR-05, DR-07, DR-08` とする)
+- specifications/specifications-schedule.md: SCH-R-009
+- specifications/specifications-schedule.md: SCH-R-036
+- specifications/specifications-schedule.md: 3.5 置換の失敗状態
+- implementation/db-migration.md: §3.2 Notify Status Code
+
+---
+
 ## Change History
 
-| Date       | Version | Description                                                                                    |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------- |
-| 2026-11-20 | 1.0.0   | Initial release with DR-01, DR-02, DR-03, DR-04, DR-05, DR-06                                  |
-| 2026-11-20 | 1.0.1   | Refine DR-06: clarify wording                                                                  |
-| 2026-11-21 | 1.0.2   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                    |
-| 2026-11-22 | 2.0.0   | Add DR-07: 置換は、DB に意図を先に書き、各段が独立して再開できる 3 段で行う (supersedes DR-05) |
+| Date       | Version | Description                                                                                                                                                                                                                                                                 |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial release with DR-01, DR-02, DR-03, DR-04, DR-05, DR-06                                                                                                                                                                                                               |
+| 2026-11-20 | 1.0.1   | Refine DR-06: clarify wording                                                                                                                                                                                                                                               |
+| 2026-11-21 | 1.0.2   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                                                                                                                                                                                                 |
+| 2026-11-22 | 2.0.0   | Add DR-07: 置換は、DB に意図を先に書き、各段が独立して再開できる 3 段で行う (supersedes DR-05)                                                                                                                                                                              |
+| 2026-11-22 | 3.0.0   | Add DR-08: 置換は、DB を先に書く 4 段で行い、置換後の行は段 4 まで pending とする (supersedes DR-07 decisions 1 and 2); refine DR-01, DR-02, DR-03, DR-04, DR-05, DR-06, DR-07: clarify wording and supplement DR-04 rationale for the 32-bit machine ID; proofread wording |

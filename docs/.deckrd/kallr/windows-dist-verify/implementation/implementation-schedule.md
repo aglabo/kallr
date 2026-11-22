@@ -1,8 +1,8 @@
 ---
 title: "Implementation Specification: Windows Distribution Verify (Schedule)"
-based-on: specifications-schedule.md v1.5.0
+based-on: specifications-schedule.md v1.6.0
 status: Draft
-version: 1.1.10
+version: 1.2.0
 created: "2026-11-22"
 ---
 
@@ -115,8 +115,11 @@ abstract interface class ToastScheduler {
 DateTime parseAt(String text, {Duration Function(DateTime utc) offsetAt = _systemOffsetAt});
 ```
 
-SCH-R-002, 031 / SCH-DD-04, 14。
+SCH-R-002, 031 / SCH-DD-04, 14, 17。
 
+0. 前後の空白を除いた文字列が日付のみ (`^\d{4}-\d{2}-\d{2}$`) なら、`T00:00:00` を補って手順 2 へ進む。
+   - `DateTime.parse` は日付のみをプラットフォームのローカル時刻として読むため、手順 1 には流さない。
+   - 存在しない日付 (`2026-02-30`) は手順 3 と同じく `UsageException`。
 1. 末尾が `Z` または `±hh:mm` のオフセットなら、`DateTime.parse` の結果をそのまま絶対時刻として返す (UTC に変換して保持)。
 2. オフセットが無ければ、年月日時分秒を取り出して「ローカルの壁時計時刻」として扱い、次の手順で瞬間に解決する。`offsetAt(utc)` は、その瞬間のローカルのオフセットを返す関数で、テストでは夏時間の規則を差し替える。
    - 壁時計時刻を UTC の値として読んだものを `w` とする。
@@ -319,3 +322,4 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
 | 2026-11-22 | 1.1.8   | add and reRegisterAll trim aumid at their entry (specifications-index v1.1.3)                                               |
 | 2026-11-22 | 1.1.9   | add, cancel and reRegisterAll normalize identifiers with requireId (implementation-index §3.3)                              |
 | 2026-11-22 | 1.1.10  | Use normalizeId with a check in each method; the lower layer is not public                                                  |
+| 2026-11-22 | 1.2.0   | parseAt reads a date-only `--at` as 00:00:00 local time (3.2); follow specifications-schedule v1.6.0                        |

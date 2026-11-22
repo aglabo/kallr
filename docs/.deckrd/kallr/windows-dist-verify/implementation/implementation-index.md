@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Index)"
 based-on: specifications-index.md v1.3.0
 status: Draft
-version: 1.2.0
+version: 1.2.1
 created: "2026-11-22"
 ---
 
@@ -21,7 +21,7 @@ created: "2026-11-22"
 - Specifications:
   - specifications-index.md (v1.1.5)
   - specifications-tag.md (v1.0.0)
-  - specifications-schedule.md (v1.5.0)
+  - specifications-schedule.md (v1.6.0)
   - specifications-environment.md (v1.0.0)
   - specifications-verification.md (v1.0.3)
 - Prior Art: `poc/windows/w0-3-dartffi/src/w03.dart` (WinRT の FFI)
@@ -375,3 +375,4 @@ Future<int> run(
 | 2026-11-22 | 1.0.9   | Move the NotificationEnvironment implementation to env/ (DefaultNotificationEnvironment) and add the target NEV                                         |
 | 2026-11-22 | 1.1.0   | parseArgs takes the word after `--name` as the value even if it starts with `--`; `=` splits at the first one (4.2); follow specifications-index v1.2.0 |
 | 2026-11-22 | 1.2.0   | Options not listed for the command (including those of other commands) are unknown (4.2); follow specifications-index v1.3.0                            |
+| 2026-11-22 | 1.2.1   | Follow specifications-schedule v1.6.0 (a date-only `--at` is 00:00:00 local time; parseAt in implementation-schedule 3.2)                               |

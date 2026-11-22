@@ -2,7 +2,7 @@
 title: "Design Specification: Windows Distribution Verify (Index)"
 based-on: requirements.md v1.2.0
 status: Draft
-version: 1.1.0
+version: 1.1.5
 created: "2026-11-20"
 ---
 
@@ -141,15 +141,16 @@ Windows で OS の予約通知 (AddToSchedule) を、未パッケージ + HKCU �
 
 > **Reference**: `decision-records.md` が正本である。
 
-| DR-ID | Title                                                            | Phase | Impact on This Spec                                                                              |
-| ----- | ---------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
-| DR-01 | 配布形式は未パッケージ + HKCU 登録とする                         | req   | 通知可否の確認が見るレジストリの場所と、未パッケージ前提の W5 の記録 (environment, verification) |
-| DR-02 | 検証対象は Dart FFI とする                                       | req   | OS 固有の呼び出しの方式 (environment, schedule)                                                  |
-| DR-03 | 合否は W1〜W4 の成功と W5 の明確化、W7 の結果の記録で判定する    | req   | 全体の合否の規則 (verification)                                                                  |
-| DR-04 | Tag は登録時刻 + マシン ID + 乱数、Group は `kallr` の固定値     | req   | Tag の書式、Group の固定、--at のローカル時刻の扱い (tag, schedule)                              |
-| DR-05 | 置換は、置換後の予約を追加してから置換前の予約を削除する         | req   | 置換の順序と失敗状態 (schedule, verification)                                                    |
-| DR-06 | 通知可否の確認は、OS に依存しないインターフェースに仮想化する    | req   | Mock での自動テストと、本体がインターフェースだけを使うこと (environment)                        |
-| DR-07 | 置換は、DB に意図を先に書き、各段が独立して再開できる 3 段で行う | impl  | 置換の手順と再開 (schedule)。IDX-R-005                                                           |
+| DR-ID | Title                                                                  | Phase | Impact on This Spec                                                                              |
+| ----- | ---------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| DR-01 | 配布形式は未パッケージ + HKCU 登録とする                               | req   | 通知可否の確認が見るレジストリの場所と、未パッケージ前提の W5 の記録 (environment, verification) |
+| DR-02 | 検証対象は Dart FFI とする                                             | req   | OS 固有の呼び出しの方式 (environment, schedule)                                                  |
+| DR-03 | 合否は W1〜W4 の成功と W5 の明確化、W7 の結果の記録で判定する          | req   | 全体の合否の規則 (verification)                                                                  |
+| DR-04 | Tag は登録時刻 + マシン ID + 乱数、Group は `kallr` の固定値           | req   | Tag の書式、Group の固定、--at のローカル時刻の扱い (tag, schedule)                              |
+| DR-05 | 置換は、置換後の予約を追加してから置換前の予約を削除する               | req   | 置換の順序と失敗状態 (schedule, verification)                                                    |
+| DR-06 | 通知可否の確認は、OS に依存しないインターフェースに仮想化する          | req   | Mock での自動テストと、本体がインターフェースだけを使うこと (environment)                        |
+| DR-07 | 置換は、DB に意図を先に書き、各段が独立して再開できる 3 段で行う       | impl  | 置換の手順と再開 (schedule)。IDX-R-005。決定 1・2 は DR-08 が置き換える                          |
+| DR-08 | 置換は、DB を先に書く 4 段で行い、置換後の行は段 4 まで pending とする | tasks | 置換の段の分け方と、置換後の行が現行になる時点 (schedule)。IDX-R-005                             |
 
 ### 2.7 DD を DR に昇格する基準
 
@@ -182,6 +183,10 @@ Windows で OS の予約通知 (AddToSchedule) を、未パッケージ + HKCU �
 - 前提:
   - 文字列の入力は UTF-8 に対応する (REQ-NF-004)
   - `--aumid` は OS に触れるすべてのコマンドで必須で、既定値を持たない。`--batch` と `--alarm` も既定値を持たない (IDX-DD-10)
+  - `--aumid` の値は、前後の空白を削除し、削除後の値を AUMID として使う。空かどうかの判断も削除後の値で行う
+  - 識別子 (batchId、alarmId、AUMID) は、上層のインターフェース (予約の管理、通知可否の確認) の各メソッドの入口で正規化する。
+    各メソッドは、最初に正規化の関数を呼び、正規化後の値で、それぞれ空かどうかを検査する。正規化は前後の空白の削除とする。
+    OS や保存先を呼ぶ下層は、正規化済みの値を受け取る。下層の API は公開しない
   - `--db <path>` は任意で、対応表を使うすべてのコマンドの保存先を差し替える (IDX-DD-11)
   - Tag と Group の文字数は UTF-16 code unit 数で数える
   - 各コマンドの入力の詳細は、対応する分割ファイルが定める
@@ -213,13 +218,13 @@ Windows で OS の予約通知 (AddToSchedule) を、未パッケージ + HKCU �
 
 ### 4.1 add の評価順序
 
-| Rule ID   | Step | Condition                                                              | Outcome                                                                                          | 詳細        |
-| --------- | ---: | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------- |
-| IDX-R-001 |    1 | 最初に通知可否の確認をし、通知できない状態である                       | 終了コード 3 で終了。予約も HKCU への書き込みもしない                                            | environment |
-| IDX-R-002 |    2 | 通知できる状態で、対応表と予約一覧から既存の予約の有無を調べる         | 新規、置換、発火後の新規のいずれかに分類                                                         | schedule    |
-| IDX-R-003 |    3 | Tag を生成し、予約一覧の Group=kallr と対応表の Tag との重複を確認する | 重複なら再生成。3 回を超えたら終了コード 2 で終了                                                | tag         |
-| IDX-R-004 |    4 | 新規の場合                                                             | 予約を追加してから、対応表を更新                                                                 | schedule    |
-| IDX-R-005 |    4 | 置換の場合                                                             | DB に置換後の行を記録し、置換後の予約を追加し、置換前の予約を削除してから、DB を完了する (DR-07) | schedule    |
+| Rule ID   | Step | Condition                                                              | Outcome                                                                                                 | 詳細        |
+| --------- | ---: | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------- |
+| IDX-R-001 |    1 | 最初に通知可否の確認をし、通知できない状態である                       | 終了コード 3 で終了。予約も HKCU への書き込みもしない                                                   | environment |
+| IDX-R-002 |    2 | 通知できる状態で、対応表と予約一覧から既存の予約の有無を調べる         | 新規、置換、発火後の新規のいずれかに分類                                                                | schedule    |
+| IDX-R-003 |    3 | Tag を生成し、予約一覧の Group=kallr と対応表の Tag との重複を確認する | 重複なら再生成。3 回を超えたら終了コード 2 で終了                                                       | tag         |
+| IDX-R-004 |    4 | 新規の場合                                                             | 予約を追加してから、対応表を更新                                                                        | schedule    |
+| IDX-R-005 |    4 | 置換の場合                                                             | DB に置換後の行を記録し、置換後の予約を追加し、置換前の予約を削除してから、DB を完了する (DR-07, DR-08) | schedule    |
 
 IDX-R-004 と IDX-R-005 は、分類 (Step 2) の結果に応じて、どちらか一方だけを実行する。
 
@@ -361,8 +366,13 @@ REQ-F-012 は、記録の手順を verification、一括再登録の動作を sc
      `based-on` must cite a three-part version that exists in requirements.md.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                 |
-| ---------- | ------- | ----------------------------------------------------------- |
-| 2026-11-20 | 1.0.0   | Initial specification                                       |
-| 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change) |
-| 2026-11-22 | 1.1.0   | Replace with the database written first (DR-07): IDX-R-005  |
+| Date       | Version | Description                                                                                                   |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial specification                                                                                         |
+| 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                                   |
+| 2026-11-22 | 1.1.0   | Replace with the database written first (DR-07): IDX-R-005                                                    |
+| 2026-11-22 | 1.1.1   | Cite DR-08, which replaces the stage count and the current-row timing of DR-07 (clarification)                |
+| 2026-11-22 | 1.1.2   | `--aumid` is trimmed and the trimmed value is used as the AUMID (3.1)                                         |
+| 2026-11-22 | 1.1.3   | Identifiers are trimmed at the entry of each function, not only in the CLI (3.1)                              |
+| 2026-11-22 | 1.1.4   | Each library method calls the normalizing function first and checks the normalized identifier (3.1)           |
+| 2026-11-22 | 1.1.5   | Identifiers are normalized at the upper interface; each method checks them; the lower API is not public (3.1) |

@@ -1,8 +1,8 @@
 ---
 title: "Implementation Specification: Windows Distribution Verify (Index)"
-based-on: specifications-index.md v1.2.0
+based-on: specifications-index.md v1.3.0
 status: Draft
-version: 1.1.0
+version: 1.2.0
 created: "2026-11-22"
 ---
 
@@ -213,6 +213,7 @@ ParsedArgs parseArgs(List<String> args);
 
 - 先頭の引数がコマンド名。無い、または未知なら `UsageException`。
 - 以降は `--name value` の組だけを受け付ける。`--name=value` も同じに扱う。未知のオプション、値の欠落、同じオプションの重複は `UsageException`。
+  未知かどうかは、上の表のコマンドごとの必須と任意で決める。他のコマンド用のオプション (`show --db x` など) も未知とする。
   `--name` の直後の 1 語は、`--` で始まっていても常に値とする。値の欠落は、直後の語が無いときだけである。
   `--name=value` は最初の `=` だけで分割し、残りを値とする (`--title=a=b` の値は `a=b`)。
   値として取った後に `--` で始まらない語が残れば、余分な引数として `UsageException` とする (`--title --at 2026-..` は、`--at` が値になり、`2026-..` が余分な引数になる)。
@@ -360,16 +361,17 @@ Future<int> run(
      `based-on` must cite a three-part version that exists in the specifications.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                                                                     |
-| ---------- | ------- | --------------------------------------------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                  |
-| 2026-11-22 | 1.0.1   | Follow specifications v1.1.1 / v1.3.1 / v1.0.3 (DR-08 citations)                                                |
-| 2026-11-22 | 1.0.2   | stderr of DuplicateTagException is its `toString()` with `attempts`; fix the register of 1.1 (clarification)    |
-| 2026-11-22 | 1.0.3   | Follow specifications-schedule v1.4.0                                                                           |
-| 2026-11-22 | 1.0.4   | Follow specifications-schedule v1.5.0; parseArgs stores the trimmed `--batch` and `--alarm`                     |
-| 2026-11-22 | 1.0.5   | Follow specifications-index v1.1.2; parseArgs stores the trimmed `--aumid`                                      |
-| 2026-11-22 | 1.0.6   | Follow specifications-index v1.1.3                                                                              |
-| 2026-11-22 | 1.0.7   | Add `ids.dart` (normalizeId, requireId) and the target NID; follow specifications-index v1.1.4                  |
-| 2026-11-22 | 1.0.8   | Only `normalizeId`; each upper method checks; the lower layer is not public; follow specifications-index v1.1.5 |
-| 2026-11-22 | 1.0.9   | Move the NotificationEnvironment implementation to env/ (DefaultNotificationEnvironment) and add the target NEV |
+| Date       | Version | Description                                                                                                                                             |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                                                          |
+| 2026-11-22 | 1.0.1   | Follow specifications v1.1.1 / v1.3.1 / v1.0.3 (DR-08 citations)                                                                                        |
+| 2026-11-22 | 1.0.2   | stderr of DuplicateTagException is its `toString()` with `attempts`; fix the register of 1.1 (clarification)                                            |
+| 2026-11-22 | 1.0.3   | Follow specifications-schedule v1.4.0                                                                                                                   |
+| 2026-11-22 | 1.0.4   | Follow specifications-schedule v1.5.0; parseArgs stores the trimmed `--batch` and `--alarm`                                                             |
+| 2026-11-22 | 1.0.5   | Follow specifications-index v1.1.2; parseArgs stores the trimmed `--aumid`                                                                              |
+| 2026-11-22 | 1.0.6   | Follow specifications-index v1.1.3                                                                                                                      |
+| 2026-11-22 | 1.0.7   | Add `ids.dart` (normalizeId, requireId) and the target NID; follow specifications-index v1.1.4                                                          |
+| 2026-11-22 | 1.0.8   | Only `normalizeId`; each upper method checks; the lower layer is not public; follow specifications-index v1.1.5                                         |
+| 2026-11-22 | 1.0.9   | Move the NotificationEnvironment implementation to env/ (DefaultNotificationEnvironment) and add the target NEV                                         |
 | 2026-11-22 | 1.1.0   | parseArgs takes the word after `--name` as the value even if it starts with `--`; `=` splits at the first one (4.2); follow specifications-index v1.2.0 |
+| 2026-11-22 | 1.2.0   | Options not listed for the command (including those of other commands) are unknown (4.2); follow specifications-index v1.3.0                            |

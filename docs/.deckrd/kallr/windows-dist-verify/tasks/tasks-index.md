@@ -17,7 +17,7 @@ source: specifications-index.md
 | T-01        | TAG  | tasks-tag.md         |        10 |    23 |
 | T-02        | TAL  | tasks-tag.md         |        11 |    15 |
 | T-03        | MID  | tasks-tag.md         |        13 |    21 |
-| T-04        | ATP  | tasks-schedule.md    |        15 |    22 |
+| T-04        | ATP  | tasks-schedule.md    |        18 |    28 |
 | T-05        | MAP  | tasks-schedule.md    |        22 |    44 |
 | T-06        | RPQ  | tasks-schedule.md    |        12 |    28 |
 | T-07        | SVC  | tasks-schedule.md    |        73 |   164 |
@@ -27,7 +27,7 @@ source: specifications-index.md
 | T-11        | CLI  | tasks-cli.md         |        24 |    88 |
 | T-12        | NID  | tasks-cli.md         |         6 |     6 |
 | T-13        | NEV  | tasks-environment.md |        10 |    13 |
-| 合計        |      |                      |           |   560 |
+| 合計        |      |                      |           |   566 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 

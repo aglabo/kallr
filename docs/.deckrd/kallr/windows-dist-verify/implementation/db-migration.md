@@ -1,8 +1,8 @@
 ---
 title: "DB Migration: Windows Distribution Verify"
-based-on: implementation-index.md v1.0.0
+based-on: implementation-index.md v1.0.1
 status: Draft
-version: 1.1.0
+version: 1.1.1
 created: "2026-11-22"
 ---
 
@@ -152,7 +152,7 @@ CREATE UNIQUE INDEX settings_key ON settings (key);
 | code (`notify_status`) | name         | 意味                                                 |
 | ---------------------: | ------------ | ---------------------------------------------------- |
 |                      1 | `current`    | 現行の通知。(`batch_id`, `alarm_id`) ごとに高々 1 つ |
-|                      2 | `pending`    | 置換後の行。置換の段階 4 が済むまでの状態            |
+|                      2 | `pending`    | 置換後の行。置換の段階 4 が済むまでの状態 (DR-08)    |
 |                      0 | `superseded` | 置換された旧行。OS から消した後に削除する            |
 
 - 状態を足すときは、`CHECK` を広げる移行 (版 2 以降) を行います。`CHECK` は `ALTER` で変えられないためです。
@@ -200,3 +200,4 @@ CREATE UNIQUE INDEX settings_key ON settings (key);
 | ------- | ---------- | ------------------------------------------------------------------- |
 | 1.0.0   | 2026-11-22 | 初版。通知テーブルと置換キューの設計、関連、版 1 の定義、移行の規則 |
 | 1.1.0   | 2026-11-22 | `settings` の追加、`notify_status` と `pending` (DR-07)             |
+| 1.1.1   | 2026-11-22 | `pending` が段階 4 まで続く根拠として DR-08 を引用                  |

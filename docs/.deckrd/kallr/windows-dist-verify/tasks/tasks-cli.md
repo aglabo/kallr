@@ -349,7 +349,7 @@ version: 1.0.0
 
 - [ ] **T-10-27-01**: `--title` の直後の `--at` は値になり、続く語が余分な引数でエラーになる
   - Target: `parseArgs`
-  - Scenario: Given `add --batch b1 --alarm a1 --title --at 2026-12-01T09:00:00+09:00 --aumid app.x` (`--title` の値が無いまま `--at` が続く), When `parseArgs` を呼ぶ
+  - Scenario: Given `add --batch b1 --alarm a1 --title --at 2026-12-01T09:00:00+09:00 --aumid app.x` (`--title` の値を省略し、`--at` を続ける), When `parseArgs` を呼ぶ
   - Expected: Then `--at` を title の値として取り、続く `2026-12-01T09:00:00+09:00` が `--` で始まらない余分な引数のため `UsageException` を投げる (T-10-06-04)
 
 #### T-10-28: `--db` を受け付けないコマンドに `--db` を渡す

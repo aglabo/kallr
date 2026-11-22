@@ -2,7 +2,7 @@
 title: "Decision Records: kallr/windows-dist-verify"
 module: "kallr/windows-dist-verify"
 status: Active
-version: 1.0.2
+version: 2.0.0
 created: "2026-11-20"
 ---
 
@@ -343,7 +343,7 @@ ScheduledToastNotification での Tag の上限は、実機で測っていない
 ## DR-05: 置換は、置換後の予約を追加してから置換前の予約を削除する方式とする - 2026-11-20 21:14:42
 
 **Phase**: req
-**Status**: Accepted
+**Status**: Partially superseded by DR-07（決定 1: 置換で DB を更新する順序の部分）
 
 ### Context
 
@@ -531,10 +531,106 @@ Setting は、通知が有効かどうかを返す。無効のときは、その
 
 ---
 
+## DR-07: 置換は、DB に意図を先に書き、各段が独立して再開できる 3 段で行う - 2026-11-22 12:02:32
+
+**Phase**: impl
+**Status**: Accepted
+**Supersedes**: DR-05 (決定 1: 置換で DB を更新する順序の部分)
+
+### Context
+
+DR-05 の置換手順では、OS への追加の直後にプロセスが止まると、DB に無い予約が OS に残る。
+
+DR-05 の決定 1 は、次の順序を定めている。
+
+1. OS に置換後の予約を追加する。
+2. 対応表を更新する。
+3. OS の置換前の予約を削除する。
+
+この順序には、次の問題がある。
+
+- 手順 1 の直後で止まると、置換後の予約が OS に残る。この予約は対応表に無い (orphan)。
+- このとき置換前の予約も OS に残るので、同じ通知が二重に発火する。
+- 回復手順は、DR-05 の Scope で spec に委ねられている。DB が意図を持たないので、再開の手がかりが無い。
+
+Kallr の CLI は 1 回の実行で終わる。使う sqlite3 の API は同期型だ。OS には、追加と削除を 1 つのトランザクションにまとめる機構が無い。
+
+### Decision
+
+1. 決定 1: 置換 (同じ (batchId, alarmId) の未発火の予約を置き換える操作) は、DB に意図を先に書く 3 段で行う。
+   - 段 1 (DB のトランザクション 1): 置換後の行を追加し、置換キューに (置換後 ID, 置換前 ID) を登録する。置換後の行の状態は pending とする。置換前の行の状態は superseded とする。
+   - 段 2 (OS の操作): 置換後の予約を追加し、置換前の予約を削除する。OS 側は原子的にできない。
+   - 段 3 (DB のトランザクション 2): 置換前の行を削除する。置換キューの置換前 ID は NULL になる。
+2. 決定 2: 置換後の行の状態は、OS への追加が済むまで pending とし、済んだら current とする。置換前の行は superseded とする。
+3. 決定 3: 各段は独立していて、どの段で止まっても再開できる。次の add と re-register-all の先頭で、置換キューの保留から再開する。
+4. 決定 4: 再開は冪等にする。OS への追加の前に OS の予約一覧で置換後の Tag の有無を確かめ、あれば追加しない。
+5. 決定 5: 「非同期」は、各段が独立して再開できることを指す。Future を使う非同期処理は採用しない。
+6. 決定 6: DR-05 の「追加してから削除する」順序 (予約を失わない) と、「AddToSchedule の同じ Tag の挙動に依存しない」は維持する。本 DR が変えるのは、DB を OS の操作より先に書く点だけである。
+
+### Scope
+
+- Applies to: 置換の手順、その各段の独立性と再開、および置換後の行と置換前の行の状態
+- Not decided here:
+  - 置換後の行が OS に追加されなかった場合の扱い (時刻が過ぎて 0x80070057 になったときなど) → 未定 (spec で決める)
+  - 置換キューと状態を持つ表の構造 → implementation の DB 設計 (implementation/db-migration.md) で決める
+  - 各段で止まったときの状態の一覧と、終了コード → specifications-schedule.md の置換の失敗状態 (3.5) で決める
+  - 置換が原子的かどうか → requirements.md の Open Questions で扱う (REQ-F-008)
+
+### Alternatives Considered
+
+| 案                                               | 不採用の理由                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| DR-05 の順序のまま (OS 追加 → DB 更新 → OS 削除) | OS への追加の直後に止まると、DB に無い予約が残り、置換前の予約と合わせて二重に発火するため不採用 |
+| OS の追加と削除を 1 つのトランザクションにする   | OS にそのような機構が無く、作れないため不採用                                                    |
+| 非同期 (Future) にする                           | CLI は 1 回の実行で終わり、同期 API の sqlite3 を使う方針と合わないため不採用                    |
+
+### Rationale
+
+最大の理由は、意図を先に DB へ書けば、予約が OS にだけある状態が構造上起きない点にある。
+
+- DB に保留が残るので、どの段で止まっても、次の実行で続きから再開できる。
+- 置換前の予約は、置換後の予約を追加するまで消さない。DR-05 が守る「予約を失わない」性質は保たれる。
+- 再開の前に OS の予約一覧で Tag を確かめるので、同じ段を繰り返しても予約が重複しない。
+- DB の更新を OS の操作より先にしても、DR-04 により Tag は登録のたびに異なる。置換後の予約の追加は、置換前の Tag と衝突しない。
+
+### Consequences
+
+- Positive:
+  - 予約が OS にだけある状態 (orphan) は起きない。
+  - 止まっても、DB の保留から再開できる。
+  - 同じ通知の二重発火を、再開で解消できる。
+- Negative:
+  - 段 1 と段 3 で DB のトランザクションが 2 回になり、状態 (pending、current、superseded) と置換キューを持つ必要がある。
+  - 段 2 の途中で止まった間は、置換前の予約が OS に残り、置換前の時刻に発火しうる。再開するまで続く。
+  - 置換後の行が OS に追加されなかった場合の扱いが決まるまで、その状態の回復は決められない。
+  - specifications-schedule.md の SCH-DD-01、SCH-R-009、SCH-R-010 と 3.5 は、改訂前の順序で書かれている。本 DR に合わせた改訂が要る。
+- Revisit Trigger:
+  - OS が、追加と削除を原子的に行う機構を提供したときは、本 DR を見直す。
+  - 再開の処理が、add と re-register-all の応答時間に影響すると分かったときは、本 DR を見直す。
+
+### Related
+
+- requirements/requirements.md: REQ-F-005
+- requirements/requirements.md: REQ-F-008
+- requirements/requirements.md: REQ-F-009
+- requirements/requirements.md: REQ-F-020
+- decision-records.md: DR-04
+- decision-records.md: DR-05
+- specifications/specifications-schedule.md: SCH-DD-01
+- specifications/specifications-schedule.md: SCH-R-009
+- specifications/specifications-schedule.md: SCH-R-010
+- specifications/specifications-schedule.md: 3.5 置換の失敗状態
+- implementation/db-migration.md: §2 Table Design
+- universal-dictionary.md: UD-RPL-001
+- universal-dictionary.md: UD-RPL-002
+
+---
+
 ## Change History
 
-| Date       | Version | Description                                                   |
-| ---------- | ------- | ------------------------------------------------------------- |
-| 2026-11-20 | 1.0.0   | Initial release with DR-01, DR-02, DR-03, DR-04, DR-05, DR-06 |
-| 2026-11-20 | 1.0.1   | Refine DR-06: clarify wording                                 |
-| 2026-11-21 | 1.0.2   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)   |
+| Date       | Version | Description                                                                                    |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------- |
+| 2026-11-20 | 1.0.0   | Initial release with DR-01, DR-02, DR-03, DR-04, DR-05, DR-06                                  |
+| 2026-11-20 | 1.0.1   | Refine DR-06: clarify wording                                                                  |
+| 2026-11-21 | 1.0.2   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                    |
+| 2026-11-22 | 2.0.0   | Add DR-07: 置換は、DB に意図を先に書き、各段が独立して再開できる 3 段で行う (supersedes DR-05) |

@@ -1,8 +1,8 @@
 ---
 title: "Implementation Specification: Windows Distribution Verify (Schedule)"
-based-on: specifications-schedule.md v1.2.0
+based-on: specifications-schedule.md v1.6.0
 status: Draft
-version: 1.1.0
+version: 1.2.0
 created: "2026-11-22"
 ---
 
@@ -23,6 +23,9 @@ DB の設計は db-migration.md が正本。共通の前提、ファイル構成
 
 - 既定のパス: `%LOCALAPPDATA%\kallr\w1-w7-verify\mappings.sqlite3` (SCH-DD-12 の「実装で決める」を、ここで決める)。
   `LOCALAPPDATA` が無い場合は `StorageException`。
+  この解決は、`default_db_path.dart` の次の関数が行う。
+  `environment` には `Platform.environment` を渡す。
+  `String defaultDbPath(Map<String, String> environment)`
   ローミングしない領域を使うのは、マシン ID と OS の予約の情報が、そのマシン固有のためです。
 - `--db <path>` があればそれを使う (SCH-R-029)。
 - 親ディレクトリが無ければ作る。ファイルが無ければ空の対応表として新規に作る (specifications-schedule.md §3.3 の初回の利用)。
@@ -44,7 +47,9 @@ DB の設計は db-migration.md が正本。共通の前提、ファイル構成
 1. ファイルが存在する場合:
    - 開く。`SqliteException` は `StorageException` に変える。
    - `PRAGMA quick_check` を実行し、結果が `ok` でなければ `StorageException` (壊れている。作り直さない。SCH-R-027)。
-   - `PRAGMA user_version` が 1 以外なら `StorageException`。
+   - `PRAGMA user_version` が 0 で、テーブルが 1 つも無い (`sqlite_master` が空) 場合は、`empty` とみなす。
+     新規作成と同じ初期化を行う (スキーマの作成と `user_version = 1`。db-migration.md §3.1)。
+   - 上記以外で `PRAGMA user_version` が 1 以外なら `StorageException` (別のアプリの DB を初期化しない。ファイルは変えない)。
 2. ファイルが存在しない場合: ファイルを作り、`user_version = 1` とスキーマを作成する。
 3. 書き込みはすべて `BEGIN` … `COMMIT` で囲み、例外時は `ROLLBACK` して `StorageException` に変える (SCH-R-026)。
 
@@ -110,8 +115,11 @@ abstract interface class ToastScheduler {
 DateTime parseAt(String text, {Duration Function(DateTime utc) offsetAt = _systemOffsetAt});
 ```
 
-SCH-R-002, 031 / SCH-DD-04, 14。
+SCH-R-002, 031 / SCH-DD-04, 14, 17。
 
+0. 前後の空白を除いた文字列が日付のみ (`^\d{4}-\d{2}-\d{2}$`) なら、`T00:00:00` を補って手順 2 へ進む。
+   - `DateTime.parse` は日付のみをプラットフォームのローカル時刻として読むため、手順 1 には流さない。
+   - 存在しない日付 (`2026-02-30`) は手順 3 と同じく `UsageException`。
 1. 末尾が `Z` または `±hh:mm` のオフセットなら、`DateTime.parse` の結果をそのまま絶対時刻として返す (UTC に変換して保持)。
 2. オフセットが無ければ、年月日時分秒を取り出して「ローカルの壁時計時刻」として扱い、次の手順で瞬間に解決する。`offsetAt(utc)` は、その瞬間のローカルのオフセットを返す関数で、テストでは夏時間の規則を差し替える。
    - 壁時計時刻を UTC の値として読んだものを `w` とする。
@@ -144,17 +152,25 @@ final class SchedulingService {
 }
 ```
 
+契約として、`batchId` と `alarmId` は空でない。
+`add` と `cancel` は、最初に `normalizeId` で `batchId` と `alarmId` を正規化し、以降はその戻り値を使う (implementation-index.md §3.3)。
+`add` と `reRegisterAll` は、`aumid` も同じく正規化する。正規化後に空なら、各メソッドが `UsageException` を投げる。
+`ToastScheduler` と `MappingTable` は下層であり、正規化済みの値を受け取る。公開しない。
+この検査は、`env.check`、保留の再開、`table` と `scheduler` の呼び出しより前に行う。副作用は無い。
+
 `aumid` は `env.check` にだけ渡す。`ToastScheduler` は、Windows 実装がコンストラクタで受け取った AUMID を保持するため、メソッドでは AUMID を受け取らない。
 
 #### add (SCH-R-003〜011, IDX-R-001〜005)
 
+0. 識別子の検査 (契約)。`batchId`、`alarmId`、`aumid` を `normalizeId` で正規化し、以降はその戻り値を使う。どれかが空なら `UsageException`。
 1. `final a = env.check(aumid);` `a.ok` が偽なら `UnavailableException(a)`。ここより前に副作用を起こさない。続けて `resumePending()` を呼ぶ (下の「保留の再開」。SCH-R-036)。
 2. 分類する。
    - `rec = table.get(batchId, alarmId)`、`toasts = scheduler.list(kGroup)` を得る。
    - `rec == null` → 新規。
    - `rec != null` かつ `toasts` に `rec.tag` がある → 置換。
    - `rec != null` かつ `toasts` に `rec.tag` が無い → 新規 (発火後。対応表の値を置換)。
-3. Tag: `existing = {...toasts.map(tag), ...table.tags()}`。`registeredAt = clock.now()` を 1 回得て `allocateTag(...)` を呼ぶ。
+3. Tag: `existing = {...toasts.map(tag), ...table.tags()}`。`registeredAt = clock.now()` を 1 回得る。
+   続けて `allocateTag(random:, machineId:, existingTags:, registeredAt:)` を呼ぶ。
    上限超過は `DuplicateTagException` (予約と対応表のどちらも変えない)。
 4. 新規 (SCH-R-008): `scheduler.add(...)` → `table.put(newRecord)`。
 5. 置換 (SCH-R-009, 3.5。段階は 3.5 の番号):
@@ -174,13 +190,14 @@ final class SchedulingService {
    1. 置換後の `at` が `now` 以前なら、追加しない。発火済みか未登録かは区別しない (3.5)。次の手順 3 へ進む。
       `abortReplacement` で旧行へ戻すと、旧い時刻に同じ通知が再び鳴るため、戻さない。
    2. `at` が `now` より後で、置換後の Tag が `toasts` に無ければ、`scheduler.add` で追加する (置換後の `MappingRecord` の値を使う)。
-      OS が拒否したら `table.abortReplacement(queueId)` を呼び、その行の再開を終える。
+      OS が拒否したら `table.abortReplacement(queueId)` を呼び、例外を投げずにその行の再開を終える (SCH-R-036)。
    3. `scheduler.remove(oldTag, kGroup)` を呼ぶ (false でも成功扱い)。
    4. `table.completeRemoval(queueId)` を呼ぶ。
 3. 例外は伝える。保留は残る。
 
 #### cancel (SCH-R-012〜015, 030)
 
+0. 識別子の検査 (契約)。`batchId` と `alarmId` を `normalizeId` で正規化し、以降はその戻り値を使う。どちらかが空なら `UsageException`。何も呼ばない。
 1. `table.get(...)` が null なら `NotFoundException` (何も変えない)。
 2. `resumePending()` で置換の保留を先に処理する。残すと、`table.remove` の `ON DELETE CASCADE` でキューの行が消え、旧行の削除が漏れるため。
 3. `rec = table.get(...)` を読み直す。再開で `abortReplacement` が走ると、行の Tag が変わるため。読み直しで null なら `NotFoundException` (何も変えない)。
@@ -198,6 +215,7 @@ final class SchedulingService {
 
 #### reRegisterAll (SCH-R-034, 021〜024, 035)
 
+0. 識別子の検査 (契約)。`aumid` を `normalizeId` で正規化し、以降はその戻り値を使う。空なら `UsageException`。何も呼ばない。
 1. `env.check(aumid)` が ok でなければ `UnavailableException` (何も登録しない)。
 2. `toasts = scheduler.list(kGroup)`、`now = clock.now()`。
 3. `table.all()` の各項目を次のとおり処理する。
@@ -290,7 +308,18 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
      `based-on` must cite a three-part version that exists in the specifications.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                                            |
-| ---------- | ------- | -------------------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                         |
-| 2026-11-22 | 1.1.0   | resumePending skips adding a past replacement; cancel re-reads the target after resume |
+| Date       | Version | Description                                                                                                                 |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                              |
+| 2026-11-22 | 1.1.0   | resumePending skips adding a past replacement; cancel re-reads the target after resume                                      |
+| 2026-11-22 | 1.1.1   | Follow specifications-schedule v1.3.0; allocateTag has no clock argument                                                    |
+| 2026-11-22 | 1.1.2   | An existing file with no tables is initialized like a new one; other `user_version` mismatches still raise StorageException |
+| 2026-11-22 | 1.1.3   | Name the default path function `defaultDbPath` (clarification)                                                              |
+| 2026-11-22 | 1.1.4   | Follow specifications-schedule v1.3.1 (DR-08 citation)                                                                      |
+| 2026-11-22 | 1.1.5   | Contract: batchId and alarmId are non-empty; add and cancel check them first and throw UsageException                       |
+| 2026-11-22 | 1.1.6   | Follow specifications-schedule v1.4.0 (contract in 3.3); judge emptiness after trim                                         |
+| 2026-11-22 | 1.1.7   | Follow specifications-schedule v1.5.0; the trimmed batchId and alarmId are used as the ID                                   |
+| 2026-11-22 | 1.1.8   | add and reRegisterAll trim aumid at their entry (specifications-index v1.1.3)                                               |
+| 2026-11-22 | 1.1.9   | add, cancel and reRegisterAll normalize identifiers with requireId (implementation-index §3.3)                              |
+| 2026-11-22 | 1.1.10  | Use normalizeId with a check in each method; the lower layer is not public                                                  |
+| 2026-11-22 | 1.2.0   | parseAt reads a date-only `--at` as 00:00:00 local time (3.2); follow specifications-schedule v1.6.0                        |

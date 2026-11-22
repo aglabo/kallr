@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Environment)"
 based-on: specifications-environment.md v1.0.0
 status: Draft
-version: 1.0.0
+version: 1.0.1
 created: "2026-11-22"
 ---
 
@@ -134,7 +134,7 @@ W5Report w5Check(W5Input input, NotificationEnvironment env, PermissionProbe pro
 
 1. 各欄が未明確か判定する。値が null、`trim()` で空、または `記載なし` なら `unclear`。この欄は照合しない。
 2. aumid 欄が明確なら `env.isRegistered(recordedAumid)` が真で `match`、偽で `mismatch` (`observed` に「登録なし」)。
-3. permission 欄が明確なら、`user` / `administrator` 以外の値は `UsageException`。それ以外は `probe.current()` と比べて `match` / `mismatch`。
+3. permission 欄が明確なら、`user` / `administrator` 以外の値は `UsageException`。照合は大文字小文字を区別する完全一致とし、`Administrator` は `UsageException` (ENV-DD-12)。それ以外は `probe.current()` と比べて `match` / `mismatch`。
 4. install-method 欄が明確なら `status = notChecked` とし、記録した値を `recorded` に入れて「照合していない」と報告する (ENV-DD-04)。
 5. `exitCode` は、`unclear` または `mismatch` が 1 つでもあれば 2、そうでなければ 0。W5 の合否は変えず、報告するだけ (ENV-DD-05)。
 
@@ -237,3 +237,4 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 | Date       | Version | Description                                                    |
 | ---------- | ------- | -------------------------------------------------------------- |
 | 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged) |
+| 2026-11-22 | 1.0.1   | State that the permission value match is case-sensitive (clarification) |

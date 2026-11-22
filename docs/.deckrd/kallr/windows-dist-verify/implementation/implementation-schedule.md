@@ -1,8 +1,8 @@
 ---
 title: "Implementation Specification: Windows Distribution Verify (Schedule)"
-based-on: specifications-schedule.md v1.2.0
+based-on: specifications-schedule.md v1.3.0
 status: Draft
-version: 1.1.0
+version: 1.1.2
 created: "2026-11-22"
 ---
 
@@ -44,7 +44,8 @@ DB の設計は db-migration.md が正本。共通の前提、ファイル構成
 1. ファイルが存在する場合:
    - 開く。`SqliteException` は `StorageException` に変える。
    - `PRAGMA quick_check` を実行し、結果が `ok` でなければ `StorageException` (壊れている。作り直さない。SCH-R-027)。
-   - `PRAGMA user_version` が 1 以外なら `StorageException`。
+   - `PRAGMA user_version` が 0 で、テーブルが 1 つも無い (`sqlite_master` が空) なら `empty` とみなし、新規作成と同じ初期化 (スキーマの作成と `user_version = 1`) を行う (db-migration.md §3.1)。
+   - 上記以外で `PRAGMA user_version` が 1 以外なら `StorageException` (別のアプリの DB を初期化しない。ファイルは変えない)。
 2. ファイルが存在しない場合: ファイルを作り、`user_version = 1` とスキーマを作成する。
 3. 書き込みはすべて `BEGIN` … `COMMIT` で囲み、例外時は `ROLLBACK` して `StorageException` に変える (SCH-R-026)。
 
@@ -154,7 +155,7 @@ final class SchedulingService {
    - `rec == null` → 新規。
    - `rec != null` かつ `toasts` に `rec.tag` がある → 置換。
    - `rec != null` かつ `toasts` に `rec.tag` が無い → 新規 (発火後。対応表の値を置換)。
-3. Tag: `existing = {...toasts.map(tag), ...table.tags()}`。`registeredAt = clock.now()` を 1 回得て `allocateTag(...)` を呼ぶ。
+3. Tag: `existing = {...toasts.map(tag), ...table.tags()}`。`registeredAt = clock.now()` を 1 回得て `allocateTag(random:, machineId:, existingTags:, registeredAt:)` を呼ぶ。
    上限超過は `DuplicateTagException` (予約と対応表のどちらも変えない)。
 4. 新規 (SCH-R-008): `scheduler.add(...)` → `table.put(newRecord)`。
 5. 置換 (SCH-R-009, 3.5。段階は 3.5 の番号):
@@ -174,7 +175,7 @@ final class SchedulingService {
    1. 置換後の `at` が `now` 以前なら、追加しない。発火済みか未登録かは区別しない (3.5)。次の手順 3 へ進む。
       `abortReplacement` で旧行へ戻すと、旧い時刻に同じ通知が再び鳴るため、戻さない。
    2. `at` が `now` より後で、置換後の Tag が `toasts` に無ければ、`scheduler.add` で追加する (置換後の `MappingRecord` の値を使う)。
-      OS が拒否したら `table.abortReplacement(queueId)` を呼び、その行の再開を終える。
+      OS が拒否したら `table.abortReplacement(queueId)` を呼び、例外を投げずにその行の再開を終える (SCH-R-036)。
    3. `scheduler.remove(oldTag, kGroup)` を呼ぶ (false でも成功扱い)。
    4. `table.completeRemoval(queueId)` を呼ぶ。
 3. 例外は伝える。保留は残る。
@@ -294,3 +295,5 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
 | ---------- | ------- | -------------------------------------------------------------------------------------- |
 | 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                         |
 | 2026-11-22 | 1.1.0   | resumePending skips adding a past replacement; cancel re-reads the target after resume |
+| 2026-11-22 | 1.1.1   | Follow specifications-schedule v1.3.0; allocateTag has no clock argument |
+| 2026-11-22 | 1.1.2   | An existing file with no tables is initialized like a new one; other `user_version` mismatches still raise StorageException |

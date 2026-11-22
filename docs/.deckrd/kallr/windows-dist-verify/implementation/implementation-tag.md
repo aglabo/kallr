@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Tag)"
 based-on: specifications-tag.md v1.0.0
 status: Draft
-version: 1.0.0
+version: 1.0.2
 created: "2026-11-22"
 ---
 
@@ -55,11 +55,10 @@ String generateTag({
 
 ```dart
 String allocateTag({
-  required ClockProvider clock,
   required RandomSourceProvider random,
   required MachineIdProvider machineId,
   required Set<String> existingTags,   // 予約一覧 (Group=kallr) の Tag と対応表の Tag の和集合
-  required DateTime registeredAt,      // 呼び出し側が clock.now() から 1 回だけ得た値
+  required DateTime registeredAt,      // 呼び出し側が ClockProvider.now() から 1 回だけ得た値。時計は引数に取らない
 });
 ```
 
@@ -79,6 +78,7 @@ String allocateTag({
 
 `machineId()` は次の順で評価する (TAG-R-010 → 008 → 009)。
 
+0. 壊れたファイル (`quick_check` が `ok` でない) は、`SqliteStore.open` が `StorageException` を投げる (SCH-R-027)。`machineId()` に届く前に失敗する。
 1. `settings` の `machine_id` の行を読む (key から `id` を引き、`id` で値を読む)。読み取りに失敗、または値が `^[0-9a-f]{8}$` でなければ `StorageException` (新しい値を作らない)。
 2. 値があればそれを返す。
 3. 行が無ければ、`Random.secure()` の 4 バイトから 8 桁を作り、`settings` に `INSERT` して (トランザクション) 返す。保存に失敗したら値を返さず `StorageException`。
@@ -116,3 +116,5 @@ String allocateTag({
 | Date       | Version | Description                                                    |
 | ---------- | ------- | -------------------------------------------------------------- |
 | 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged) |
+| 2026-11-22 | 1.0.1   | Remove the unused `clock` parameter from `allocateTag` (clarification) |
+| 2026-11-22 | 1.0.2   | State that a corrupt file fails in `SqliteStore.open`; `machineId()` fails only on an unreadable or invalid value (clarification) |

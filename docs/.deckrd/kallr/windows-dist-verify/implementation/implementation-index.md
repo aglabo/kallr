@@ -21,7 +21,7 @@ created: "2026-11-22"
 - Specifications:
   - specifications-index.md (v1.1.0)
   - specifications-tag.md (v1.0.0)
-  - specifications-schedule.md (v1.1.0)
+  - specifications-schedule.md (v1.3.0)
   - specifications-environment.md (v1.0.0)
   - specifications-verification.md (v1.0.2)
 - Prior Art: `poc/windows/w0-3-dartffi/src/w03.dart` (WinRT の FFI)

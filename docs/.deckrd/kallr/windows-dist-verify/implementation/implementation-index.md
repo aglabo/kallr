@@ -1,8 +1,8 @@
 ---
 title: "Implementation Specification: Windows Distribution Verify (Index)"
-based-on: specifications-index.md v1.1.5
+based-on: specifications-index.md v1.2.0
 status: Draft
-version: 1.0.9
+version: 1.1.0
 created: "2026-11-22"
 ---
 
@@ -213,6 +213,9 @@ ParsedArgs parseArgs(List<String> args);
 
 - 先頭の引数がコマンド名。無い、または未知なら `UsageException`。
 - 以降は `--name value` の組だけを受け付ける。`--name=value` も同じに扱う。未知のオプション、値の欠落、同じオプションの重複は `UsageException`。
+  `--name` の直後の 1 語は、`--` で始まっていても常に値とする。値の欠落は、直後の語が無いときだけである。
+  `--name=value` は最初の `=` だけで分割し、残りを値とする (`--title=a=b` の値は `a=b`)。
+  値として取った後に `--` で始まらない語が残れば、余分な引数として `UsageException` とする (`--title --at 2026-..` は、`--at` が値になり、`2026-..` が余分な引数になる)。
 - 必須オプションの検査はコマンドごとに行う。欠落は `UsageException` (既定値で補わない)。`--batch`、`--alarm`、`--aumid` は `trim()` して空なら欠落と同じ扱い。
   `--batch`、`--alarm`、`--aumid` は、`trim()` した値を `options` に入れる。`run()` は、その値を `env` と `schedulerFor` に渡す。
   `--display-name` も同様に空白だけは欠落と同じ。
@@ -369,3 +372,4 @@ Future<int> run(
 | 2026-11-22 | 1.0.7   | Add `ids.dart` (normalizeId, requireId) and the target NID; follow specifications-index v1.1.4                  |
 | 2026-11-22 | 1.0.8   | Only `normalizeId`; each upper method checks; the lower layer is not public; follow specifications-index v1.1.5 |
 | 2026-11-22 | 1.0.9   | Move the NotificationEnvironment implementation to env/ (DefaultNotificationEnvironment) and add the target NEV |
+| 2026-11-22 | 1.1.0   | parseArgs takes the word after `--name` as the value even if it starts with `--`; `=` splits at the first one (4.2); follow specifications-index v1.2.0 |

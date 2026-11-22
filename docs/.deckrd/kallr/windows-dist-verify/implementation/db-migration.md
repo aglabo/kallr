@@ -2,7 +2,7 @@
 title: "DB Migration: Windows Distribution Verify"
 based-on: implementation-index.md v1.0.1
 status: Draft
-version: 1.1.1
+version: 1.1.2
 created: "2026-11-22"
 ---
 
@@ -85,7 +85,8 @@ CREATE UNIQUE INDEX settings_key ON settings (key);
 - `registered_at` はローカル日時の ISO 8601 で、オフセットを付けません。
 - 接続ごとに `PRAGMA foreign_keys = ON` を実行します。
 - `settings` は、kallr の設定を 1 行 1 値で持つテーブルです。マシン ID もここに置きます。key は §3.3 に示します。
-- 行は物理 ID (`id`) で指します。読み書きと削除は `id` 経由で行います。key から `id` を引くときは、`settings_key` の一意インデックスを使います。
+- 行は物理 ID (`id`) で指します。読み書きと削除は `id` 経由で行います。
+- ただし `settings` の値の読み取りは、`id` を引かずに、key で直接読みます (`SELECT value FROM settings WHERE key = ?`)。`settings_key` の一意インデックスが 1 回の検索で行を特定するためです。
 
 ### 2.3 Replacement Queue
 
@@ -201,3 +202,4 @@ CREATE UNIQUE INDEX settings_key ON settings (key);
 | 1.0.0   | 2026-11-22 | 初版。通知テーブルと置換キューの設計、関連、版 1 の定義、移行の規則 |
 | 1.1.0   | 2026-11-22 | `settings` の追加、`notify_status` と `pending` (DR-07)             |
 | 1.1.1   | 2026-11-22 | `pending` が段階 4 まで続く根拠として DR-08 を引用                  |
+| 1.1.2   | 2026-11-22 | `settings` の値は、`id` を引かずに key で直接読む (明確化。`id` 経由の規則は、更新と削除に限る) |

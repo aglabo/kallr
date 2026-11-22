@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Tag)"
 based-on: specifications-tag.md v1.0.0
 status: Draft
-version: 1.0.2
+version: 1.0.3
 created: "2026-11-22"
 ---
 
@@ -79,7 +79,7 @@ String allocateTag({
 `machineId()` は次の順で評価する (TAG-R-010 → 008 → 009)。
 
 0. 壊れたファイル (`quick_check` が `ok` でない) は、`SqliteStore.open` が `StorageException` を投げる (SCH-R-027)。`machineId()` へ届く前に失敗する。
-1. `settings` の `machine_id` の行を読む (key から `id` を引き、`id` で値を読む)。読み取りに失敗、または値が `^[0-9a-f]{8}$` でなければ `StorageException` (新しい値を作らない)。
+1. `settings` の `machine_id` の値を key で直接読む (`SELECT value FROM settings WHERE key = ?`。`settings_key` の一意インデックスを使う)。読み取りに失敗、または値が `^[0-9a-f]{8}$` でなければ `StorageException` (新しい値を作らない)。
 2. 値があればそれを返す。
 3. 行が無ければ、`Random.secure()` の 4 バイトから 8 桁を作り、`settings` に `INSERT` して (トランザクション) 返す。保存に失敗したら値を返さず `StorageException`。
 4. 結果をインスタンス内にキャッシュし、同じプロセスでは同じ値を返す。
@@ -102,7 +102,7 @@ String allocateTag({
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TAG  | 40 文字、14 桁の日時、秒未満の切り捨て、同じ入力で同じ出力、年の範囲外・マシン ID・乱数の桁数/大文字/16 進以外で `ArgumentError`                                                                    |
 | TAL  | 重複なしで 1 回目の乱数を採用、予約一覧だけ/対応表だけに重複で再生成、3 回の再生成で成功、4 回とも重複で `DuplicateTagException`、日時とマシン ID が不変                                            |
-| MID  | 初回に生成して `settings` に保存、再オープンで同値、行なしで新規生成、`id` 経由で読む、`key` の重複を拒否 (ユニークインデックス)、不正な値/壊れた DB で `StorageException` かつ既存の値を変更しない |
+| MID  | 初回に生成して `settings` に保存、再オープンで同値、行なしで新規生成、`id` が 1 以外の行でも key で読む、`key` の重複を拒否 (ユニークインデックス)、不正な値/壊れた DB で `StorageException` かつ既存の値を変更しない |
 
 ---
 
@@ -118,3 +118,4 @@ String allocateTag({
 | 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                                    |
 | 2026-11-22 | 1.0.1   | Remove the unused `clock` parameter from `allocateTag` (clarification)                                                            |
 | 2026-11-22 | 1.0.2   | State that a corrupt file fails in `SqliteStore.open`; `machineId()` fails only on an unreadable or invalid value (clarification) |
+| 2026-11-22 | 1.0.3   | Read the `settings` value directly by key (one SELECT) instead of looking up its `id` first (clarification)                       |

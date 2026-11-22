@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Index)"
 based-on: specifications-index.md v1.3.0
 status: Draft
-version: 1.2.1
+version: 1.3.4
 created: "2026-11-22"
 ---
 
@@ -35,7 +35,16 @@ created: "2026-11-22"
 - 実装場所は `poc/windows/w1-w7-verify/` に限る (REQ-C-001, REQ-F-018, VER-R-010)。
 - 言語は Dart (SDK ^3.14.0)。FFI を使う Windows 実装以外は、OS に依存しない純粋な Dart で書く。
 - 新しい依存は `sqlite3` (SQLite の束縛、同期 API) と `ffi` の 2 つ。どちらも `poc/` の `pubspec.yaml` にだけ追加する。
-- 既存の `lib/map_toast_key.dart` と `test/map_toast_key.unit.spec.dart` (T-WDV-MTK-*) は削除する。
+  `sqlite3` は SQLite を使う最初の実装 (T-03) で、`ffi` は Windows の FFI 実装で最初に使うときに追加する。使わない依存は宣言しない。
+- `sqlite3` 3.x の SQLite 本体は、Dart のビルドフックが **初回のビルド時** (`dart test` や `dart run` など。`dart pub get` ではない) に取得する。
+  - 既定は、GitHub Releases の事前ビルド版のダウンロードで、パッケージに含まれる sha256 と照合する。C のツールチェーンは要らない。
+    Windows は x64、x86、aarch64 に対応する。
+  - 保存先は `.dart_tool/hooks_runner/shared/sqlite3/build/download-*/sqlite3.dll` (git の管理対象外)。
+  - 新しい環境や CI の最初の実行は、GitHub に接続できる必要がある。接続できない環境では、`pubspec.yaml` の
+    `hooks.user_defines.sqlite3.url_pattern` で配布先を変えるか、OS 付属の SQLite を使う設定にする (`sqlite3` パッケージの `doc/hook.md`)。
+  - 配布先の Windows での読み込みと、DLL の入手方法の確認は、手動検証で行う。
+    根拠は implementation-verification.md §4 の「SQLite のネイティブライブラリを、Windows の Dart から読み込めるか」である。
+- 既存の `lib/map_toast_key.dart` と `test/map_toast_key.unit.spec.dart` (T-WDV-MTK-*) は削除する (旧配置のため、削除までは `test/` に残す)。
   `module.md` の略語表の `MTK` 行も同時に削除する (IDX-DD-09)。
 - 例外から終了コードへの変換は `run()` の 1 か所だけで行う (IDX-DD-05)。それ以外の層は終了コードを知らない。
 - プロセスは一度に 1 つだけ動く前提とする。ロックや排他制御は実装しない (SCH-E-24)。
@@ -56,13 +65,13 @@ created: "2026-11-22"
 
 ```text
 poc/windows/w1-w7-verify/
-  pubspec.yaml                    sqlite3, ffi を追加
+  pubspec.yaml                    sqlite3 を追加 (ffi は Windows の FFI 実装で最初に使うときに追加)
   bin/
     kallr_verify.dart             main: exit(await run(args)) だけ
   lib/
     errors.dart                   例外型
     ids.dart                      識別子の正規化 (normalizeId)
-    models.dart                   値型
+    models.dart                   値型と共有定数
     tag/
       providers.dart              ClockProvider, RandomSourceProvider, MachineIdProvider (IF)
       generate_tag.dart           generateTag (純粋)
@@ -91,10 +100,15 @@ poc/windows/w1-w7-verify/
       win_notification_setting.dart  NotificationSettingSource の実装 (ToastNotifier.Setting)
       win_toast_scheduler.dart    ToastScheduler の実装
       win_permission_probe.dart   PermissionProbe の実装 (トークンの昇格)
-  test/
-    *.unit.spec.dart              OS に触れないテスト。Mock と一時ディレクトリの SQLite を使う
-    support/                      Mock 群 (FakeClock など)
+  lib/**/__tests__/               テストは対象の実装の隣に置く。直下には helper と mock (FakeClock など) だけを置く
+    unit/                         <対象>.unit.spec.dart。OS に触れないテスト。Mock と一時ディレクトリの SQLite を使う
+    functional/                   <対象>.functional.spec.dart
+    integration/                  <対象>.integration.spec.dart
+    e2e/                          <対象>.e2e.spec.dart
 ```
+
+テスト種別 (unit / functional / integration / e2e) は、`deckrd-rule-testing-guidelines.md` の 9 節に従う。
+種別ごとにサブディレクトリを作り、ファイル名の種別と一致させる。使う種別のサブディレクトリだけを作ればよい。
 
 依存の向きは `cli → schedule/env/store/tag → models/errors` の一方向とする。
 `windows/` は `env/` と `schedule/` の IF を実装するだけで、他の層から import されない。
@@ -164,6 +178,7 @@ final class ReRegisterReport {
 ```
 
 - `MappingRecord`、`ScheduledToast` は `==` と `hashCode` を、フィールドの値に基づいて定義する (テストの比較に使うため)。
+- 複数のモジュールが参照する定数も `models.dart` に 1 箇所だけ置く (`kGroup`、`kMachineIdPattern` (マシン ID の形式 `^[0-9a-f]{8}$`))。実装ファイルには直書きしない。
 
 ### 3.3 識別子の正規化 (`ids.dart`)
 
@@ -271,32 +286,38 @@ Future<int> run(
 
 - OS に触れない部分 (各機能ファイルの実装) は、Mock と一時ディレクトリの SQLite で自動テストする (REQ-C-002)。
   1 つのテストは 1 つの観測できる値 (戻り値、例外、終了コード、DB の内容) だけを確認する (REQ-NF-002)。
-- テストファイルは `test/<対象>.unit.spec.dart`。テスト ID は `T-WDV-<略語>-NN`。略語は PoC のラベル (W1 など) と別物とする (REQ-C-003)。
+- テストファイルは、対象の実装の隣の `__tests__/<種別>/<対象>.<種別>.spec.dart` (例: `lib/tag/__tests__/unit/generate_tag.unit.spec.dart`)。
+  `__tests__/` の直下には、複数のテストが使う helper と mock だけを置く。テスト ID は `T-WDV-<略語>-NN`。略語は PoC のラベル (W1 など) と別物とする (REQ-C-003)。
 - `windows/` は自動テストの対象外。手動検証 (implementation-verification.md §4) で確かめる。
 - テスト ID の採番と機械検査は `deckrd-rule-testing-guidelines.md` に従う。ID の採番は `tasks` で行う。
 
 ### 5.2 テスト対象の略語 (module.md の略語表を、`MTK` の行を削除して、次に置き換える)
 
-| 略語  | 対象                                                                                | 主な spec の規則                                |
-| ----- | ----------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `TAG` | `generateTag`                                                                       | TAG-R-001〜004                                  |
-| `TAL` | `allocateTag` (重複回避)                                                            | TAG-R-005〜007, SCH-E-32                        |
-| `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                          | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26         |
-| `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5 |
-| `MID` | `MachineIdProvider` の実装 (`settings`)                                             | TAG-R-008〜010                                  |
-| `AVL` | `evaluateAvailability` と Mock                                                      | ENV-R-001〜007, ENV-R-012, 013                  |
-| `W5C` | `w5Check`                                                                           | ENV-R-014〜016, ENV-R-019                       |
-| `NEV` | `DefaultNotificationEnvironment` (4 メソッドの正規化と検査)                         | specifications-index 3.1                        |
-| `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                            |
-| `SVC` | `SchedulingService`                                                                 | SCH-R-003〜024, 030, 033〜035, 3.5              |
-| `ARG` | `parseArgs`                                                                         | SCH-R-001, 012, 028, ENV-R-017                  |
-| `CLI` | `run()` (終了コードの変換と出力書式)                                                | IDX-DD-04, 05, 12, 13, ENV-R-018                |
-| `NID` | `normalizeId`                                                                       | specifications-index 3.1                        |
+| 略語  | 対象                                                                                | 主な spec の規則                                      |
+| ----- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `TAG` | `generateTag`                                                                       | TAG-R-001〜004                                        |
+| `TAL` | `allocateTag` (重複回避)                                                            | TAG-R-005〜007, SCH-E-32                              |
+| `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                          | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26               |
+| `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5       |
+| `MID` | `MachineIdProvider` の実装 (`settings`)                                             | TAG-R-008〜010                                        |
+| `AVL` | `evaluateAvailability` と Mock                                                      | ENV-R-001〜007, ENV-R-012, 013                        |
+| `W5C` | `w5Check`                                                                           | ENV-R-014〜016, ENV-R-019                             |
+| `NEV` | `DefaultNotificationEnvironment` (4 メソッドの正規化と検査)                         | specifications-index 3.1                              |
+| `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                                  |
+| `SVA` | `SchedulingService.add` (新規・置換・発火後と、その失敗)                            | SCH-R-003〜011, 3.5                                   |
+| `SVP` | `SchedulingService` の保留の再開 (add / cancel / reRegisterAll)                     | SCH-R-010, 030, 036, 3.5                              |
+| `SVX` | `SchedulingService.cancel`                                                          | SCH-R-013〜015, 030                                   |
+| `SVL` | `SchedulingService.list`                                                            | SCH-R-016〜020, 033                                   |
+| `SVG` | `SchedulingService.reRegisterAll`                                                   | SCH-R-021〜024, 034, 035                              |
+| `SVN` | `SchedulingService` の入力の正規化と検査                                            | specifications-schedule 3.3, specifications-index 3.1 |
+| `ARG` | `parseArgs`                                                                         | SCH-R-001, 012, 028, ENV-R-017                        |
+| `CLI` | `run()` (終了コードの変換と出力書式)                                                | IDX-DD-04, 05, 12, 13, ENV-R-018                      |
+| `NID` | `normalizeId`                                                                       | specifications-index 3.1                              |
 
 機能別の担当は次のとおり。
 
 - TAG / TAL / MID: implementation-tag.md
-- MAP / RPQ / ATP / SVC: implementation-schedule.md
+- MAP / RPQ / ATP / SVA / SVP / SVX / SVL / SVG / SVN: implementation-schedule.md
 - AVL / W5C / NEV: implementation-environment.md
 - ARG / CLI: 本書 §4
 - NID: 本書 §3.3
@@ -314,29 +335,29 @@ Future<int> run(
 
 ## 6. Traceability
 
-| REQ       | 実装の場所                                                   | テスト/検証       | 担当ファイル                |
-| --------- | ------------------------------------------------------------ | ----------------- | --------------------------- |
-| REQ-F-001 | `SchedulingService.add`、`parseAt`、CLI add                  | SVC, ATP, CLI, W1 | implementation-schedule     |
-| REQ-F-002 | `evaluateAvailability`、`SchedulingService.add` の最初の段階 | AVL, SVC, 手動    | implementation-environment  |
-| REQ-F-003 | (手動)                                                       | W2                | implementation-verification |
-| REQ-F-004 | `SchedulingService.cancel`                                   | SVC, W3           | implementation-schedule     |
-| REQ-F-005 | `SchedulingService.add` の置換                               | SVC, RPQ, W4 (a)  | implementation-schedule     |
-| REQ-F-006 | `SchedulingService.add` の発火後の分類                       | SVC, W4 (b)       | implementation-schedule     |
-| REQ-F-007 | `generateTag`、`kGroup`                                      | TAG, W4 (c)       | implementation-tag          |
-| REQ-F-008 | (手動)                                                       | W4 (d)            | implementation-verification |
-| REQ-F-009 | `SchedulingService.add` の失敗状態 (3.5)                     | SVC, W4 (e)       | implementation-verification |
-| REQ-F-010 | `w5Check`                                                    | W5C, W5           | implementation-environment  |
-| REQ-F-011 | `w5Check`                                                    | W5C, W5           | implementation-environment  |
-| REQ-F-012 | `SchedulingService.reRegisterAll`                            | SVC, W7           | implementation-verification |
-| REQ-F-013 | (手動)                                                       | 任意の測定        | implementation-verification |
-| REQ-F-014 | (手動)                                                       | 結果の追記        | implementation-verification |
-| REQ-F-015 | (手動)                                                       | 全体の合否        | implementation-verification |
-| REQ-F-016 | `generateTag`                                                | TAG               | implementation-tag          |
-| REQ-F-017 | `allocateTag`                                                | TAL               | implementation-tag          |
-| REQ-F-018 | §2 の配置、`module.md` の owns                               | レビュー          | implementation-verification |
-| REQ-F-019 | `SqliteStore` の `MachineIdProvider`                         | MID               | implementation-tag          |
-| REQ-F-020 | `SqliteStore` の `MappingTable`                              | MAP, RPQ          | implementation-schedule     |
-| REQ-F-021 | `NotificationEnvironment`、Mock、`windows/`                  | AVL, CLI, 手動    | implementation-environment  |
+| REQ       | 実装の場所                                                   | テスト/検証           | 担当ファイル                |
+| --------- | ------------------------------------------------------------ | --------------------- | --------------------------- |
+| REQ-F-001 | `SchedulingService.add`、`parseAt`、CLI add                  | SVA, ATP, CLI, W1     | implementation-schedule     |
+| REQ-F-002 | `evaluateAvailability`、`SchedulingService.add` の最初の段階 | AVL, SVA, 手動        | implementation-environment  |
+| REQ-F-003 | (手動)                                                       | W2                    | implementation-verification |
+| REQ-F-004 | `SchedulingService.cancel`                                   | SVX, SVP, W3          | implementation-schedule     |
+| REQ-F-005 | `SchedulingService.add` の置換                               | SVA, SVP, RPQ, W4 (a) | implementation-schedule     |
+| REQ-F-006 | `SchedulingService.add` の発火後の分類                       | SVA, W4 (b)           | implementation-schedule     |
+| REQ-F-007 | `generateTag`、`kGroup`                                      | TAG, W4 (c)           | implementation-tag          |
+| REQ-F-008 | (手動)                                                       | W4 (d)                | implementation-verification |
+| REQ-F-009 | `SchedulingService.add` の失敗状態 (3.5)                     | SVA, SVP, W4 (e)      | implementation-verification |
+| REQ-F-010 | `w5Check`                                                    | W5C, W5               | implementation-environment  |
+| REQ-F-011 | `w5Check`                                                    | W5C, W5               | implementation-environment  |
+| REQ-F-012 | `SchedulingService.reRegisterAll`                            | SVG, SVP, W7          | implementation-verification |
+| REQ-F-013 | (手動)                                                       | 任意の測定            | implementation-verification |
+| REQ-F-014 | (手動)                                                       | 結果の追記            | implementation-verification |
+| REQ-F-015 | (手動)                                                       | 全体の合否            | implementation-verification |
+| REQ-F-016 | `generateTag`                                                | TAG                   | implementation-tag          |
+| REQ-F-017 | `allocateTag`                                                | TAL                   | implementation-tag          |
+| REQ-F-018 | §2 の配置、`module.md` の owns                               | レビュー              | implementation-verification |
+| REQ-F-019 | `SqliteStore` の `MachineIdProvider`                         | MID                   | implementation-tag          |
+| REQ-F-020 | `SqliteStore` の `MappingTable`                              | MAP, RPQ              | implementation-schedule     |
+| REQ-F-021 | `NotificationEnvironment`、Mock、`windows/`                  | AVL, CLI, 手動        | implementation-environment  |
 
 ---
 
@@ -346,7 +367,7 @@ Future<int> run(
 
 決定した事項:
 
-- 対応表の既定の保存先: `%LOCALAPPDATA%\kallr\w1-w7-verify\mappings.sqlite3` (implementation-schedule.md §2.1)
+- 対応表の既定の保存先: `%LOCALAPPDATA%/kallr/w1-w7-verify/mappings.sqlite3` (implementation-schedule.md §2.1)
 - list の出力の書式: タブ区切り (implementation-schedule.md §4.2)
 - `at` の保存形式: UTC の ISO 8601 (implementation-schedule.md §2.2)
 
@@ -376,3 +397,8 @@ Future<int> run(
 | 2026-11-22 | 1.1.0   | parseArgs takes the word after `--name` as the value even if it starts with `--`; `=` splits at the first one (4.2); follow specifications-index v1.2.0 |
 | 2026-11-22 | 1.2.0   | Options not listed for the command (including those of other commands) are unknown (4.2); follow specifications-index v1.3.0                            |
 | 2026-11-22 | 1.2.1   | Follow specifications-schedule v1.6.0 (a date-only `--at` is 00:00:00 local time; parseAt in implementation-schedule 3.2)                               |
+| 2026-11-22 | 1.3.0   | Tests move next to the implementation: `lib/**/__tests__/<type>/<target>.<type>.spec.dart`; helpers and mocks go directly under `__tests__/` (2, 5.1)   |
+| 2026-11-22 | 1.3.1   | Add dependencies when first used (`ffi` is deferred); record how the `sqlite3` 3.x native binary is obtained (clarification)                            |
+| 2026-11-22 | 1.3.2   | `models.dart` also holds constants shared by several modules (`kGroup`, `kMachineIdPattern`) (clarification)                                            |
+| 2026-11-23 | 1.3.3   | The default DB path uses `/` after `LOCALAPPDATA` (clarification; follows implementation-schedule v1.2.3)                                               |
+| 2026-11-24 | 1.3.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (5.2; follows tasks-index v1.1.0)                                           |

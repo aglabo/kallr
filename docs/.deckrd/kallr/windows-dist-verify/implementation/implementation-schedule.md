@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Schedule)"
 based-on: specifications-schedule.md v1.6.0
 status: Draft
-version: 1.2.0
+version: 1.2.4
 created: "2026-11-22"
 ---
 
@@ -21,7 +21,8 @@ DB の設計は db-migration.md が正本。共通の前提、ファイル構成
 
 ### 2.1 保存先
 
-- 既定のパス: `%LOCALAPPDATA%\kallr\w1-w7-verify\mappings.sqlite3` (SCH-DD-12 の「実装で決める」を、ここで決める)。
+- 既定のパス: `%LOCALAPPDATA%/kallr/w1-w7-verify/mappings.sqlite3` (SCH-DD-12 の「実装で決める」を、ここで決める)。
+  `LOCALAPPDATA` の後ろの区切りは `/` に統一する (Windows API も `/` を受け付ける)。
   `LOCALAPPDATA` が無い場合は `StorageException`。
   この解決は、`default_db_path.dart` の次の関数が行う。
   `environment` には `Platform.environment` を渡す。
@@ -38,7 +39,7 @@ DB の設計は db-migration.md が正本。共通の前提、ファイル構成
 - (`group_name`, `tag`) の UNIQUE が SCH-R-025 の「Tag は対応表の全体で一意」を DB 側でも守る。
 - `at` は UTC の絶対時刻として保存し、読み戻して `DateTime.parse(...)` で同じ時刻を復元する (再登録で同じ時刻を使うため)。
 - `title` は UTF-8 のまま保存する (SCH-E-23)。
-- マシン ID は `settings` の `machine_id` キーに 1 行だけ持つ。`settings` の読み書きと削除は、key から `id` を引いて、`id` 経由で行う。
+- マシン ID は `settings` の `machine_id` キーに 1 行だけ持つ。`settings` の値の読み取りは、key で直接行う (`SELECT value FROM settings WHERE key = ?`)。書き込みと削除は、key から `id` を引いて、`id` 経由で行う。
 
 ### 2.3 接続の開き方
 
@@ -103,7 +104,7 @@ abstract interface class ToastScheduler {
 }
 ```
 
-`MockToastScheduler` (`test/support/`) は、メモリ上の予約を持つ。次を外から設定できる。
+`MockToastScheduler` (`lib/schedule/__tests__/`) は、メモリ上の予約を持つ。次を外から設定できる。
 
 - 次の `add` / `remove` / `list` で `ScheduleException` を投げる (失敗状態の再現)
 - 現在時刻より前の `at` の `add` を `ScheduleException(0x80070057)` で拒否する
@@ -285,19 +286,29 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
 
 テスト ID の略語と採番は implementation-index.md §5 に従う。このファイルは、担当する対象の略語と、確認する値だけを示す。
 
-| 略語  | 対象                                                                                | 主な spec の規則                                |
-| ----- | ----------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                          | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26         |
-| `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5 |
-| `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                            |
-| `SVC` | `SchedulingService`                                                                 | SCH-R-003〜024, 030, 033〜035, 3.5              |
+| 略語  | 対象                                                                                | 主な spec の規則                                      |
+| ----- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                          | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26               |
+| `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5       |
+| `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                                  |
+| `SVA` | `SchedulingService.add` (新規・置換・発火後と、その失敗)                            | SCH-R-003〜011, 3.5                                   |
+| `SVP` | `SchedulingService` の保留の再開 (add / cancel / reRegisterAll)                     | SCH-R-010, 030, 036, 3.5                              |
+| `SVX` | `SchedulingService.cancel`                                                          | SCH-R-013〜015, 030                                   |
+| `SVL` | `SchedulingService.list`                                                            | SCH-R-016〜020, 033                                   |
+| `SVG` | `SchedulingService.reRegisterAll`                                                   | SCH-R-021〜024, 034, 035                              |
+| `SVN` | `SchedulingService` の入力の正規化と検査                                            | specifications-schedule 3.3, specifications-index 3.1 |
 
-| 対象 | 確認する値                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MAP  | put/get/remove/all (有効な行 `notify_status` が 1 または 2 だけが対象)、同じキーへの `put` で `id` が不変、新規の行の `group_name` が `kGroup`、別の通知と同じ (Group, Tag) で `StorageException` かつ変更なし、`PRAGMA foreign_keys` が ON、`user_version` が 1 以外または壊れたファイルで `StorageException` かつファイル不変、`--db` 指定、親ディレクトリの作成                                                                                                                                                                                                                                                                                                                             |
-| RPQ  | `replace` で新しい行が pending (2) で追加され旧行が superseded (0) になる、キューに `(new_id, old_id)` が入る、`replace` の途中で失敗するとどちらも変わらない、`pendingRemovals` が旧行の Tag と Group と置換後の値を `id` 順に返す、`completeRemoval` で旧行が消え新行が current (1) になり `old_id` が NULL になる、完了済みの行が `pendingRemovals` に出ない、`abortReplacement` で新行とキューの行が消え旧行が current に戻る、新行の削除でキューの行も消える、`tags` が旧行の Tag を含む、`all` が旧行を含まず pending の行を含む                                                                                                                                                         |
-| ATP  | オフセット付き、オフセットなし (ローカル)、解釈できない文字列、夏時間で曖昧 (早いほう)、存在しない時刻で `UsageException` (`offsetAt` を差し替えて)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| SVC  | add 新規/置換/発火後の新規、`Unavailable` で副作用なし、置換の呼び出し順序 (`replace` → 予約の追加 → 旧 Tag の予約の削除 → `completeRemoval`)、3.5 の各段階の失敗状態 (段階 1 の失敗、段階 2 の拒否で `abortReplacement`、段階 3 の失敗、段階 4 の失敗)、止まった保留を次の add と reRegisterAll が先に処理し (置換後の Tag が OS に既にあれば追加しない。置換後の `at` が `now` 以前なら追加せず、旧行へ戻さずに完了する。`at == now` も含む)、cancel が保留の処理 → 対象の読み直し → 予約の削除 → 行の削除の順で動くこと (再開で `abortReplacement` が走っても、戻った旧行の Tag の予約を削除する) と `NotFound`、list の ok/orphan/stale、reRegisterAll の 4 分類と exitCode と対応表の不変 |
+| 対象 | 確認する値                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MAP  | put/get/remove/all (有効な行 `notify_status` が 1 または 2 だけが対象)、同じキーへの `put` で `id` が不変、新規の行の `group_name` が `kGroup`、別の通知と同じ (Group, Tag) で `StorageException` かつ変更なし、`PRAGMA foreign_keys` が ON、`user_version` が 1 以外または壊れたファイルで `StorageException` かつファイル不変、`--db` 指定、親ディレクトリの作成                                                                                                                                                                     |
+| RPQ  | `replace` で新しい行が pending (2) で追加され旧行が superseded (0) になる、キューに `(new_id, old_id)` が入る、`replace` の途中で失敗するとどちらも変わらない、`pendingRemovals` が旧行の Tag と Group と置換後の値を `id` 順に返す、`completeRemoval` で旧行が消え新行が current (1) になり `old_id` が NULL になる、完了済みの行が `pendingRemovals` に出ない、`abortReplacement` で新行とキューの行が消え旧行が current に戻る、新行の削除でキューの行も消える、`tags` が旧行の Tag を含む、`all` が旧行を含まず pending の行を含む |
+| ATP  | オフセット付き、オフセットなし (ローカル)、解釈できない文字列、夏時間で曖昧 (早いほう)、存在しない時刻で `UsageException` (`offsetAt` を差し替えて)                                                                                                                                                                                                                                                                                                                                                                                    |
+| SVA  | add 新規/置換/発火後の新規、`Unavailable` で副作用なし、置換の呼び出し順序 (`replace` → 予約の追加 → 旧 Tag の予約の削除 → `completeRemoval`)、3.5 の各段階の失敗状態 (段階 1 の失敗、段階 2 の拒否で `abortReplacement`、段階 3 の失敗、段階 4 の失敗)、Tag の重複の再生成                                                                                                                                                                                                                                                            |
+| SVP  | 止まった保留を次の add と reRegisterAll が先に処理し (置換後の Tag が OS に既にあれば追加しない。置換後の `at` が `now` 以前なら追加せず、旧行へ戻さずに完了する。`at == now` も含む)、cancel が保留の処理 → 対象の読み直し → 予約の削除 → 行の削除の順で動くこと (再開で `abortReplacement` が走っても、戻った旧行の Tag の予約を削除する)、再開の各段階 (P2 / P3 / P4) の失敗                                                                                                                                                        |
+| SVX  | cancel の予約の削除 → 対応表の削除の順序と `NotFound`、発火済みでも成功すること、各段階の失敗、`Unavailable` でも通知可否の確認を呼ばないこと                                                                                                                                                                                                                                                                                                                                                                                          |
+| SVL  | list の ok/orphan/stale、並び、取得の失敗、孤立した予約を変更しないこと                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| SVG  | reRegisterAll の 4 分類と exitCode と対応表の不変、個別の失敗で止まらないこと、`now` との境界                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| SVN  | batchId・alarmId・aumid の前後の空白の削除、空・空白だけのときに `UsageException` を投げ、他の呼び出しをしないこと                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ---
 
@@ -323,3 +334,7 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
 | 2026-11-22 | 1.1.9   | add, cancel and reRegisterAll normalize identifiers with requireId (implementation-index §3.3)                              |
 | 2026-11-22 | 1.1.10  | Use normalizeId with a check in each method; the lower layer is not public                                                  |
 | 2026-11-22 | 1.2.0   | parseAt reads a date-only `--at` as 00:00:00 local time (3.2); follow specifications-schedule v1.6.0                        |
+| 2026-11-22 | 1.2.1   | Mock location follows the new test layout: `lib/schedule/__tests__/` (implementation-index v1.3.0)                          |
+| 2026-11-22 | 1.2.2   | Read a `settings` value directly by key; writes and deletes still go through `id` (clarification; db-migration v1.1.2)      |
+| 2026-11-23 | 1.2.3   | The default DB path uses `/` as the separator after `LOCALAPPDATA` (clarification)                                          |
+| 2026-11-24 | 1.2.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (6; follows tasks-index v1.1.0)                 |

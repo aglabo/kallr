@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Environment)"
 based-on: specifications-environment.md v1.0.0
 status: Draft
-version: 1.0.5
+version: 1.0.6
 created: "2026-11-22"
 ---
 
@@ -104,7 +104,7 @@ ENV-R-001〜007 を次の順に実装する。
   - `register`: AUMID と DisplayName を検査し、空白だけなら `UsageException`。通れば `registry.write` を呼ぶ。
   - `unregister`: `registry.delete` が偽なら `NotFoundException`。
   - `isRegistered`: `registry.exists` を返す。
-- `MockNotificationEnvironment` (`test/support/`) は、OS を呼ばない Mock とする。
+- `MockNotificationEnvironment` (`lib/env/__tests__/`) は、OS を呼ばない Mock とする。
   - `check`: 事前に与えられた `Availability` を返す。
   - `register` / `unregister`: 呼び出しを記録するだけで、レジストリと OS のどちらも呼ばない (ENV-R-013, AC-013)。
   - 7 つの状態を作る名前付きコンストラクタを持つ。状態は OK、未登録、DisplayName 空、無効 4 種。
@@ -255,3 +255,4 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 | 2026-11-22 | 1.0.3   | NotificationEnvironment methods, evaluateAvailability and w5Check normalize the AUMID with requireId / normalizeId                      |
 | 2026-11-22 | 1.0.4   | Use normalizeId with a check in each method; the lower IFs take normalized values and are not public                                    |
 | 2026-11-22 | 1.0.5   | The environment implementation is DefaultNotificationEnvironment in env/; add NEV (automated with a Mock registry, then a manual check) |
+| 2026-11-22 | 1.0.6   | Mock location follows the new test layout: `lib/env/__tests__/` (implementation-index v1.3.0)                                                          |

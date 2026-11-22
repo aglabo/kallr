@@ -4,7 +4,7 @@
   "private": true,
   "description": "kallr PoC W1-W7: scripts for this PoC, independent of the root package.json",
   "scripts": {
-    "test": "cross-env MSYS=NOGLOB bash -c \"dart test test/*.spec.dart\"",
+    "test": "cross-env MSYS=NOGLOB bash -c \"shopt -s nullglob; dart test test/*.spec.dart lib/__tests__/*/*.spec.dart lib/*/__tests__/*/*.spec.dart\"",
     "check": "dart format --output=none --set-exit-if-changed .",
     "format": "dart format ."
   }

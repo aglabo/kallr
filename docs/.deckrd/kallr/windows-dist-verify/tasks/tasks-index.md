@@ -23,11 +23,11 @@ source: specifications-index.md
 | T-07        | SVC  | tasks-schedule.md    |        73 |   164 |
 | T-08        | AVL  | tasks-environment.md |        14 |    36 |
 | T-09        | W5C  | tasks-environment.md |        14 |    40 |
-| T-10        | ARG  | tasks-cli.md         |        27 |    52 |
+| T-10        | ARG  | tasks-cli.md         |        31 |    60 |
 | T-11        | CLI  | tasks-cli.md         |        24 |    88 |
 | T-12        | NID  | tasks-cli.md         |         6 |     6 |
 | T-13        | NEV  | tasks-environment.md |        10 |    13 |
-| 合計        |      |                      |           |   552 |
+| 合計        |      |                      |           |   560 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 
@@ -56,16 +56,20 @@ source: specifications-index.md
 - 破損ファイルの StorageException は `SqliteStore.open` が投げる。`machineId()` は読み取り失敗と不正な値だけ (T-03-07-01 のまま。implementation-tag v1.0.2)
 - `--recorded-permission` は大文字小文字を区別する完全一致 (T-09-13-01 のまま。implementation-environment を更新)
 - オプションの値は文字列として扱う。`--name` の直後の 1 語は、`--` で始まっていても常に値とする。`--name=value` は最初の `=` だけで分割する。
-  `--title --foo` は title が `--foo` になり、`--title --at 2026-..` は `2026-..` が余分な引数でエラーになる (T-10-23〜27 を追加。specifications-index v1.2.0、implementation-index v1.1.0)
+  `--title --foo` は title が `--foo` になり、`--title --at 2026-..` は `2026-..` が余分な引数でエラーになる。
+  T-10-23〜27 を追加した (specifications-index v1.2.0、implementation-index v1.1.0)
+- 各コマンドは、表にある必須と任意のオプションだけを受け付ける。
+  他のコマンド用のオプションも、未知として `UsageException` にする。
+  T-10-28〜31 を追加した (specifications-index v1.3.0、implementation-index v1.2.0)
 - DR-07 の「3 段」と、仕様・実装の 4 段の食い違いは、DR-08 (decision-records.md v3.0.0) が解消した。置換は DB を先に書く 4 段で行い、置換後の行は段 4 まで pending とする
-- 仕様の版: specifications-schedule v1.5.0、specifications-index v1.2.0、specifications-verification v1.0.3。
-  implementation-index v1.1.0、implementation-schedule v1.1.10、implementation-tag v1.0.2、implementation-environment v1.0.5。
+- 仕様の版: specifications-schedule v1.5.0、specifications-index v1.3.0、specifications-verification v1.0.3。
+  implementation-index v1.2.0、implementation-schedule v1.1.10。
+  implementation-tag v1.0.2、implementation-environment v1.0.5。
   参照元の implementation-index、implementation-verification、db-migration も更新した
 
 ## Open Items (人の判断が要る)
 
 1. 仕様が定めておらず、タスクを書かなかった事項は次のとおり。
-   - 他コマンド用のオプション
    - 日付だけの `--at`
    - 再登録の報告の区切り
    - 通知不可時の re-register-all の標準出力

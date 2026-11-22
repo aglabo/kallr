@@ -22,7 +22,7 @@ version: 1.0.0
 
 | Test Target           | Scenarios | Cases | Status  |
 | --------------------- | --------: | ----: | ------- |
-| T-10: ARG parseArgs   |        27 |    52 | pending |
+| T-10: ARG parseArgs   |        31 |    60 | pending |
 | T-11: CLI run()       |        24 |    88 | pending |
 | T-12: NID normalizeId |         6 |     6 | pending |
 
@@ -351,6 +351,54 @@ version: 1.0.0
   - Target: `parseArgs`
   - Scenario: Given `add --batch b1 --alarm a1 --title --at 2026-12-01T09:00:00+09:00 --aumid app.x` (`--title` の値が無いまま `--at` が続く), When `parseArgs` を呼ぶ
   - Expected: Then `--at` を title の値として取り、続く `2026-12-01T09:00:00+09:00` が `--` で始まらない余分な引数のため `UsageException` を投げる (T-10-06-04)
+
+#### T-10-28: `--db` を受け付けないコマンドに `--db` を渡す
+
+- [ ] **T-10-28-01**: show に `--db` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `show --aumid app.x --db x.db`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる (T-10-06-01)
+
+- [ ] **T-10-28-02**: register-reg に `--db` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `register-reg --aumid app.x --display-name N --db x.db`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+- [ ] **T-10-28-03**: unregister-reg に `--db` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `unregister-reg --aumid app.x --db x.db`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-10-29: 他のコマンド用の必須オプションを渡す
+
+- [ ] **T-10-29-01**: list に `--batch` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `list --aumid app.x --batch b1`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+- [ ] **T-10-29-02**: cancel に `--title` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `cancel --batch b1 --alarm a1 --aumid app.x --title t`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+- [ ] **T-10-29-03**: show に `--alarm` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `show --aumid app.x --alarm a1`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-10-30: `--recorded-*` を w5-check 以外に渡す
+
+- [ ] **T-10-30-01**: list に `--recorded-aumid` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `list --aumid app.x --recorded-aumid app.x`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる
+
+#### T-10-31: `--display-name` を register-reg 以外に渡す
+
+- [ ] **T-10-31-01**: show に `--display-name` を渡す
+  - Target: `parseArgs`
+  - Scenario: Given `show --aumid app.x --display-name N`, When `parseArgs` を呼ぶ
+  - Expected: Then `UsageException` を投げる
 
 ---
 
@@ -906,56 +954,57 @@ version: 1.0.0
 
 ## Coverage Check
 
-| Source item                                                                                          | Task ID(s)                                                                                                                                   |
-| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| impl §4.2 先頭の引数がコマンド名 (無い / 未知)                                                       | T-10-05-01, T-10-05-02, T-10-05-03                                                                                                           |
-| impl §4.2 `--name value` の組と ParsedArgs (options のキー)                                          | T-10-01-01, T-10-01-02, T-10-02-01〜T-10-02-07, T-10-19-01                                                                                   |
-| impl §4.2 `--name=value`                                                                             | T-10-03-01, T-10-15-06                                                                                                                       |
-| impl §4.2 未知のオプション / 値の欠落 / 重複 / 余分な引数                                            | T-10-06-01, T-10-06-02, T-10-06-03, T-10-06-04                                                                                               |
-| impl §4.1 add の必須 5 オプション (IDX-DD-02, SCH-R-001, SCH-E-01)                                   | T-10-07-01〜T-10-07-05                                                                                                                       |
-| impl §4.1 cancel の必須 3 オプション (SCH-R-012)                                                     | T-10-08-01〜T-10-08-03                                                                                                                       |
-| impl §4.1 list / re-register-all の `--aumid` (SCH-R-028, SCH-E-25)                                  | T-10-09-01, T-10-10-01                                                                                                                       |
-| impl §4.1 show / unregister-reg / w5-check の `--aumid` (ENV-R-017, ENV-E-22)                        | T-10-11-01, T-10-13-01, T-10-14-01, T-11-13-05                                                                                               |
-| impl §4.1 register-reg の `--aumid` / `--display-name` (IDX-DD-10, ENV-E-20)                         | T-10-12-01, T-10-12-02, T-11-13-06                                                                                                           |
-| impl §4.1 任意オプション (`--db`, `--recorded-*`) の省略                                             | T-10-04-01, T-10-04-02                                                                                                                       |
-| impl §4.2 空・空白だけの値 (batch/alarm/aumid/display-name; SCH-R-001, SCH-E-02, ENV-E-08, ENV-E-21) | T-10-15-01〜T-10-15-06, T-11-13-07                                                                                                           |
-| impl §4.2 前後の空白を削除した値を使う (batch/alarm/aumid。仕様 3.3, specifications-index 3.1)       | T-10-20-01, T-10-21-01, T-10-22-01, T-11-24-01                                                                                               |
-| 識別子の正規化 (specifications-index 3.1。implementation-index §3.3)                                 | T-12-01-01〜T-12-06-01                                                                                                                       |
-| impl §4.2 UTF-8 のまま扱う (REQ-NF-004)                                                              | T-10-16-01, T-10-17-01                                                                                                                       |
-| impl §4.2 `--` で始まる値・`=` を含む値 (直後の語は常に値、`=` は最初の 1 つで分割。specifications-index 3.1) | T-10-23-01, T-10-24-01, T-10-25-01, T-10-26-01, T-10-27-01                                                                         |
-| ENV-R-019 `--recorded-*` の空白は ARG で拒否しない                                                   | T-10-18-01                                                                                                                                   |
-| impl §4.3 正常終了 → 終了コード 0                                                                    | T-11-01-01〜T-11-01-08                                                                                                                       |
-| impl §4.3 `UsageException` / `ArgumentError` → 1                                                     | T-11-10-01, T-11-10-02, T-11-13-03, T-11-15-06                                                                                               |
-| impl §4.3 `UnavailableException` → 3 (add / re-register-all)                                         | T-11-10-03, T-11-10-04                                                                                                                       |
-| impl §4.3 `NotFoundException` / `DuplicateTagException` / `ScheduleException` → 2                    | T-11-10-05, T-11-10-06, T-11-10-07                                                                                                           |
-| impl §4.3 `RegistryException` / `StorageException` → 2                                               | T-11-10-08, T-11-10-09                                                                                                                       |
-| impl §4.3 上記以外の例外 → 2 (`run` は例外を投げない、IDX-DD-05)                                     | T-11-10-10                                                                                                                                   |
-| impl §4.3 標準エラーの内容 (message / reason / HRESULT / Win32 / toString)                           | T-11-11-01〜T-11-11-09                                                                                                                       |
-| IDX-DD-04 終了コード 0/1/2/3 の 4 種                                                                 | T-11-01-*, T-11-10-*, T-11-14-01                                                                                                             |
-| IDX-DD-05 変換点は `run()` 1 か所                                                                    | T-11-10-01〜T-11-10-10                                                                                                                       |
-| IDX-DD-10 / ENV-R-017 `--aumid`・`--display-name` 欠落は 1                                           | T-10-07-05, T-10-12-02, T-11-13-05, T-11-13-06                                                                                               |
-| IDX-DD-11 `--db` で保存先を差し替え / 既定の保存先                                                   | T-11-03-01〜T-11-03-05, T-10-04-01                                                                                                           |
-| IDX-DD-12 / ENV-R-018 show: ok 偽で 3、値による分岐                                                  | T-11-01-05, T-11-14-01, T-11-14-02, T-11-14-03, T-11-14-04                                                                                   |
-| IDX-DD-12 / ENV-R-019 w5-check: 0 / 2、W5 の合否は変えない                                           | T-11-01-08, T-11-15-01〜T-11-15-05                                                                                                           |
-| IDX-DD-13 / IDX-R-007 re-register-all の最初の確認と 3、失敗で 2                                     | T-11-10-04, T-11-12-04, T-11-16-01, T-11-16-02, T-11-22-01                                                                                   |
-| IDX-R-001 add の最初の確認と副作用なし (§5 通知不可の add)                                           | T-11-04-01, T-11-10-03, T-11-12-01, T-11-12-02, T-11-12-03                                                                                   |
-| SCH-R-001 (c) `--at` が解釈できない → 1、副作用なし                                                  | T-11-13-03, T-11-13-04                                                                                                                       |
-| SCH-R-001 / SCH-R-028 使い方の誤りは副作用なし                                                       | T-11-13-01, T-11-13-02                                                                                                                       |
-| impl §4.3 cancel / list は `env.check` を呼ばない                                                    | T-11-17-01, T-11-17-02, T-11-19-01, T-11-19-02                                                                                               |
-| impl env §3.1 register-reg は事前確認しない、unregister-reg の配線                                   | T-11-17-03, T-11-17-04, T-11-09-02, T-11-09-03                                                                                               |
-| impl env §3.1 show / register-reg / unregister-reg / w5-check は `openStore` を呼ばない              | T-11-18-01〜T-11-18-04                                                                                                                       |
-| impl sched §4.1 add の配線 (schedulerFor, env.check, Tag 出力)                                       | T-11-02-01, T-11-04-01, T-11-04-02, T-11-23-01                                                                                               |
-| impl sched §4.2 list の出力書式 (SCH-R-032, SCH-E-31)                                                | T-11-05-01〜T-11-05-04, T-11-21-01                                                                                                           |
-| impl sched §4.2 re-register-all の出力書式                                                           | T-11-06-01〜T-11-06-03, T-11-21-02                                                                                                           |
-| impl env §3.2 show の出力書式 / `(not evaluated)` (ENV-DD-10)                                        | T-11-07-01, T-11-07-02, T-11-20-01                                                                                                           |
-| impl env §3.2 w5-check の出力書式 / install-method は `not checked`                                  | T-11-08-01, T-11-08-02                                                                                                                       |
-| impl env §3.1 show の配線 (`env.check`)                                                              | T-11-09-01                                                                                                                                   |
-| ENV-E-23 / ENV-E-24 show の ok 偽 / 読み取り失敗                                                     | T-11-14-01, T-11-14-04                                                                                                                       |
-| ENV-E-17 / ENV-E-18 / ENV-E-27 / ENV-E-29 w5-check の記録の誤り                                      | T-11-15-03, T-11-15-04, T-11-15-01, T-11-15-05                                                                                               |
-| IDX-DD-06 cancel の対象なし (NotFound) は 2                                                          | T-11-10-05                                                                                                                                   |
-| IDX-DD-08 Tag 重複の上限超過は 2                                                                     | T-11-10-06                                                                                                                                   |
-| DR-05 / DR-06 / DR-07                                                                                | 置換の順序 (DR-05, DR-07, DR-08) は SchedulingService、IF の仮想化 (DR-06) は AVL の対象。CLI は Fake を注入する構成で T-11-* 全体が利用する |
-| [UNCOVERED]                                                                                          | (なし)                                                                                                                                       |
+| Source item                                                                                                   | Task ID(s)                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| impl §4.2 先頭の引数がコマンド名 (無い / 未知)                                                                | T-10-05-01, T-10-05-02, T-10-05-03                                                                                                           |
+| impl §4.2 `--name value` の組と ParsedArgs (options のキー)                                                   | T-10-01-01, T-10-01-02, T-10-02-01〜T-10-02-07, T-10-19-01                                                                                   |
+| impl §4.2 `--name=value`                                                                                      | T-10-03-01, T-10-15-06                                                                                                                       |
+| impl §4.2 未知のオプション / 値の欠落 / 重複 / 余分な引数                                                     | T-10-06-01, T-10-06-02, T-10-06-03, T-10-06-04                                                                                               |
+| impl §4.1 add の必須 5 オプション (IDX-DD-02, SCH-R-001, SCH-E-01)                                            | T-10-07-01〜T-10-07-05                                                                                                                       |
+| impl §4.1 cancel の必須 3 オプション (SCH-R-012)                                                              | T-10-08-01〜T-10-08-03                                                                                                                       |
+| impl §4.1 list / re-register-all の `--aumid` (SCH-R-028, SCH-E-25)                                           | T-10-09-01, T-10-10-01                                                                                                                       |
+| impl §4.1 show / unregister-reg / w5-check の `--aumid` (ENV-R-017, ENV-E-22)                                 | T-10-11-01, T-10-13-01, T-10-14-01, T-11-13-05                                                                                               |
+| impl §4.1 register-reg の `--aumid` / `--display-name` (IDX-DD-10, ENV-E-20)                                  | T-10-12-01, T-10-12-02, T-11-13-06                                                                                                           |
+| impl §4.1 任意オプション (`--db`, `--recorded-*`) の省略                                                      | T-10-04-01, T-10-04-02                                                                                                                       |
+| impl §4.2 空・空白だけの値 (batch/alarm/aumid/display-name; SCH-R-001, SCH-E-02, ENV-E-08, ENV-E-21)          | T-10-15-01〜T-10-15-06, T-11-13-07                                                                                                           |
+| impl §4.2 前後の空白を削除した値を使う (batch/alarm/aumid。仕様 3.3, specifications-index 3.1)                | T-10-20-01, T-10-21-01, T-10-22-01, T-11-24-01                                                                                               |
+| 識別子の正規化 (specifications-index 3.1。implementation-index §3.3)                                          | T-12-01-01〜T-12-06-01                                                                                                                       |
+| impl §4.2 UTF-8 のまま扱う (REQ-NF-004)                                                                       | T-10-16-01, T-10-17-01                                                                                                                       |
+| impl §4.2 `--` で始まる値・`=` を含む値 (直後の語は常に値、`=` は最初の 1 つで分割。specifications-index 3.1) | T-10-23-01, T-10-24-01, T-10-25-01, T-10-26-01, T-10-27-01                                                                                   |
+| impl §4.2 コマンドの表に無いオプションは、他のコマンド用でも未知 (specifications-index 3.1)                   | T-10-28-01〜T-10-28-03, T-10-29-01〜T-10-29-03, T-10-30-01, T-10-31-01                                                                       |
+| ENV-R-019 `--recorded-*` の空白は ARG で拒否しない                                                            | T-10-18-01                                                                                                                                   |
+| impl §4.3 正常終了 → 終了コード 0                                                                             | T-11-01-01〜T-11-01-08                                                                                                                       |
+| impl §4.3 `UsageException` / `ArgumentError` → 1                                                              | T-11-10-01, T-11-10-02, T-11-13-03, T-11-15-06                                                                                               |
+| impl §4.3 `UnavailableException` → 3 (add / re-register-all)                                                  | T-11-10-03, T-11-10-04                                                                                                                       |
+| impl §4.3 `NotFoundException` / `DuplicateTagException` / `ScheduleException` → 2                             | T-11-10-05, T-11-10-06, T-11-10-07                                                                                                           |
+| impl §4.3 `RegistryException` / `StorageException` → 2                                                        | T-11-10-08, T-11-10-09                                                                                                                       |
+| impl §4.3 上記以外の例外 → 2 (`run` は例外を投げない、IDX-DD-05)                                              | T-11-10-10                                                                                                                                   |
+| impl §4.3 標準エラーの内容 (message / reason / HRESULT / Win32 / toString)                                    | T-11-11-01〜T-11-11-09                                                                                                                       |
+| IDX-DD-04 終了コード 0/1/2/3 の 4 種                                                                          | T-11-01-*, T-11-10-*, T-11-14-01                                                                                                             |
+| IDX-DD-05 変換点は `run()` 1 か所                                                                             | T-11-10-01〜T-11-10-10                                                                                                                       |
+| IDX-DD-10 / ENV-R-017 `--aumid`・`--display-name` 欠落は 1                                                    | T-10-07-05, T-10-12-02, T-11-13-05, T-11-13-06                                                                                               |
+| IDX-DD-11 `--db` で保存先を差し替え / 既定の保存先                                                            | T-11-03-01〜T-11-03-05, T-10-04-01                                                                                                           |
+| IDX-DD-12 / ENV-R-018 show: ok 偽で 3、値による分岐                                                           | T-11-01-05, T-11-14-01, T-11-14-02, T-11-14-03, T-11-14-04                                                                                   |
+| IDX-DD-12 / ENV-R-019 w5-check: 0 / 2、W5 の合否は変えない                                                    | T-11-01-08, T-11-15-01〜T-11-15-05                                                                                                           |
+| IDX-DD-13 / IDX-R-007 re-register-all の最初の確認と 3、失敗で 2                                              | T-11-10-04, T-11-12-04, T-11-16-01, T-11-16-02, T-11-22-01                                                                                   |
+| IDX-R-001 add の最初の確認と副作用なし (§5 通知不可の add)                                                    | T-11-04-01, T-11-10-03, T-11-12-01, T-11-12-02, T-11-12-03                                                                                   |
+| SCH-R-001 (c) `--at` が解釈できない → 1、副作用なし                                                           | T-11-13-03, T-11-13-04                                                                                                                       |
+| SCH-R-001 / SCH-R-028 使い方の誤りは副作用なし                                                                | T-11-13-01, T-11-13-02                                                                                                                       |
+| impl §4.3 cancel / list は `env.check` を呼ばない                                                             | T-11-17-01, T-11-17-02, T-11-19-01, T-11-19-02                                                                                               |
+| impl env §3.1 register-reg は事前確認しない、unregister-reg の配線                                            | T-11-17-03, T-11-17-04, T-11-09-02, T-11-09-03                                                                                               |
+| impl env §3.1 show / register-reg / unregister-reg / w5-check は `openStore` を呼ばない                       | T-11-18-01〜T-11-18-04                                                                                                                       |
+| impl sched §4.1 add の配線 (schedulerFor, env.check, Tag 出力)                                                | T-11-02-01, T-11-04-01, T-11-04-02, T-11-23-01                                                                                               |
+| impl sched §4.2 list の出力書式 (SCH-R-032, SCH-E-31)                                                         | T-11-05-01〜T-11-05-04, T-11-21-01                                                                                                           |
+| impl sched §4.2 re-register-all の出力書式                                                                    | T-11-06-01〜T-11-06-03, T-11-21-02                                                                                                           |
+| impl env §3.2 show の出力書式 / `(not evaluated)` (ENV-DD-10)                                                 | T-11-07-01, T-11-07-02, T-11-20-01                                                                                                           |
+| impl env §3.2 w5-check の出力書式 / install-method は `not checked`                                           | T-11-08-01, T-11-08-02                                                                                                                       |
+| impl env §3.1 show の配線 (`env.check`)                                                                       | T-11-09-01                                                                                                                                   |
+| ENV-E-23 / ENV-E-24 show の ok 偽 / 読み取り失敗                                                              | T-11-14-01, T-11-14-04                                                                                                                       |
+| ENV-E-17 / ENV-E-18 / ENV-E-27 / ENV-E-29 w5-check の記録の誤り                                               | T-11-15-03, T-11-15-04, T-11-15-01, T-11-15-05                                                                                               |
+| IDX-DD-06 cancel の対象なし (NotFound) は 2                                                                   | T-11-10-05                                                                                                                                   |
+| IDX-DD-08 Tag 重複の上限超過は 2                                                                              | T-11-10-06                                                                                                                                   |
+| DR-05 / DR-06 / DR-07                                                                                         | 置換の順序 (DR-05, DR-07, DR-08) は SchedulingService、IF の仮想化 (DR-06) は AVL の対象。CLI は Fake を注入する構成で T-11-* 全体が利用する |
+| [UNCOVERED]                                                                                                   | (なし)                                                                                                                                       |
 
 ---
 

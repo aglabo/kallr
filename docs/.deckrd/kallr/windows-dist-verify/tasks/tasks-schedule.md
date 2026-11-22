@@ -22,9 +22,9 @@ version: 1.0.0
 | Test Target                            | Scenarios | Cases | Status      |
 | -------------------------------------- | --------- | ----- | ----------- |
 | T-04: parseAt (ATP)                    | 15        | 22    | in progress |
-| T-05: MappingTable / SqliteStore (MAP) | 21        | 39    | pending     |
+| T-05: MappingTable / SqliteStore (MAP) | 22        | 42    | pending     |
 | T-06: 置換キュー (RPQ)                 | 12        | 28    | pending     |
-| T-07: SchedulingService (SVC)          | 56        | 142   | pending     |
+| T-07: SchedulingService (SVC)          | 56        | 143   | pending     |
 
 <!-- Status may be: pending | in progress | done -->
 
@@ -379,12 +379,17 @@ version: 1.0.0
   - Scenario: Given `PRAGMA user_version = 2` の正常な SQLite ファイル, When `open` して失敗した
   - Expected: Then ファイルのバイト列が `open` の前と同じである
 
-#### T-05-16: Given: `user_version` が 0 の既存ファイル (テーブルが無い 0 バイトのファイル)
+#### T-05-16: Given: `user_version` が 0 で、別のテーブルがある既存ファイル (別のアプリの DB)
 
-- [ ] **T-05-16-01**: 版が 1 以外の既存ファイルは StorageException になる
+- [ ] **T-05-16-01**: テーブルがあって版が 1 以外のファイルは StorageException になる
   - Target: `SqliteStore.open`
-  - Scenario: Given 0 バイトの既存ファイル, When `open` する
-  - Expected: Then `StorageException` を投げる
+  - Scenario: Given `user_version` が 0 で、テーブル `other` を持つ既存ファイル, When `open` する
+  - Expected: Then `StorageException` を投げる (db-migration.md §3.1: `empty` はテーブルが 1 つも無いときだけ)
+
+- [ ] **T-05-16-02**: 別のテーブルがあるファイルは変更しない
+  - Target: `SqliteStore.open`
+  - Scenario: Given 同上, When `open` する
+  - Expected: Then ファイルのバイト列が `open` の前と同じである (スキーマを作らない)
 
 #### T-05-17: Given: 環境変数 LOCALAPPDATA が無い
 
@@ -432,6 +437,18 @@ version: 1.0.0
   - Target: `MappingTable.put`
   - Scenario: Given `b1`/`a1` が tag `T1` で `put` 済み, When 同じキーを同じ tag `T1` で title だけ `t2` にして `put` する
   - Expected: Then 例外を投げず、`get('b1','a1')` の title が `t2` である
+
+#### T-05-22: Given: 0 バイトの既存ファイル (テーブルが 1 つも無い)
+
+- [ ] **T-05-22-01**: 0 バイトの既存ファイルは新規作成と同じに初期化され、例外を投げない
+  - Target: `SqliteStore.open`
+  - Scenario: Given 0 バイトの既存ファイル, When `open` する
+  - Expected: Then 例外を投げず、`PRAGMA user_version` が 1 になる (db-migration.md §3.1: `empty` から `initial` へ)
+
+- [ ] **T-05-22-02**: 初期化されたファイルに 3 つのテーブルが作られる
+  - Target: `SqliteStore.open`
+  - Scenario: Given 同上, When `open` する
+  - Expected: Then テーブル `notifications`、`replacement_queue`、`settings` が存在する
 
 ---
 
@@ -1205,6 +1222,11 @@ version: 1.0.0
   - Scenario: Given 同上, When `add` を呼ぶ
   - Expected: Then `scheduler.list('kallr')` が `PND` を含まない
 
+- [ ] **T-07-34-04**: 拒否されても `add` は例外を投げない
+  - Target: `SchedulingService.add`
+  - Scenario: Given 同上, When `add` を呼ぶ
+  - Expected: Then `add` が `ScheduleException` を投げずに完了する (SCH-R-036: 拒否は abortReplacement で戻し、例外にしない)
+
 #### T-07-35: Given: add の保留の再開 (P3) で、置換前の予約の削除が失敗する (SCH-R-036)
 
 - [ ] **T-07-35-01**: ScheduleException をそのまま伝える
@@ -1486,9 +1508,9 @@ version: 1.0.0
 | SCH-R-007                         | T-07-22-01〜03, T-07-37-01, T-07-38-01                                                                                                                                                                     |
 | SCH-R-008                         | T-07-01-02〜04, T-07-19-01, T-07-19-02, T-07-20-01                                                                                                                                                         |
 | SCH-R-009                         | T-06-01-01〜04, T-06-05-01〜05, T-07-02-01〜05                                                                                                                                                             |
-| SCH-R-010                         | T-06-06-01〜05, T-07-21-01〜04, T-07-24-01〜06, T-07-34-01〜03, T-07-48-01                                                                                                                                 |
+| SCH-R-010                         | T-06-06-01〜05, T-07-21-01〜04, T-07-24-01〜06, T-07-34-01〜04, T-07-48-01                                                                                                                                 |
 | SCH-R-011                         | T-07-01-02, T-07-02-02                                                                                                                                                                                     |
-| SCH-R-036                         | T-07-05-01〜04, T-07-06-01〜03, T-07-07-01〜02, T-07-09-01〜03, T-07-17-01〜02, T-07-34-01〜03, T-07-35-01〜03, T-07-36-01〜02, T-07-41-01〜04, T-07-42-01〜02, T-07-43-01, T-07-44-01〜02, T-07-48-01〜02 |
+| SCH-R-036                         | T-07-05-01〜04, T-07-06-01〜03, T-07-07-01〜02, T-07-09-01〜03, T-07-17-01〜02, T-07-34-01〜04, T-07-35-01〜03, T-07-36-01〜02, T-07-41-01〜04, T-07-42-01〜02, T-07-43-01, T-07-44-01〜02, T-07-48-01〜02 |
 | SCH-R-013                         | T-07-27-01〜03                                                                                                                                                                                             |
 | SCH-R-014                         | T-07-08-01〜03                                                                                                                                                                                             |
 | SCH-R-015                         | T-07-28-01〜02, T-07-29-01〜04                                                                                                                                                                             |
@@ -1507,7 +1529,7 @@ version: 1.0.0
 | SCH-R-035                         | T-07-33-01〜04, T-07-55-01〜02                                                                                                                                                                             |
 | SCH-R-025                         | T-05-03-01〜03, T-05-11-01〜02                                                                                                                                                                             |
 | SCH-R-026                         | T-05-11-02, T-05-12-02, T-06-07-01〜03, T-06-08-01〜02                                                                                                                                                     |
-| SCH-R-027                         | T-05-14-01〜02, T-05-15-01〜02, T-05-16-01                                                                                                                                                                 |
+| SCH-R-027                         | T-05-14-01〜02, T-05-15-01〜02, T-05-16-01〜02, T-05-22-01〜02                                                                                                                                                                 |
 | SCH-R-029                         | T-05-09-01, T-05-10-01, T-05-17-01, T-05-20-01                                                                                                                                                             |
 
 ### 例外的なケース (Section 5)
@@ -1603,9 +1625,9 @@ version: 1.0.0
 | Test Target                      | Normal     | Error     | Edge     | Result |
 | -------------------------------- | ---------- | --------- | -------- | ------ |
 | T-04: parseAt                    | Normal: 6  | Error: 4  | Edge: 12 | [OK]   |
-| T-05: MappingTable / SqliteStore | Normal: 21 | Error: 12 | Edge: 6  | [OK]   |
+| T-05: MappingTable / SqliteStore | Normal: 21 | Error: 13 | Edge: 8  | [OK]   |
 | T-06: 置換キュー                 | Normal: 19 | Error: 5  | Edge: 4  | [OK]   |
-| T-07: SchedulingService          | Normal: 49 | Error: 57 | Edge: 36 | [OK]   |
+| T-07: SchedulingService          | Normal: 49 | Error: 58 | Edge: 36 | [OK]   |
 
 <!--
 Task ID Format: T-<TestTarget>-<Scenario>-<Case>

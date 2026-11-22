@@ -22,7 +22,7 @@ version: 1.0.0
 | Test Target                                          | Scenarios | Cases | Status      |
 |------------------------------------------------------|-----------|-------|-------------|
 | T-01: `generateTag` (TAG)                            | 10        | 23    | in progress |
-| T-02: `allocateTag` (TAL)                            | 12        | 16    | pending     |
+| T-02: `allocateTag` (TAL)                            | 11        | 15    | pending     |
 | T-03: `MachineIdProvider` 実装 / `SqliteStore` (MID) | 13        | 21    | pending     |
 
 ---
@@ -206,13 +206,6 @@ version: 1.0.0
   - Target: `allocateTag`
   - Scenario: Given `existingTags` に Tag が 1 件あり、重複しない乱数が与えられる, When `allocateTag` を呼ぶ
   - Expected: Then `existingTags` の要素数が 1 のままで、返した Tag が追加されていない (実装 §2.3: 予約一覧と対応表に触れない)
-
-#### T-02-04: 登録時刻は呼び出し側が与えた値を使う
-
-- [ ] **T-02-04-01**: `clock` が別の時刻を返しても `registeredAt` 引数の時刻を使う
-  - Target: `allocateTag`
-  - Scenario: Given `registeredAt` が 2026-11-22 09:05:03 で、`FakeClock` が 2030-01-01 00:00:00 を返す, When `allocateTag` を呼ぶ
-  - Expected: Then Tag の日時部分が `20261122090503` になる (実装 §2.3: 呼び出し側が 1 回だけ得た値をループ中は変えない)
 
 ### [異常] Error Cases
 
@@ -479,11 +472,11 @@ version: 1.0.0
 | Test Target                        | Normal | Error | Edge | Result |
 | ---------------------------------- | -----: | ----: | ---: | ------ |
 | T-01: `generateTag`                | 6      | 11    | 6    | [OK]   |
-| T-02: `allocateTag`                | 6      | 5     | 5    | [OK]   |
+| T-02: `allocateTag`                | 5      | 5     | 5    | [OK]   |
 | T-03: `MachineIdProvider` (MID)    | 6      | 10    | 5    | [OK]   |
 
 - T-01: `Normal: 6 | Error: 11 | Edge: 6`
-- T-02: `Normal: 6 | Error: 5 | Edge: 5`
+- T-02: `Normal: 5 | Error: 5 | Edge: 5` (T-02-04 は削除。番号は欠番)
 - T-03: `Normal: 6 | Error: 10 | Edge: 5`
 
 ---

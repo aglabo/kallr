@@ -2,7 +2,7 @@
 title: "Design Specification: Windows Distribution Verify (Index)"
 based-on: requirements.md v1.2.0
 status: Draft
-version: 1.1.5
+version: 1.2.0
 created: "2026-11-20"
 ---
 
@@ -187,6 +187,9 @@ Windows で OS の予約通知 (AddToSchedule) を、未パッケージ + HKCU �
   - 識別子 (batchId、alarmId、AUMID) は、上層のインターフェース (予約の管理、通知可否の確認) の各メソッドの入口で正規化する。
     各メソッドは、最初に正規化の関数を呼び、正規化後の値で、それぞれ空かどうかを検査する。正規化は前後の空白の削除とする。
     OS や保存先を呼ぶ下層は、正規化済みの値を受け取る。下層の API は公開しない
+  - オプションの値は文字列として扱う。`--name` の直後の 1 語は、`--` で始まっていても値とする。
+    `--name=value` は最初の `=` だけで分割し、値に `=` を含んでもよい。
+    引用符はシェルが外すため、引用符の有無は区別しない。値が無いのは、直後の語が無いときだけとする
   - `--db <path>` は任意で、対応表を使うすべてのコマンドの保存先を差し替える (IDX-DD-11)
   - Tag と Group の文字数は UTF-16 code unit 数で数える
   - 各コマンドの入力の詳細は、対応する分割ファイルが定める
@@ -376,3 +379,4 @@ REQ-F-012 は、記録の手順を verification、一括再登録の動作を sc
 | 2026-11-22 | 1.1.3   | Identifiers are trimmed at the entry of each function, not only in the CLI (3.1)                              |
 | 2026-11-22 | 1.1.4   | Each library method calls the normalizing function first and checks the normalized identifier (3.1)           |
 | 2026-11-22 | 1.1.5   | Identifiers are normalized at the upper interface; each method checks them; the lower API is not public (3.1) |
+| 2026-11-22 | 1.2.0   | Option values are plain strings: the word after `--name` is always the value, and `=` splits only at the first one (3.1) |

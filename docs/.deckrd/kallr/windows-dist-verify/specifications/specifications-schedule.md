@@ -2,7 +2,7 @@
 title: "Design Specification: Windows Distribution Verify (schedule)"
 based-on: requirements.md v1.2.0
 status: Draft
-version: 1.2.0
+version: 1.3.0
 created: "2026-11-20"
 ---
 
@@ -335,7 +335,7 @@ Evaluation MUST follow this order:
 | SCH-R-009 |    6 | 分類が「置換」                                                                                                                                 | 3.5 の段階 1〜4 を順に行う。段階 1: DB に置換後の行 (pending) と置換キューを記録し、置換前の行を superseded にする。段階 2: 置換後の予約を新しい Tag で OS に追加する。段階 3: 置換前の予約を OS から削除する。段階 4: 置換前の行を削除し、置換後の行を current にする                                                                                                             |
 | SCH-R-010 |    6 | SCH-R-008 または SCH-R-009 のいずれかの段階が失敗した                                                                                          | その場で終了コード 2 で終了し、後続の段階を実行しない。ただし段階 2 を OS が拒否したときだけ、段階 1 の記録を取り消す (置換後の行と置換キューの行を削除し、置換前の行を current に戻す)。それ以外は巻き戻さず、置換キューに保留を残す。置換の失敗状態は 3.5 に従う                                                                                                                 |
 | SCH-R-011 |    7 | すべての段階が成功した                                                                                                                         | 終了コード 0。OS の予約一覧に、新しい Tag・Group=kallr・通知時刻=`--at` の要素がちょうど 1 件あり、置換では置換前の Tag の要素が無い                                                                                                                                                                                                                                               |
-| SCH-R-036 |    7 | add または re-register-all の開始時 (通知可否の確認の後) に、置換キューの保留がある、または cancel の対象の項目に保留がある                    | 保留を先に処理する。置換後の通知時刻が現在時刻以前なら、段階 2 を行わず (追加しない)、段階 3 から段階 4 まで進める。そうでなければ、段階 2 を OS の予約一覧で確認して (置換後の Tag が既にあれば追加しない) 3.5 の続きの段階から再開し、段階 4 まで進める。再開が OS に拒否されたときは SCH-R-010 に従う。cancel では、保留の処理の後に対象の項目を読み直してから SCH-R-014 を行う |
+| SCH-R-036 |    7 | add または re-register-all の開始時 (通知可否の確認の後) に、置換キューの保留がある、または cancel の対象の項目に保留がある                    | 保留を先に処理する。置換後の通知時刻が現在時刻以前なら、段階 2 を行わず (追加しない)、段階 3 から段階 4 まで進める。そうでなければ、段階 2 を OS の予約一覧で確認して (置換後の Tag が既にあれば追加しない) 3.5 の続きの段階から再開し、段階 4 まで進める。再開が OS に拒否されたときは、`abortReplacement` で置換前の行へ戻して例外を投げず、その行の再開を終えて処理を続ける。cancel では、保留の処理の後に対象の項目を読み直してから SCH-R-014 を行う |
 
 規則の順序は変更しない。
 SCH-R-004〜SCH-R-006 は同じ段階にある、互いに排他な分類とする。
@@ -414,7 +414,7 @@ SCH-R-014 の成功後は、OS の予約一覧にその Tag の要素が含ま�
 | SCH-E-01 add で `--batch` を指定しない                                         | 使い方の誤り (終了コード 1)。SCH-R-001                                                                  | REQ-F-001      | 既定値を持たない (SCH-DD-03)                                 |
 | SCH-E-02 `--alarm ""` (空文字)                                                 | 使い方の誤り (終了コード 1)。SCH-R-001、SCH-R-012                                                       | REQ-F-001, 004 | 空の識別子はキーにならない                                   |
 | SCH-E-03 `--at` がオフセット無し                                               | ローカル時刻として扱う。SCH-R-002                                                                       | REQ-F-001      | SCH-DD-04。w03.dart の JST 前提とは異なる                    |
-| SCH-E-04 `--at` が過去                                                         | OS が拒否 (0x80070057)。終了コード 2。対応表は変えない。SCH-R-008                                       | REQ-F-001      | SCH-DD-05。置換でも段階 1 で失敗するため、置換前の予約が残る |
+| SCH-E-04 `--at` が過去                                                         | OS が拒否 (0x80070057)。終了コード 2。対応表は変えない。SCH-R-008                                       | REQ-F-001      | SCH-DD-05。置換では段階 2 で OS が拒否し、abortReplacement で置換前の行へ戻る (3.5)。置換前の予約が残る |
 | SCH-E-05 `--at` がローカル時刻で、夏時間の切り替えにより曖昧または存在しない   | 曖昧なら早いほうの時刻を使う。存在しない時刻は使い方の誤り (終了コード 1)。SCH-R-031                    | REQ-F-001      | SCH-DD-14。Windows のタイムゾーンの規則に従って判定する      |
 | SCH-E-06 AUMID が未登録 / DisplayName が空 / 通知設定が無効                    | 終了コード 3。何も書かない。SCH-R-003                                                                   | REQ-F-001      | 判定の詳細は `specifications-environment.md`                 |
 | SCH-E-07 同じキーで、対応表の Tag が予約一覧にある                             | 置換。SCH-R-005、SCH-R-009                                                                              | REQ-F-005      | 追加してから削除する (DR-05、DR-07)                          |
@@ -502,3 +502,4 @@ SCH-R-014 の成功後は、OS の予約一覧にその Tag の要素が含ま�
 | 2026-11-21 | 1.0.1   | Rename UD-IDs to the UD-<CODE>-NNN form (no meaning change)                                                                           |
 | 2026-11-22 | 1.1.0   | Replace in four stages with the database written first (DR-07): SCH-DD-01, SCH-R-009, SCH-R-010, SCH-R-036, 3.5, SCH-E-10 to SCH-E-12 |
 | 2026-11-22 | 1.2.0   | Resume skips adding a replacement whose time has passed and re-reads the target before cancel: SCH-R-036, 3.5                         |
+| 2026-11-22 | 1.3.0   | Past `--at` in a replacement is rejected at stage 2 (SCH-E-04); a rejected resume aborts the replacement without throwing (SCH-R-036) |

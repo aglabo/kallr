@@ -18,6 +18,7 @@ Issue #19 の PoC-W (W1〜W5、W7) を、未パッケージ + HKCU 登録の配�
 | `MDL` | `kGroup` (`models.dart` の共有定数)      |
 | `MAP` | `SqliteStore` (`MappingTable` 実装)      |
 | `MID` | `SqliteStore` (`MachineIdProvider` 実装) |
+| `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) |
 | `DDP` | `defaultDbPath`                          |
 | `MTK` | `mapToastKey`                            |
 | `TAG` | `generateTag`                            |

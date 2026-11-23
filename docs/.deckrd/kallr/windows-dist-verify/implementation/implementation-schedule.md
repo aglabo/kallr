@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Schedule)"
 based-on: specifications-schedule.md v1.6.0
 status: Draft
-version: 1.2.4
+version: 1.4.0
 created: "2026-11-22"
 ---
 
@@ -75,6 +75,8 @@ abstract interface class MappingTable {
   - 有効な行 (旧行) の `notify_status` を 0 (`superseded`) にする。
   - 新しい行を `notify_status = 2` (`pending`) で追加する。
   - `(new_id, old_id)` を `replacement_queue` に追加する。
+- `replace` は、同じキーの有効な行 (旧行) が無いと `StorageException` を投げて何も変えない。置換する対象が無いため。
+- 同じキーの有効な行が pending (`notify_status = 2`。前の置換が未完了) のとき、`replace` は前の置換を取り消して最新の置換だけを残す。1 トランザクションで、前の新行 (キューの行は `ON DELETE CASCADE` で消える) を削除し、その旧行 (superseded) を起点にして新しい行 (pending) とキューの行 `(new_id, old_id)` を追加する。最初の旧行は superseded のまま残り、その削除は最新の置換が担う。
 - `completeRemoval` は、1 トランザクションで旧行を削除し、新行を `notify_status = 1` にする。`ON DELETE SET NULL` で `old_id` が NULL になる。
 - `abortReplacement` は、OS が置換後の予約の追加を拒否したときに使う。
   1 トランザクションで、新行を削除 (`ON DELETE CASCADE` でキューの行も消える) し、旧行を `notify_status = 1` に戻す。
@@ -338,3 +340,5 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
 | 2026-11-22 | 1.2.2   | Read a `settings` value directly by key; writes and deletes still go through `id` (clarification; db-migration v1.1.2)      |
 | 2026-11-23 | 1.2.3   | The default DB path uses `/` as the separator after `LOCALAPPDATA` (clarification)                                          |
 | 2026-11-24 | 1.2.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (6; follows tasks-index v1.1.0)                 |
+| 2026-11-24 | 1.3.0   | `replace` with no current row throws StorageException and changes nothing                                                   |
+| 2026-11-24 | 1.4.0   | `replace` on a pending current row cancels the earlier replacement and keeps only the latest                                |

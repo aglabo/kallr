@@ -19,7 +19,7 @@ source: specifications-index.md
 | T-03        | MID  | tasks-tag.md         |        21 |    34 |
 | T-04        | ATP  | tasks-schedule.md    |        18 |    28 |
 | T-05        | MAP  | tasks-schedule.md    |        22 |    44 |
-| T-06        | RPQ  | tasks-schedule.md    |        12 |    28 |
+| T-06        | RPQ  | tasks-schedule.md    |        14 |    34 |
 | T-07        | SVA  | tasks-service.md     |        17 |    54 |
 | T-08        | AVL  | tasks-environment.md |        14 |    36 |
 | T-09        | W5C  | tasks-environment.md |        14 |    40 |

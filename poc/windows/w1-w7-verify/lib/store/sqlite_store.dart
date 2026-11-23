@@ -20,8 +20,34 @@ import 'transaction.dart';
 /// Key of the machine id row in `settings`.
 const String _machineIdKey = 'machine_id';
 
-/// SQL predicate selecting current rows (`notify_status` 1 or 2), excluding superseded ones (0).
-const String _currentRowPredicate = 'notify_status IN (1, 2)';
+/// Failure message prefixes shared by several methods.
+const String _readFailure = 'Failed to read the mapping: ';
+const String _replaceFailure = 'Failed to replace the mapping: ';
+
+/// `notify_status` of a row: superseded, current or pending replacement.
+///
+/// Mirrors `CHECK (notify_status IN (0, 1, 2))` and the partial index
+/// `IN (1, 2)` in schema.dart; keep them in sync.
+enum _NotifyStatus {
+  superseded(0),
+  current(1),
+  pending(2);
+
+  const _NotifyStatus(this.value);
+
+  /// The integer stored in the `notify_status` column.
+  final int value;
+}
+
+/// SQL predicate selecting current rows ([_NotifyStatus.current] or
+/// [_NotifyStatus.pending]), excluding superseded ones. Bind [_currentRowParams].
+const String _currentRowPredicate = 'notify_status IN (?, ?)';
+
+/// Values bound to the two `?` of [_currentRowPredicate].
+final List<Object?> _currentRowParams = [
+  _NotifyStatus.current.value,
+  _NotifyStatus.pending.value,
+];
 
 /// Store backed by one SQLite [Database].
 ///
@@ -49,20 +75,22 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// Closes the underlying database.
   void close() => _db.close();
 
-  /// Returns the record for ([batchId], [alarmId]), or null when none exists.
+  /// Returns the current record (`notify_status` 1 or 2) for ([batchId], [alarmId]),
+  /// or null when none exists. A superseded row (0) is never returned.
   ///
   /// A [SqliteException] is thrown as a [StorageException].
   @override
   MappingRecord? get(String batchId, String alarmId) => _selectRecords(
-    'WHERE batch_id = ? AND alarm_id = ?',
-    [batchId, alarmId],
+    'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
+    [batchId, alarmId, ..._currentRowParams],
   ).firstOrNull;
 
   /// Returns every current record (`notify_status` 1 or 2).
   ///
   /// A [SqliteException] is thrown as a [StorageException].
   @override
-  List<MappingRecord> all() => _selectRecords('WHERE $_currentRowPredicate');
+  List<MappingRecord> all() =>
+      _selectRecords('WHERE $_currentRowPredicate', _currentRowParams);
 
   /// Returns the Tag of every row, including superseded ones (`notify_status` 0),
   /// because the OS may still hold their notifications.
@@ -71,7 +99,7 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   @override
   Set<String> tags() {
     return _guard(
-      'Failed to read the mapping: ',
+      _readFailure,
       () => _db
           .select('SELECT tag FROM notifications')
           .map((Row r) => r['tag'] as String)
@@ -95,21 +123,53 @@ class SqliteStore implements MappingTable, MachineIdProvider {
     List<Object?> params = const [],
   ]) {
     return _guard(
-      'Failed to read the mapping: ',
+      _readFailure,
       () => _db
           .select(
             'SELECT batch_id, alarm_id, tag, at, title, registered_at '
             'FROM notifications $where',
             params,
           )
+          .map(_toRecord)
+          .toList(),
+    );
+  }
+
+  /// Converts a row holding the columns `batch_id`, `alarm_id`, `tag`, `at`,
+  /// `title` and `registered_at` of `notifications` into a [MappingRecord].
+  static MappingRecord _toRecord(Row r) => MappingRecord(
+    batchId: r['batch_id'] as String,
+    alarmId: r['alarm_id'] as String,
+    tag: r['tag'] as String,
+    at: DateTime.parse(r['at'] as String),
+    title: r['title'] as String,
+    registeredAt: DateTime.parse(r['registered_at'] as String),
+  );
+
+  /// Returns the queued removals in queue order (`replacement_queue.id`).
+  ///
+  /// Each item holds the old row's Tag, the fixed [kGroup] and the new (pending)
+  /// row as a [MappingRecord]. Queue rows without an old row are skipped.
+  /// A [SqliteException] is thrown as a [StorageException].
+  @override
+  List<PendingRemoval> pendingRemovals() {
+    return _guard(
+      _readFailure,
+      () => _db
+          .select(
+            'SELECT q.id AS queue_id, o.tag AS old_tag, o.group_name AS old_group, '
+            'n.batch_id, n.alarm_id, n.tag, n.at, n.title, n.registered_at '
+            'FROM replacement_queue q '
+            'JOIN notifications n ON n.id = q.new_id '
+            'JOIN notifications o ON o.id = q.old_id '
+            'WHERE q.old_id IS NOT NULL ORDER BY q.id',
+          )
           .map(
-            (Row r) => MappingRecord(
-              batchId: r['batch_id'] as String,
-              alarmId: r['alarm_id'] as String,
-              tag: r['tag'] as String,
-              at: DateTime.parse(r['at'] as String),
-              title: r['title'] as String,
-              registeredAt: DateTime.parse(r['registered_at'] as String),
+            (Row r) => PendingRemoval(
+              queueId: r['queue_id'] as int,
+              oldTag: r['old_tag'] as String,
+              group: r['old_group'] as String,
+              record: _toRecord(r),
             ),
           )
           .toList(),
@@ -122,8 +182,6 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// without an offset. A [SqliteException] is thrown as a [StorageException].
   @override
   void put(MappingRecord record) {
-    final String at = record.at.toUtc().toIso8601String();
-    final String registeredAt = record.registeredAt.toIso8601String();
     _guard('Failed to save the mapping: ', () {
       runInTransaction(_db, () {
         _db.execute(
@@ -131,30 +189,198 @@ class SqliteStore implements MappingTable, MachineIdProvider {
           'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
           [
             record.tag,
-            at,
+            _atText(record),
             record.title,
-            registeredAt,
+            _registeredAtText(record),
             record.batchId,
             record.alarmId,
+            ..._currentRowParams,
           ],
         );
-        if (_db.updatedRows > 0) return;
-        _db.execute(
-          'INSERT INTO notifications '
-          '(group_name, tag, batch_id, alarm_id, at, title, registered_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [
-            kGroup,
-            record.tag,
-            record.batchId,
-            record.alarmId,
-            at,
-            record.title,
-            registeredAt,
-          ],
-        );
+        if (_db.updatedRows == 0) _insertRow(record, _NotifyStatus.current);
       });
     });
+  }
+
+  /// Replaces the current row of the key of [record] in one transaction and
+  /// returns the id of the `replacement_queue` row it adds.
+  ///
+  /// When the current row is settled (`notify_status` 1), it becomes superseded (0)
+  /// first, because the partial unique index `notifications_current` allows one
+  /// current row per key. When it is pending (2, an unfinished earlier replacement),
+  /// that replacement is cancelled: the pending row is deleted (its queue row goes
+  /// with it by `ON DELETE CASCADE`) and the row it superseded stays superseded
+  /// as the old row, so only the latest replacement remains queued.
+  /// A new row is then inserted as pending (2), and (new id, old id) is queued.
+  /// When there is no current row, a [StorageException] is thrown and nothing
+  /// changes (the transaction rolls back). A [SqliteException] is thrown as a
+  /// [StorageException].
+  @override
+  int replace(MappingRecord record) {
+    return _guard(
+      _replaceFailure,
+      () => runInTransaction(_db, () {
+        final int oldId = _takeOldRowId(record);
+        _insertRow(record, _NotifyStatus.pending);
+        _db.execute(
+          'INSERT INTO replacement_queue (new_id, old_id) VALUES (?, ?)',
+          [_db.lastInsertRowId, oldId],
+        );
+        return _db.lastInsertRowId;
+      }),
+    );
+  }
+
+  /// Completes the removal queued as [queueId] in one transaction: deletes the
+  /// old row, so `ON DELETE SET NULL` clears `old_id` of the queue row (the queue
+  /// row stays), and makes the new row current (`notify_status` 1).
+  /// A [SqliteException] is thrown as a [StorageException].
+  @override
+  void completeRemoval(int queueId) {
+    _guard(
+      'Failed to complete the removal: ',
+      () => runInTransaction(_db, () {
+        _db.execute(
+          'UPDATE notifications SET notify_status = ? '
+          'WHERE id = (SELECT new_id FROM replacement_queue WHERE id = ?)',
+          [_NotifyStatus.current.value, queueId],
+        );
+        _db.execute(
+          'DELETE FROM notifications '
+          'WHERE id = (SELECT old_id FROM replacement_queue WHERE id = ?)',
+          [queueId],
+        );
+      }),
+    );
+  }
+
+  /// Aborts the replacement queued as [queueId] in one transaction: deletes the
+  /// new (pending) row, so `ON DELETE CASCADE` removes the queue row, and makes
+  /// the old row current (`notify_status` 1) again. The new row goes first,
+  /// because the partial unique index `notifications_current` allows one current
+  /// or pending row per key. The old row id is read before that delete, as the
+  /// cascade removes the queue row that holds it.
+  ///
+  /// Does nothing (no row changes, no exception) when [queueId] does not exist
+  /// or its replacement is already completed (`old_id` is NULL, see
+  /// [completeRemoval]): the new row is then the key's only current row. Only a
+  /// pending new row (`notify_status` 2) is deleted.
+  /// A [SqliteException] is thrown as a [StorageException].
+  @override
+  void abortReplacement(int queueId) {
+    _guard(
+      'Failed to abort the replacement: ',
+      () => runInTransaction(_db, () {
+        final int? oldId = _queuedOldId('id', queueId);
+        if (oldId == null) return;
+        _db.execute(
+          'DELETE FROM notifications '
+          'WHERE notify_status = ? '
+          'AND id = (SELECT new_id FROM replacement_queue WHERE id = ?)',
+          [_NotifyStatus.pending.value, queueId],
+        );
+        _db.execute('UPDATE notifications SET notify_status = ? WHERE id = ?', [
+          _NotifyStatus.current.value,
+          oldId,
+        ]);
+      }),
+    );
+  }
+
+  /// Deletes, in one transaction, the `replacement_queue` rows whose `old_id` is
+  /// NULL (the removal was finished by [completeRemoval]) and returns the number
+  /// of deleted rows. Rows with an old row (unfinished replacements) are kept,
+  /// as [pendingRemovals] and [abortReplacement] need them, and `notifications`
+  /// is not touched. A [SqliteException] is thrown as a [StorageException].
+  @override
+  int purgeCompletedQueue() {
+    return _guard(
+      'Failed to purge the replacement queue: ',
+      () => runInTransaction(_db, () {
+        _db.execute('DELETE FROM replacement_queue WHERE old_id IS NULL');
+        return _db.updatedRows;
+      }),
+    );
+  }
+
+  /// Returns `old_id` of the first `replacement_queue` row whose [column] equals
+  /// [value], or null when there is no such row or its `old_id` is NULL.
+  /// [column] is a fixed literal (`id` or `new_id`), never user input.
+  int? _queuedOldId(String column, int value) => _db
+      .select('SELECT old_id FROM replacement_queue WHERE $column = ?', [value])
+      .map((Row r) => r['old_id'] as int?)
+      .firstOrNull;
+
+  /// Frees the current slot of the key of [record] for a new row and returns the
+  /// id of the row to queue as the old one (see [replace]). Throws a
+  /// [StorageException] when there is no current row. Must run inside a transaction.
+  int _takeOldRowId(MappingRecord record) {
+    final Row? current = _db.select(
+      'SELECT id, notify_status FROM notifications '
+      'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
+      [record.batchId, record.alarmId, ..._currentRowParams],
+    ).firstOrNull;
+    if (current == null) {
+      throw StorageException(
+        '${_replaceFailure}no current row for '
+        '(${record.batchId}, ${record.alarmId})',
+      );
+    }
+    final int currentId = current['id'] as int;
+    return current['notify_status'] == _NotifyStatus.pending.value
+        ? _cancelPending(currentId, record)
+        : _supersede(currentId);
+  }
+
+  /// Settled branch of [_takeOldRowId]: marks the row [id] superseded and returns it.
+  int _supersede(int id) {
+    _db.execute('UPDATE notifications SET notify_status = ? WHERE id = ?', [
+      _NotifyStatus.superseded.value,
+      id,
+    ]);
+    return id;
+  }
+
+  /// Pending branch of [_takeOldRowId]: deletes the pending row [pendingId] and
+  /// returns the old row it superseded. Throws a [StorageException] when the
+  /// queue holds no old row for it.
+  int _cancelPending(int pendingId, MappingRecord record) {
+    final int? supersededId = _queuedOldId('new_id', pendingId);
+    if (supersededId == null) {
+      throw StorageException(
+        '${_replaceFailure}pending row has no queued old row for '
+        '(${record.batchId}, ${record.alarmId})',
+      );
+    }
+    _db.execute('DELETE FROM notifications WHERE id = ?', [pendingId]);
+    return supersededId;
+  }
+
+  /// Column text of `at`: saved as UTC.
+  static String _atText(MappingRecord record) =>
+      record.at.toUtc().toIso8601String();
+
+  /// Column text of `registered_at`: saved as local time without an offset.
+  static String _registeredAtText(MappingRecord record) =>
+      record.registeredAt.toIso8601String();
+
+  /// Inserts [record] as a new row with [notifyStatus]. Must run inside a transaction.
+  void _insertRow(MappingRecord record, _NotifyStatus notifyStatus) {
+    _db.execute(
+      'INSERT INTO notifications '
+      '(group_name, tag, batch_id, alarm_id, at, title, registered_at, notify_status) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        kGroup,
+        record.tag,
+        record.batchId,
+        record.alarmId,
+        _atText(record),
+        record.title,
+        _registeredAtText(record),
+        notifyStatus.value,
+      ],
+    );
   }
 
   /// Deletes the current row (`notify_status` 1 or 2) of ([batchId], [alarmId]) in
@@ -169,7 +395,7 @@ class SqliteStore implements MappingTable, MachineIdProvider {
         () => _db.execute(
           'DELETE FROM notifications '
           'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
-          [batchId, alarmId],
+          [batchId, alarmId, ..._currentRowParams],
         ),
       ),
     );

@@ -1,0 +1,61 @@
+// src: lib/models.dart
+// @(#) : shared constants and models
+//
+// Copyright (c) 2026 atsushifx <http://github.com/atsushifx>
+//
+// Released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+/// Fixed toast Group name (TAG-R-004). Must be 64 characters or fewer.
+const String kGroup = 'kallr';
+
+/// Machine id format: exactly 8 lowercase hex digits.
+final RegExp kMachineIdPattern = RegExp(r'^[0-9a-f]{8}$');
+
+/// One notification row of the mapping table (db-migration.md §2.5).
+///
+/// Equality is by field values. [at] is held as an absolute time (UTC);
+/// [registeredAt] is a local date-time (`isUtc == false`).
+final class MappingRecord {
+  /// Creates a record from its field values.
+  const MappingRecord({
+    required this.batchId,
+    required this.alarmId,
+    required this.tag,
+    required this.at,
+    required this.title,
+    required this.registeredAt,
+  });
+
+  /// Caller-supplied batch identifier.
+  final String batchId;
+
+  /// Caller-supplied alarm identifier.
+  final String alarmId;
+
+  /// 40-character Tag.
+  final String tag;
+
+  /// Notification time (absolute, UTC).
+  final DateTime at;
+
+  /// Notification title.
+  final String title;
+
+  /// Registration time (local).
+  final DateTime registeredAt;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MappingRecord &&
+      other.batchId == batchId &&
+      other.alarmId == alarmId &&
+      other.tag == tag &&
+      other.at == at &&
+      other.title == title &&
+      other.registeredAt == registeredAt;
+
+  @override
+  int get hashCode =>
+      Object.hash(batchId, alarmId, tag, at, title, registeredAt);
+}

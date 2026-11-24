@@ -117,6 +117,44 @@ void main() {
           });
         });
       });
+
+      group('Given: 1 行を INSERT した後に存在しないテーブルを SELECT する body (T-19-08)', () {
+        late Database db;
+        late SqliteAccess a;
+
+        int failingBody() {
+          db.execute('INSERT INTO t (v) VALUES (1)');
+          return db.select('SELECT a FROM missing').length;
+        }
+
+        setUp(() {
+          final Directory dir = Directory.systemTemp.createTempSync('sqa_');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          db = sqlite3.open('${dir.path}/t.db')
+            ..execute('CREATE TABLE t (v INTEGER)');
+          a = SqliteAccess(db);
+          addTearDown(a.close);
+        });
+
+        group('When: 異常系 (transact(p: , body) を呼ぶ)', () {
+          test('[Abnormal] T-WDV-SQA-10: StorageException を投げる', () {
+            expect(
+              () => a.transact('p: ', failingBody),
+              throwsA(isA<StorageException>()),
+            );
+          });
+
+          test('[State] T-WDV-SQA-11: INSERT した行は取り消され、トランザクションも閉じている', () {
+            expect(
+              () => a.transact('p: ', failingBody),
+              throwsA(isA<StorageException>()),
+            );
+
+            expect(db.autocommit, isTrue);
+            expect(db.select('SELECT v FROM t'), isEmpty);
+          });
+        });
+      });
     });
 
     group('T-WDV-SQA: select', () {

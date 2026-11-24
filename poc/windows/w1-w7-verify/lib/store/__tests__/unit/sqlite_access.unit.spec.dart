@@ -196,6 +196,51 @@ void main() {
           });
         });
       });
+
+      group('Given: 外側のトランザクションが BEGIN 済みで 1 行を INSERT 済み (T-19-10)', () {
+        late String path;
+        late Database db;
+        late SqliteAccess a;
+
+        setUp(() {
+          final Directory dir = Directory.systemTemp.createTempSync('sqa_');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          path = '${dir.path}/t.db';
+          db = sqlite3.open(path)..execute('CREATE TABLE t (v INTEGER)');
+          a = SqliteAccess(db);
+          addTearDown(a.close);
+          a.execute('BEGIN');
+          a.execute('INSERT INTO t (v) VALUES (1)');
+        });
+
+        group('When: エッジケース (transact(p: , body) を呼ぶと BEGIN が失敗する)', () {
+          test('[Edge] T-WDV-SQA-14: StorageException を投げる', () {
+            expect(
+              () => a.transact('p: ', () => 42),
+              throwsA(isA<StorageException>()),
+            );
+          });
+
+          test(
+            '[Edge] T-WDV-SQA-15: 外側のトランザクションは取り消されず、COMMIT すると別の接続から読める',
+            () {
+              expect(
+                () => a.transact('p: ', () => 42),
+                throwsA(isA<StorageException>()),
+              );
+
+              a.execute('COMMIT');
+
+              final Database other = sqlite3.open(path);
+              addTearDown(other.close);
+              expect(
+                other.select('SELECT v FROM t').map((Row r) => r['v']),
+                <Object?>[1],
+              );
+            },
+          );
+        });
+      });
     });
 
     group('T-WDV-SQA: select', () {

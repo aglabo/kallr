@@ -132,8 +132,7 @@ version: 1.0.0
 
 - [x] **T-01-06-05**: 乱数の末尾に改行があれば `ArgumentError` を投げる
   - Target: `generateTag`
-  - Scenario: Given random が `0123456789abcdef
-` (16 桁の後ろに改行)、有効な registeredAt と machineId, When `generateTag` を呼ぶ
+  - Scenario: Given random が `0123456789abcdef` の直後に LF を 1 つ付けた文字列 (16 桁の後ろに改行)、有効な registeredAt と machineId, When `generateTag` を呼ぶ
   - Expected: Then `ArgumentError` を投げる。改行を取り除かない (TAG-R-001)
 
 - [x] **T-01-06-06**: 乱数に `/` (`0` の直前の文字) があれば `ArgumentError` を投げる
@@ -314,12 +313,12 @@ version: 1.0.0
 
 - [x] **T-02-14-01**: 乱数とマシン ID が同じで、日時だけが違う既存 Tag だけなら、1 回目の Tag を返す
   - Target: `allocateTag`
-  - Scenario: Given `existingTags` に、乱数とマシン ID が 1 回目と同じで、日時だけが違う Tag (`20260101000000-a1b2c3d4-0123456789abcdef`) だけがあり、1 回目の乱数が `0123456789abcdef`, When `allocateTag` を呼ぶ
+  - Scenario: Given `existingTags` に、乱数とマシン ID が 1 回目と同じで、日時のみ違う Tag (`20260101000000-a1b2c3d4-0123456789abcdef`) しかなく、1 回目の乱数が `0123456789abcdef`, When `allocateTag` を呼ぶ
   - Expected: Then 1 回目の乱数で作った Tag を返し、乱数の取得は 1 回だけである (TAG-R-006: 日時を除いた比較にならない)
 
 - [x] **T-02-14-02**: 乱数と日時が同じで、マシン ID だけが違う既存 Tag だけなら、1 回目の Tag を返す
   - Target: `allocateTag`
-  - Scenario: Given `existingTags` に、乱数と日時が 1 回目と同じで、マシン ID だけが違う Tag (`20261122090503-ffffffff-0123456789abcdef`) だけがあり、1 回目の乱数が `0123456789abcdef`, When `allocateTag` を呼ぶ
+  - Scenario: Given `existingTags` に、乱数と日時が 1 回目と同じで、マシン ID のみ違う Tag (`20261122090503-ffffffff-0123456789abcdef`) しかなく、1 回目の乱数が `0123456789abcdef`, When `allocateTag` を呼ぶ
   - Expected: Then 1 回目の乱数で作った Tag を返し、乱数の取得は 1 回だけである (TAG-R-006: マシン ID を除いた比較にならない)
 
 ---
@@ -341,7 +340,7 @@ version: 1.0.0
   - Expected: Then `settings` に key が `machine_id` で value が戻り値と等しい行がちょうど 1 件ある (TAG-R-009, TAG-DD-03, IDX-DD-01)
 
 - [x] **T-03-01-03**: 生成するマシン ID は、毎回、小文字 16 進 8 桁である (256 回の生成)
-  - Target: `MachineIdProvider.machineId` (`SqliteStore`
+  - Target: `MachineIdProvider.machineId` (`SqliteStore`)
   - Scenario: Given 新規作成した DB を、別々に 256 回開き、それぞれで `machineId()` を 1 回ずつ呼ぶ, When 256 個の値を集める
   - Expected: Then すべての値が `^[0-9a-f]{8}$` に一致し、2 種類以上の値がある (TAG-R-009: 1 バイトを 2 桁に 0 埋めする。0 埋めが欠けると、約 2 割の確率で 7 桁になる)
 
@@ -372,7 +371,7 @@ version: 1.0.0
   - Expected: Then 2 回の戻り値が等しい (実装 §3 手順 4)
 
 - [x] **T-03-04-02**: 保存済みの値を読んだあとも、同じインスタンスはその値を返す
-  - Target: `MachineIdProvider.machineId` (`SqliteStore`
+  - Target: `MachineIdProvider.machineId` (`SqliteStore`)
   - Scenario: Given `settings` に `a1b2c3d4` が保存済みで、`machineId()` を 1 回呼んだあと、その行の value を別の有効な値 (`ffffffff`) に直接書き換えた, When 同じインスタンスで `machineId()` をもう一度呼ぶ
   - Expected: Then 1 回目と同じ `a1b2c3d4` を返す。DB を読み直さない (実装 §3 手順 4: 読み出した値もインスタンス内にキャッシュする)
 
@@ -406,9 +405,8 @@ version: 1.0.0
   - Expected: Then `StorageException` を投げ、値を返さない (TAG-R-010)
 
 - [x] **T-03-05-06**: 保存済みの値の末尾に改行があれば `StorageException` を投げる
-  - Target: `MachineIdProvider.machineId` (`SqliteStore`
-  - Scenario: Given `settings` の `machine_id` の value が `a1b2c3d4
-` (8 桁の後ろに改行), When `machineId()` を呼ぶ
+  - Target: `MachineIdProvider.machineId` (`SqliteStore`)
+  - Scenario: Given `settings` の `machine_id` の value が `a1b2c3d4` の直後に LF を 1 つ付けた文字列 (8 桁の後ろに改行), When `machineId()` を呼ぶ
   - Expected: Then `StorageException` を投げる。改行を取り除かず、新しい値を作らない (TAG-R-010)
 
 #### T-03-06: 不正な値は作り直さない
@@ -449,13 +447,13 @@ version: 1.0.0
 - [x] **T-03-14-01**: 保存の INSERT が `SqliteException` 以外の例外を投げたら、ROLLBACK して元の例外をそのまま投げる
   - Target: `MachineIdProvider.machineId` (`SqliteStore`)
   - Scenario: Given `settings` に `machine_id` の行がなく、INSERT が `StateError` を投げる接続, When `machineId()` を呼ぶ
-  - Expected: Then `ROLLBACK` を実行し、`StateError` を `StorageException` に変えずにそのまま投げる。値を返さず、キャッシュもしない (TAG-R-009, IDX-DD-01: プログラムの誤りを保存の失敗に見せない)
+  - Expected: Then `ROLLBACK` を実行し、`StateError` を `StorageException` へ変換せず、そのまま投げる。値を返さず、キャッシュもしない (TAG-R-009, IDX-DD-01: プログラムの誤りを保存の失敗に見せない)
 
 #### T-03-15: 保存の失敗で ROLLBACK も失敗する
 
 - [x] **T-03-15-01**: INSERT と ROLLBACK の両方が失敗しても、INSERT の失敗理由を `StorageException` で伝える
   - Target: `MachineIdProvider.machineId` (`SqliteStore`)
-  - Scenario: Given `settings` に `machine_id` の行がなく、INSERT も続く `ROLLBACK` も `SqliteException` を投げる接続, When `machineId()` を呼ぶ
+  - Scenario: Given `settings` に `machine_id` の行がなく、INSERT と続く `ROLLBACK` のどちらも `SqliteException` を投げる接続, When `machineId()` を呼ぶ
   - Expected: Then `StorageException` を投げ、そのメッセージは INSERT の失敗理由を含む。`ROLLBACK` の例外で置き換えない。値を返さない (TAG-R-009, IDX-DD-01)
 
 #### T-03-16: マシン ID の読み出しに失敗する
@@ -463,7 +461,7 @@ version: 1.0.0
 - [x] **T-03-16-01**: `machine_id` の値を読む SELECT が失敗したら、`StorageException` を投げる
   - Target: `MachineIdProvider.machineId` (`SqliteStore`)
   - Scenario: Given `machine_id` の値を読む SELECT が `SqliteException` を投げる接続, When `machineId()` を呼ぶ
-  - Expected: Then `StorageException` を投げ、そのメッセージは読み出しに失敗したこととして SQLite のメッセージを含む。値を返さず、新しい値を作って保存しない (BEGIN も INSERT も実行しない)(TAG-R-010, TAG-DD-04)
+  - Expected: Then `StorageException` を投げ、そのメッセージは読み出しに失敗したこととして SQLite のメッセージを含む。値を返さず、新しい値を作って保存しない (BEGIN と INSERT のどちらも実行しない。TAG-R-010, TAG-DD-04)
 
 > T-03-16-02 は欠番とする。値の読み取りが `SELECT value … WHERE key = ?` の 1 本になり (db-migration.md v1.1.2)、「行を探す SELECT」と「値を読む SELECT」を分けて確認する意味がなくなったため。
 
@@ -472,7 +470,7 @@ version: 1.0.0
 - [x] **T-03-17-01**: 保存のトランザクションを開始する `BEGIN` が失敗したら、`StorageException` を投げる
   - Target: `MachineIdProvider.machineId` (`SqliteStore`)
   - Scenario: Given `settings` に `machine_id` の行がなく、`BEGIN` が `SqliteException` を投げる接続, When `machineId()` を呼ぶ
-  - Expected: Then `StorageException` を投げ、そのメッセージは保存に失敗したこととして SQLite のメッセージを含む。`SqliteException` をそのまま投げない。INSERT も ROLLBACK も実行せず (開始できなかったトランザクションを巻き戻さない。すでに開いている別のトランザクションを巻き戻すおそれがある)、値を返さず、キャッシュもしない (TAG-R-009, IDX-DD-01)
+  - Expected: Then `StorageException` を投げ、そのメッセージは保存に失敗したこととして SQLite のメッセージを含む。`SqliteException` をそのまま投げない。INSERT と ROLLBACK のどちらも実行せず (開始できなかったトランザクションを巻き戻さない。すでに開いている別のトランザクションを巻き戻すおそれがある)、値を返さず、キャッシュもしない (TAG-R-009, IDX-DD-01)
 
 #### T-03-18: SqliteException 以外の例外で保存に失敗し、ROLLBACK も失敗する
 
@@ -491,7 +489,7 @@ version: 1.0.0
 - [x] **T-03-19-02**: `COMMIT` が `SqliteException` 以外の例外を投げたら、ROLLBACK して元の例外をそのまま投げる
   - Target: `MachineIdProvider.machineId` (`SqliteStore`)
   - Scenario: Given `settings` に `machine_id` の行がなく、`COMMIT` が `StateError` を投げる接続, When `machineId()` を呼ぶ
-  - Expected: Then `StateError` を `StorageException` に変えずにそのまま投げる。書き込みは `BEGIN`、`INSERT`、`COMMIT`、`ROLLBACK` の順に実行される。値を返さず、キャッシュもしない (TAG-R-009, IDX-DD-01)
+  - Expected: Then `StateError` を `StorageException` へ変換せず、そのまま投げる。書き込みは `BEGIN`、`INSERT`、`COMMIT`、`ROLLBACK` の順に実行される。値を返さず、キャッシュもしない (TAG-R-009, IDX-DD-01)
 
 #### T-03-20: 保存済みの値が文字列でない
 

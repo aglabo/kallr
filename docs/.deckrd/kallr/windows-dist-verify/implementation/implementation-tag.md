@@ -79,8 +79,8 @@ String allocateTag({
 `machineId()` は次の順で評価する (TAG-R-010 → 008 → 009)。
 
 0. 壊れたファイル (`quick_check` が `ok` でない) は、`SqliteStore.open` が `StorageException` を投げる (SCH-R-027)。`machineId()` へ届く前に失敗する。
-1. `settings` の `machine_id` の値を key で直接読む
-   (`SELECT value FROM settings WHERE key = ?`。`settings_key` の一意インデックスを使う)。
+1. `settings` の `machine_id` の値を key で直接読む。
+   SQL は `SELECT value FROM settings WHERE key = ?` で、`settings_key` の一意インデックスを使う。
    読み取りに失敗、または値が `^[0-9a-f]{8}$` でなければ `StorageException` (新しい値を作らない)。
 2. 値があればそれを返す。
 3. 行が無ければ、`Random.secure()` の 4 バイトから 8 桁を作り、`settings` に `INSERT` して (トランザクション) 返す。保存に失敗したら値を返さず `StorageException`。

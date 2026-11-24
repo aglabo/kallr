@@ -79,8 +79,8 @@ abstract interface class MappingTable {
   - `(new_id, old_id)` を `replacement_queue` に追加する。
 - `replace` は、同じキーの有効な行 (旧行) が無いと `StorageException` を投げて何も変えない。置換する対象が無いため。
 - 同じキーの有効な行が pending (`notify_status = 2`。前の置換が未完了) のとき、`replace` は前の置換を取り消して最新の置換だけを残す。
-  1 トランザクションで、前の新行 (キューの行は `ON DELETE CASCADE` で消える) を削除し、
-  その旧行 (superseded) を起点にして新しい行 (pending) とキューの行 `(new_id, old_id)` を追加する。
+  1 トランザクションで、前の新行を削除する (キューの行は `ON DELETE CASCADE` で消える)。
+  次に、その旧行 (superseded) を起点にして新しい行 (pending) とキューの行 `(new_id, old_id)` を追加する。
   最初の旧行は superseded のまま残り、その削除は最新の置換が担う。
 - `completeRemoval` は、1 トランザクションで旧行を削除し、新行を `notify_status = 1` にする。`ON DELETE SET NULL` で `old_id` が NULL になる。
 - `abortReplacement` は、OS が置換後の予約の追加を拒否したときに使う。

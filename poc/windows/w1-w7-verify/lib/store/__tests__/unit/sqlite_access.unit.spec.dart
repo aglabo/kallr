@@ -89,5 +89,23 @@ void main() {
         });
       });
     });
+
+    group('T-WDV-SQA: execute', () {
+      group('Given: 3 行のうち 2 行に当たる UPDATE を execute した直後 (T-19-04)', () {
+        group('When: 正常系 (execute の後に updatedRows を読む)', () {
+          test('[Normal] T-WDV-SQA-05: updatedRows が 2 である', () {
+            final Database db = sqlite3.openInMemory()
+              ..execute('CREATE TABLE t (a INTEGER)')
+              ..execute('INSERT INTO t (a) VALUES (1), (2), (3)');
+            final SqliteAccess a = SqliteAccess(db);
+            addTearDown(a.close);
+
+            a.execute('UPDATE t SET a = a + 10 WHERE a >= ?', [2]);
+
+            expect(a.updatedRows, 2);
+          });
+        });
+      });
+    });
   });
 }

@@ -41,6 +41,13 @@ final class SqliteAccess {
   /// Runs [sql] with [params] bound and returns the resulting rows.
   ResultSet select(String sql, List<Object?> params) => _db.select(sql, params);
 
+  /// Runs [sql] with [params] bound, discarding any rows.
+  void execute(String sql, [List<Object?> params = const <Object?>[]]) =>
+      _db.execute(sql, params);
+
+  /// Number of rows changed by the most recent [execute].
+  int get updatedRows => _db.updatedRows;
+
   /// Closes the underlying database.
   void close() => _db.close();
 }

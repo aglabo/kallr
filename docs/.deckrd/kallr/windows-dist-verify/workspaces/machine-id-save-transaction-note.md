@@ -77,3 +77,12 @@ lib/store/
 ### ファイル名について
 
 `sqlite_store.dart` / `SqliteStore` の名前は変えない (2026-11-22 に、利用者が決めた。SQLite 専用の実装なので、`db_store` にしない)。
+
+## 2026-11-24 追記: その後の経緯
+
+- 初期化と CRUD の分割は、`schema.dart` (`openDatabase`、DDL、`quick_check`、`user_version`) として済んでいる。
+- 2026-11-24 に、利用者が `sqlite_store.dart` をさらに分けると決めた。
+  分け方は、基礎層 `SqliteAccess` (`sqlite_access.dart`) と、アプリ用の `SqliteStore` のコンポジション。
+  設計は implementation-schedule v1.5.0 §2.5、タスクは T-19 (SQA)。
+- マシン ID の保存は `SqliteStore` に残す。`BEGIN` … `COMMIT` の形は変えず、`SqliteAccess.transact` を通して呼ぶだけにする。
+  このメモの「トランザクションなしにできるか」の判断は、引き続き保留のままとする。

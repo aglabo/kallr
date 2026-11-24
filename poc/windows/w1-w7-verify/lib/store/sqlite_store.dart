@@ -15,7 +15,7 @@ import '../models.dart';
 import '../tag/providers.dart';
 import 'mapping_table.dart';
 import 'schema.dart';
-import 'transaction.dart';
+import 'sqlite_access.dart';
 
 /// Key of the machine id row in `settings`.
 const String _machineIdKey = 'machine_id';
@@ -60,20 +60,20 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   ///
   /// The caller must have created the schema (as [SqliteStore.open] does), and the store takes ownership
   /// of [db] ([close] closes it). Mainly a seam for injecting a test double.
-  SqliteStore.fromDatabase(this._db);
+  SqliteStore.fromDatabase(Database db) : _access = SqliteAccess(db);
 
   /// Opens (creating if needed) the database at [path] and ensures the schema
   /// (see [openDatabase]).
   factory SqliteStore.open(String path) =>
       SqliteStore.fromDatabase(openDatabase(path));
 
-  final Database _db;
+  final SqliteAccess _access;
 
   /// Value returned by [machineId] after its first successful call.
   String? _cachedMachineId;
 
   /// Closes the underlying database.
-  void close() => _db.close();
+  void close() => _access.close();
 
   /// Returns the current record (`notify_status` 1 or 2) for ([batchId], [alarmId]),
   /// or null when none exists. A superseded row (0) is never returned.
@@ -98,23 +98,13 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// A [SqliteException] is thrown as a [StorageException].
   @override
   Set<String> tags() {
-    return _guard(
+    return _access.guard(
       _readFailure,
-      () => _db
+      () => _access
           .select('SELECT tag FROM notifications')
           .map((Row r) => r['tag'] as String)
           .toSet(),
     );
-  }
-
-  /// Runs [action], rethrowing a [SqliteException] as a [StorageException]
-  /// whose message is [failurePrefix] followed by the SQLite message.
-  static T _guard<T>(String failurePrefix, T Function() action) {
-    try {
-      return action();
-    } on SqliteException catch (e) {
-      throw StorageException('$failurePrefix${e.message}');
-    }
   }
 
   /// Selects records matching [where] (an SQL `WHERE` clause with [params]).
@@ -122,9 +112,9 @@ class SqliteStore implements MappingTable, MachineIdProvider {
     String where, [
     List<Object?> params = const [],
   ]) {
-    return _guard(
+    return _access.guard(
       _readFailure,
-      () => _db
+      () => _access
           .select(
             'SELECT batch_id, alarm_id, tag, at, title, registered_at '
             'FROM notifications $where',
@@ -153,9 +143,9 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// A [SqliteException] is thrown as a [StorageException].
   @override
   List<PendingRemoval> pendingRemovals() {
-    return _guard(
+    return _access.guard(
       _readFailure,
-      () => _db
+      () => _access
           .select(
             'SELECT q.id AS queue_id, o.tag AS old_tag, o.group_name AS old_group, '
             'n.batch_id, n.alarm_id, n.tag, n.at, n.title, n.registered_at '
@@ -182,23 +172,21 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// without an offset. A [SqliteException] is thrown as a [StorageException].
   @override
   void put(MappingRecord record) {
-    _guard('Failed to save the mapping: ', () {
-      runInTransaction(_db, () {
-        _db.execute(
-          'UPDATE notifications SET tag = ?, at = ?, title = ?, registered_at = ? '
-          'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
-          [
-            record.tag,
-            _atText(record),
-            record.title,
-            _registeredAtText(record),
-            record.batchId,
-            record.alarmId,
-            ..._currentRowParams,
-          ],
-        );
-        if (_db.updatedRows == 0) _insertRow(record, _NotifyStatus.current);
-      });
+    _access.transact('Failed to save the mapping: ', () {
+      _access.execute(
+        'UPDATE notifications SET tag = ?, at = ?, title = ?, registered_at = ? '
+        'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
+        [
+          record.tag,
+          _atText(record),
+          record.title,
+          _registeredAtText(record),
+          record.batchId,
+          record.alarmId,
+          ..._currentRowParams,
+        ],
+      );
+      if (_access.updatedRows == 0) _insertRow(record, _NotifyStatus.current);
     });
   }
 
@@ -217,18 +205,15 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// [StorageException].
   @override
   int replace(MappingRecord record) {
-    return _guard(
-      _replaceFailure,
-      () => runInTransaction(_db, () {
-        final int oldId = _takeOldRowId(record);
-        _insertRow(record, _NotifyStatus.pending);
-        _db.execute(
-          'INSERT INTO replacement_queue (new_id, old_id) VALUES (?, ?)',
-          [_db.lastInsertRowId, oldId],
-        );
-        return _db.lastInsertRowId;
-      }),
-    );
+    return _access.transact(_replaceFailure, () {
+      final int oldId = _takeOldRowId(record);
+      _insertRow(record, _NotifyStatus.pending);
+      _access.execute(
+        'INSERT INTO replacement_queue (new_id, old_id) VALUES (?, ?)',
+        [_access.lastInsertRowId, oldId],
+      );
+      return _access.lastInsertRowId;
+    });
   }
 
   /// Completes the removal queued as [queueId] in one transaction: deletes the
@@ -237,21 +222,18 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// A [SqliteException] is thrown as a [StorageException].
   @override
   void completeRemoval(int queueId) {
-    _guard(
-      'Failed to complete the removal: ',
-      () => runInTransaction(_db, () {
-        _db.execute(
-          'UPDATE notifications SET notify_status = ? '
-          'WHERE id = (SELECT new_id FROM replacement_queue WHERE id = ?)',
-          [_NotifyStatus.current.value, queueId],
-        );
-        _db.execute(
-          'DELETE FROM notifications '
-          'WHERE id = (SELECT old_id FROM replacement_queue WHERE id = ?)',
-          [queueId],
-        );
-      }),
-    );
+    _access.transact('Failed to complete the removal: ', () {
+      _access.execute(
+        'UPDATE notifications SET notify_status = ? '
+        'WHERE id = (SELECT new_id FROM replacement_queue WHERE id = ?)',
+        [_NotifyStatus.current.value, queueId],
+      );
+      _access.execute(
+        'DELETE FROM notifications '
+        'WHERE id = (SELECT old_id FROM replacement_queue WHERE id = ?)',
+        [queueId],
+      );
+    });
   }
 
   /// Aborts the replacement queued as [queueId] in one transaction: deletes the
@@ -268,23 +250,17 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// A [SqliteException] is thrown as a [StorageException].
   @override
   void abortReplacement(int queueId) {
-    _guard(
-      'Failed to abort the replacement: ',
-      () => runInTransaction(_db, () {
-        final int? oldId = _queuedOldId('id', queueId);
-        if (oldId == null) return;
-        _db.execute(
-          'DELETE FROM notifications '
-          'WHERE notify_status = ? '
-          'AND id = (SELECT new_id FROM replacement_queue WHERE id = ?)',
-          [_NotifyStatus.pending.value, queueId],
-        );
-        _db.execute('UPDATE notifications SET notify_status = ? WHERE id = ?', [
-          _NotifyStatus.current.value,
-          oldId,
-        ]);
-      }),
-    );
+    _access.transact('Failed to abort the replacement: ', () {
+      final int? oldId = _queuedOldId('id', queueId);
+      if (oldId == null) return;
+      _access.execute(
+        'DELETE FROM notifications '
+        'WHERE notify_status = ? '
+        'AND id = (SELECT new_id FROM replacement_queue WHERE id = ?)',
+        [_NotifyStatus.pending.value, queueId],
+      );
+      _setNotifyStatus(oldId, _NotifyStatus.current);
+    });
   }
 
   /// Deletes, in one transaction, the `replacement_queue` rows whose `old_id` is
@@ -294,19 +270,16 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// is not touched. A [SqliteException] is thrown as a [StorageException].
   @override
   int purgeCompletedQueue() {
-    return _guard(
-      'Failed to purge the replacement queue: ',
-      () => runInTransaction(_db, () {
-        _db.execute('DELETE FROM replacement_queue WHERE old_id IS NULL');
-        return _db.updatedRows;
-      }),
-    );
+    return _access.transact('Failed to purge the replacement queue: ', () {
+      _access.execute('DELETE FROM replacement_queue WHERE old_id IS NULL');
+      return _access.updatedRows;
+    });
   }
 
   /// Returns `old_id` of the first `replacement_queue` row whose [column] equals
   /// [value], or null when there is no such row or its `old_id` is NULL.
   /// [column] is a fixed literal (`id` or `new_id`), never user input.
-  int? _queuedOldId(String column, int value) => _db
+  int? _queuedOldId(String column, int value) => _access
       .select('SELECT old_id FROM replacement_queue WHERE $column = ?', [value])
       .map((Row r) => r['old_id'] as int?)
       .firstOrNull;
@@ -315,7 +288,7 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// id of the row to queue as the old one (see [replace]). Throws a
   /// [StorageException] when there is no current row. Must run inside a transaction.
   int _takeOldRowId(MappingRecord record) {
-    final Row? current = _db.select(
+    final Row? current = _access.select(
       'SELECT id, notify_status FROM notifications '
       'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
       [record.batchId, record.alarmId, ..._currentRowParams],
@@ -334,11 +307,16 @@ class SqliteStore implements MappingTable, MachineIdProvider {
 
   /// Settled branch of [_takeOldRowId]: marks the row [id] superseded and returns it.
   int _supersede(int id) {
-    _db.execute('UPDATE notifications SET notify_status = ? WHERE id = ?', [
-      _NotifyStatus.superseded.value,
+    _setNotifyStatus(id, _NotifyStatus.superseded);
+    return id;
+  }
+
+  /// Sets `notify_status` of the row [id] to [status].
+  void _setNotifyStatus(int id, _NotifyStatus status) {
+    _access.execute('UPDATE notifications SET notify_status = ? WHERE id = ?', [
+      status.value,
       id,
     ]);
-    return id;
   }
 
   /// Pending branch of [_takeOldRowId]: deletes the pending row [pendingId] and
@@ -352,7 +330,7 @@ class SqliteStore implements MappingTable, MachineIdProvider {
         '(${record.batchId}, ${record.alarmId})',
       );
     }
-    _db.execute('DELETE FROM notifications WHERE id = ?', [pendingId]);
+    _access.execute('DELETE FROM notifications WHERE id = ?', [pendingId]);
     return supersededId;
   }
 
@@ -366,7 +344,7 @@ class SqliteStore implements MappingTable, MachineIdProvider {
 
   /// Inserts [record] as a new row with [notifyStatus]. Must run inside a transaction.
   void _insertRow(MappingRecord record, _NotifyStatus notifyStatus) {
-    _db.execute(
+    _access.execute(
       'INSERT INTO notifications '
       '(group_name, tag, batch_id, alarm_id, at, title, registered_at, notify_status) '
       'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -388,15 +366,12 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   /// thrown as a [StorageException].
   @override
   void remove(String batchId, String alarmId) {
-    _guard(
+    _access.transact(
       'Failed to remove the mapping: ',
-      () => runInTransaction(
-        _db,
-        () => _db.execute(
-          'DELETE FROM notifications '
-          'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
-          [batchId, alarmId, ..._currentRowParams],
-        ),
+      () => _access.execute(
+        'DELETE FROM notifications '
+        'WHERE batch_id = ? AND alarm_id = ? AND $_currentRowPredicate',
+        [batchId, alarmId, ..._currentRowParams],
       ),
     );
   }
@@ -427,7 +402,7 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   String? _readStoredMachineId() {
     final Object? value;
     try {
-      final ResultSet rows = _db.select(
+      final ResultSet rows = _access.select(
         'SELECT value FROM settings WHERE key = ?',
         [_machineIdKey],
       );
@@ -456,19 +431,16 @@ class SqliteStore implements MappingTable, MachineIdProvider {
 
   /// Generates a new `machine_id` and INSERTs it in one transaction; a
   /// [SqliteException] from `BEGIN`, the INSERT or COMMIT is thrown as a
-  /// [StorageException] (see [runInTransaction] for the ROLLBACK rules).
+  /// [StorageException] (see [SqliteAccess.transact] for the ROLLBACK rules).
   /// Caches nothing.
   String _saveNewMachineId() {
     final String value = _generateMachineId();
-    _guard(
+    _access.transact(
       'Failed to save machine_id: ',
-      () => runInTransaction(
-        _db,
-        () => _db.execute('INSERT INTO settings (key, value) VALUES (?, ?)', [
-          _machineIdKey,
-          value,
-        ]),
-      ),
+      () => _access.execute('INSERT INTO settings (key, value) VALUES (?, ?)', [
+        _machineIdKey,
+        value,
+      ]),
     );
     return value;
   }

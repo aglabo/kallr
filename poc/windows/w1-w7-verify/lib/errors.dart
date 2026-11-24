@@ -48,4 +48,3 @@ class StorageException implements Exception {
   @override
   String toString() => 'StorageException: $message';
 }
-

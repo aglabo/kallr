@@ -2,7 +2,7 @@
 title: "Implementation Tasks (Index): Windows Distribution Verify"
 module: kallr/windows-dist-verify
 status: Active
-version: 1.1.0
+version: 1.2.0
 created: "2026-11-22 00:00:00"
 source: specifications-index.md
 ---
@@ -32,7 +32,8 @@ source: specifications-index.md
 | T-16        | SVL  | tasks-service.md     |        10 |    15 |
 | T-17        | SVG  | tasks-service.md     |         9 |    23 |
 | T-18        | SVN  | tasks-service.md     |        17 |    21 |
-| 合計        |      |                      |           |   587 |
+| T-19        | SQA  | tasks-schedule.md    |        12 |    17 |
+| 合計        |      |                      |           |   604 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 
@@ -92,6 +93,17 @@ source: specifications-index.md
 | T-17    | SVG  | reRegisterAll (保留の再開を除く)                       | 14〜16 → 01〜03、32〜33 → 04〜05、53〜56 → 06〜09                            |
 | T-18    | SVN  | 入力の正規化と検査 (trim、空・空白で `UsageException`) | 65〜68 → 01〜04、70〜71 → 05〜06、57〜64 → 07〜14、72〜73 → 15〜16、69 → 17  |
 
+## T-19 の追加 (2026-11-24)
+
+`SqliteStore` を、基礎層とアプリ用の層に分ける。
+基礎層は `SqliteAccess` (`guard` / `transact` / `select` / `execute`)、アプリ用の層は対応表の操作にあたる `SqliteStore` とする。
+根拠は implementation-schedule v1.5.0 §2.5 と implementation-index v1.4.0 に置く。
+
+- 分け方は継承ではなくコンポジションとする。マシン ID の保存と読み取りは `SqliteStore` に残し、`BEGIN` … `COMMIT` の形は変えない。
+- 移設そのものは振る舞いを変えない。T-03 (MID)、T-05 (MAP)、T-06 (RPQ) の既存のテストを変えずに通すことを、安全網にする。
+- 新しい Case は、基礎層を単体で確かめる T-19 (SQA) の 12 シナリオ、17 ケース。`tasks-schedule.md` に置く。
+- T-07〜T-18 は使用済みのため、新しい Target は末尾の T-19 とした。既存の ID は振り直していない。
+
 ## Open Items (人の判断が要る)
 
 1. 仕様が定めておらず、タスクを書かなかった事項は次のとおり。
@@ -114,7 +126,7 @@ source: specifications-index.md
 ## Files
 
 - [tasks-tag.md](./tasks-tag.md): T-01〜T-03
-- [tasks-schedule.md](./tasks-schedule.md): T-04〜T-06
+- [tasks-schedule.md](./tasks-schedule.md): T-04〜T-06、T-19
 - [tasks-service.md](./tasks-service.md): T-07、T-14〜T-18
 - [tasks-environment.md](./tasks-environment.md): T-08〜T-09
 - [tasks-cli.md](./tasks-cli.md): T-10〜T-11
@@ -125,3 +137,4 @@ source: specifications-index.md
 | ---------- | ------- | ---------------------------------------------------------------------------- |
 | 2026-11-22 | 1.0.0   | Initial tasks                                                                |
 | 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md |
+| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore  |

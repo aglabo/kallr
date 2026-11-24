@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Schedule)"
 based-on: specifications-schedule.md v1.6.0
 status: Draft
-version: 1.2.4
+version: 1.5.0
 created: "2026-11-22"
 ---
 
@@ -53,6 +53,7 @@ DB の設計は db-migration.md が正本。共通の前提、ファイル構成
    - 上記以外で `PRAGMA user_version` が 1 以外なら `StorageException` (別のアプリの DB を初期化しない。ファイルは変えない)。
 2. ファイルが存在しない場合: ファイルを作り、`user_version = 1` とスキーマを作成する。
 3. 書き込みはすべて `BEGIN` … `COMMIT` で囲み、例外時は `ROLLBACK` して `StorageException` に変える (SCH-R-026)。
+   この囲みと変換は `SqliteAccess.transact` が行う (§2.5)。
 
 ### 2.4 `MappingTable`
 
@@ -84,6 +85,42 @@ abstract interface class MappingTable {
 - 接続ごとに `PRAGMA foreign_keys = ON` を実行する。
 - テーブルの設計は db-migration.md §2 に従う。
 - `remove` は対象が無くてもエラーにしない (存在確認は呼び出し側)。
+
+### 2.5 層の分け方 (`sqlite_access.dart` と `sqlite_store.dart`)
+
+`SqliteStore` が持つ処理を、SQL の実行を支える基礎層と、対応表の操作にあたるアプリ用の層に分ける。
+継承ではなくコンポジションとし、`SqliteStore` が `SqliteAccess` を 1 つ持つ。
+
+| 層       | 型 (ファイル)                         | 持つもの                                                                                                                  | 持たないもの                                                                 |
+| -------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 基礎層   | `SqliteAccess` (`sqlite_access.dart`) | SQL の実行 (`select` / `execute`)、`SqliteException` の `StorageException` への変換、`BEGIN` … `COMMIT` と `ROLLBACK`     | テーブル名・列名・SQL 文、`MappingRecord` などの値型、`notify_status` の意味 |
+| アプリ用 | `SqliteStore` (`sqlite_store.dart`)   | `MappingTable` と `MachineIdProvider` の実装、SQL 文、`notify_status` の enum、行と値型の変換、マシン ID の読み取りと保存 | `SqliteException` の変換、`BEGIN` / `COMMIT` / `ROLLBACK` の直接の実行       |
+
+```dart
+final class SqliteAccess {
+  SqliteAccess(Database db);                                   // db の所有を引き取る (close が閉じる)
+  ResultSet select(String sql, [List<Object?> params = const []]);
+  void execute(String sql, [List<Object?> params = const []]);
+  int get updatedRows;                                         // 直前の execute が変えた行数
+  int get lastInsertRowId;
+  T guard<T>(String failurePrefix, T Function() action);       // SqliteException → StorageException('$failurePrefix${e.message}')
+  T transact<T>(String failurePrefix, T Function() body);      // guard の中で BEGIN … COMMIT
+  void close();
+}
+```
+
+- `guard` は `SqliteException` だけを変える。`FormatException` など、それ以外の例外はそのまま通す。
+- `transact` は `guard` の中で `runInTransaction` (`transaction.dart`) を呼ぶ。`runInTransaction` の規則は変えない。
+  - `BEGIN` の失敗は、`ROLLBACK` をせず `StorageException` へ変える (すでに開いている側のトランザクションを取り消さないため)。
+  - `body` が `SqliteException` を投げたら `ROLLBACK` し、`StorageException` にする。
+  - `body` がそれ以外の例外を投げたら `ROLLBACK` し、同じ例外を投げ直す。
+- `SqliteStore.open`、`SqliteStore.fromDatabase(Database)`、`close` の公開の形は変えない。
+  `fromDatabase` は、渡された `Database` を `SqliteAccess` で包む。`SqliteStore` は `SqliteAccess` を外へ見せない。
+- 対応表の SQL 文、`StorageException` のメッセージ、トランザクションの境界は、移す前と変えない。
+  この分割は、振る舞いを変えない移設にあたる。
+- マシン ID の保存 (`BEGIN` → `INSERT` → `COMMIT`) の形は変えない。`transact` を通して呼ぶだけにする。
+  マシン ID の読み取りは `FormatException` を自分で扱うため、`select` を直接呼び、`guard` を通さない。
+- `SqliteAccess` は `lib/kallr_verify.dart` から export しない (implementation-index.md §2 の下層)。
 
 ---
 
@@ -290,6 +327,7 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
 | ----- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                          | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26               |
 | `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5       |
+| `SQA` | `SqliteAccess` (`guard` / `transact` / `select` / `execute`)                        | SCH-R-026, 2.5                                        |
 | `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                                  |
 | `SVA` | `SchedulingService.add` (新規・置換・発火後と、その失敗)                            | SCH-R-003〜011, 3.5                                   |
 | `SVP` | `SchedulingService` の保留の再開 (add / cancel / reRegisterAll)                     | SCH-R-010, 030, 036, 3.5                              |
@@ -302,6 +340,7 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MAP  | put/get/remove/all (有効な行 `notify_status` が 1 または 2 だけが対象)、同じキーへの `put` で `id` が不変、新規の行の `group_name` が `kGroup`、別の通知と同じ (Group, Tag) で `StorageException` かつ変更なし、`PRAGMA foreign_keys` が ON、`user_version` が 1 以外または壊れたファイルで `StorageException` かつファイル不変、`--db` 指定、親ディレクトリの作成                                                                                                                                                                     |
 | RPQ  | `replace` で新しい行が pending (2) で追加され旧行が superseded (0) になる、キューに `(new_id, old_id)` が入る、`replace` の途中で失敗するとどちらも変わらない、`pendingRemovals` が旧行の Tag と Group と置換後の値を `id` 順に返す、`completeRemoval` で旧行が消え新行が current (1) になり `old_id` が NULL になる、完了済みの行が `pendingRemovals` に出ない、`abortReplacement` で新行とキューの行が消え旧行が current に戻る、新行の削除でキューの行も消える、`tags` が旧行の Tag を含む、`all` が旧行を含まず pending の行を含む |
+| SQA  | `guard` が戻り値をそのまま返し、`SqliteException` を prefix 付きの `StorageException` に変え、それ以外の例外は変えない、`transact` が成功でコミットし、`SqliteException` で `ROLLBACK` して `StorageException` に変え、それ以外の例外で `ROLLBACK` して同じ例外を投げ直す、すでに開いているトランザクションの中の `BEGIN` の失敗で `ROLLBACK` せず外側を保つ、`select` が値をバインドして行を返し (行が無ければ空、`params` を省略できる)、`execute` の後の `updatedRows` と `lastInsertRowId`                                         |
 | ATP  | オフセット付き、オフセットなし (ローカル)、解釈できない文字列、夏時間で曖昧 (早いほう)、存在しない時刻で `UsageException` (`offsetAt` を差し替えて)                                                                                                                                                                                                                                                                                                                                                                                    |
 | SVA  | add 新規/置換/発火後の新規、`Unavailable` で副作用なし、置換の呼び出し順序 (`replace` → 予約の追加 → 旧 Tag の予約の削除 → `completeRemoval`)、3.5 の各段階の失敗状態 (段階 1 の失敗、段階 2 の拒否で `abortReplacement`、段階 3 の失敗、段階 4 の失敗)、Tag の重複の再生成                                                                                                                                                                                                                                                            |
 | SVP  | 止まった保留を次の add と reRegisterAll が先に処理し (置換後の Tag が OS に既にあれば追加しない。置換後の `at` が `now` 以前なら追加せず、旧行へ戻さずに完了する。`at == now` も含む)、cancel が保留の処理 → 対象の読み直し → 予約の削除 → 行の削除の順で動くこと (再開で `abortReplacement` が走っても、戻った旧行の Tag の予約を削除する)、再開の各段階 (P2 / P3 / P4) の失敗                                                                                                                                                        |
@@ -319,22 +358,25 @@ AUMID をコンストラクタで受け取り、`ToastNotifier` を 1 つ保持�
      `based-on` must cite a three-part version that exists in the specifications.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                                                                                 |
-| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                              |
-| 2026-11-22 | 1.1.0   | resumePending skips adding a past replacement; cancel re-reads the target after resume                                      |
-| 2026-11-22 | 1.1.1   | Follow specifications-schedule v1.3.0; allocateTag has no clock argument                                                    |
-| 2026-11-22 | 1.1.2   | An existing file with no tables is initialized like a new one; other `user_version` mismatches still raise StorageException |
-| 2026-11-22 | 1.1.3   | Name the default path function `defaultDbPath` (clarification)                                                              |
-| 2026-11-22 | 1.1.4   | Follow specifications-schedule v1.3.1 (DR-08 citation)                                                                      |
-| 2026-11-22 | 1.1.5   | Contract: batchId and alarmId are non-empty; add and cancel check them first and throw UsageException                       |
-| 2026-11-22 | 1.1.6   | Follow specifications-schedule v1.4.0 (contract in 3.3); judge emptiness after trim                                         |
-| 2026-11-22 | 1.1.7   | Follow specifications-schedule v1.5.0; the trimmed batchId and alarmId are used as the ID                                   |
-| 2026-11-22 | 1.1.8   | add and reRegisterAll trim aumid at their entry (specifications-index v1.1.3)                                               |
-| 2026-11-22 | 1.1.9   | add, cancel and reRegisterAll normalize identifiers with requireId (implementation-index §3.3)                              |
-| 2026-11-22 | 1.1.10  | Use normalizeId with a check in each method; the lower layer is not public                                                  |
-| 2026-11-22 | 1.2.0   | parseAt reads a date-only `--at` as 00:00:00 local time (3.2); follow specifications-schedule v1.6.0                        |
-| 2026-11-22 | 1.2.1   | Mock location follows the new test layout: `lib/schedule/__tests__/` (implementation-index v1.3.0)                          |
-| 2026-11-22 | 1.2.2   | Read a `settings` value directly by key; writes and deletes still go through `id` (clarification; db-migration v1.1.2)      |
-| 2026-11-23 | 1.2.3   | The default DB path uses `/` as the separator after `LOCALAPPDATA` (clarification)                                          |
-| 2026-11-24 | 1.2.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (6; follows tasks-index v1.1.0)                 |
+| Date       | Version | Description                                                                                                                    |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                                 |
+| 2026-11-22 | 1.1.0   | resumePending skips adding a past replacement; cancel re-reads the target after resume                                         |
+| 2026-11-22 | 1.1.1   | Follow specifications-schedule v1.3.0; allocateTag has no clock argument                                                       |
+| 2026-11-22 | 1.1.2   | An existing file with no tables is initialized like a new one; other `user_version` mismatches still raise StorageException    |
+| 2026-11-22 | 1.1.3   | Name the default path function `defaultDbPath` (clarification)                                                                 |
+| 2026-11-22 | 1.1.4   | Follow specifications-schedule v1.3.1 (DR-08 citation)                                                                         |
+| 2026-11-22 | 1.1.5   | Contract: batchId and alarmId are non-empty; add and cancel check them first and throw UsageException                          |
+| 2026-11-22 | 1.1.6   | Follow specifications-schedule v1.4.0 (contract in 3.3); judge emptiness after trim                                            |
+| 2026-11-22 | 1.1.7   | Follow specifications-schedule v1.5.0; the trimmed batchId and alarmId are used as the ID                                      |
+| 2026-11-22 | 1.1.8   | add and reRegisterAll trim aumid at their entry (specifications-index v1.1.3)                                                  |
+| 2026-11-22 | 1.1.9   | add, cancel and reRegisterAll normalize identifiers with requireId (implementation-index §3.3)                                 |
+| 2026-11-22 | 1.1.10  | Use normalizeId with a check in each method; the lower layer is not public                                                     |
+| 2026-11-22 | 1.2.0   | parseAt reads a date-only `--at` as 00:00:00 local time (3.2); follow specifications-schedule v1.6.0                           |
+| 2026-11-22 | 1.2.1   | Mock location follows the new test layout: `lib/schedule/__tests__/` (implementation-index v1.3.0)                             |
+| 2026-11-22 | 1.2.2   | Read a `settings` value directly by key; writes and deletes still go through `id` (clarification; db-migration v1.1.2)         |
+| 2026-11-23 | 1.2.3   | The default DB path uses `/` as the separator after `LOCALAPPDATA` (clarification)                                             |
+| 2026-11-24 | 1.2.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (6; follows tasks-index v1.1.0)                    |
+| 2026-11-24 | 1.3.0   | `replace` with no current row throws StorageException and changes nothing                                                      |
+| 2026-11-24 | 1.4.0   | `replace` on a pending current row cancels the earlier replacement and keeps only the latest                                   |
+| 2026-11-24 | 1.5.0   | Split `SqliteStore` into the base layer `SqliteAccess` and the application layer by composition (2.5); add the test target SQA |

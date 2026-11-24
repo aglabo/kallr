@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Index)"
 based-on: specifications-index.md v1.3.0
 status: Draft
-version: 1.3.4
+version: 1.4.0
 created: "2026-11-22"
 ---
 
@@ -78,7 +78,10 @@ poc/windows/w1-w7-verify/
       tag_allocator.dart          allocateTag (重複回避)
     store/
       mapping_table.dart          MappingTable (IF)
-      sqlite_store.dart           SQLite の接続、スキーマ、MappingTable と MachineIdProvider の実装
+      sqlite_access.dart          SqliteAccess (基礎層: SQL の実行、SqliteException の変換、トランザクション。テーブルを知らない)
+      sqlite_store.dart           SqliteAccess の上の MappingTable と MachineIdProvider の実装 (SQL 文、行と値型の変換)
+      transaction.dart            runInTransaction (BEGIN … COMMIT。SqliteAccess が使う)
+      schema.dart                 DDL と openDatabase (スキーマの作成、quick_check、user_version)
       default_db_path.dart        既定の保存先
     env/
       notification_environment.dart  NotificationEnvironment (IF)、Availability、NotificationSetting
@@ -120,7 +123,7 @@ poc/windows/w1-w7-verify/
   `run()`、`normalizeId`、`models.dart` と `errors.dart` の型。
   `lib/kallr_verify.dart` が export する。
 - 下層 (公開しない): `ToastScheduler`、`MappingTable`、`AumidRegistry`、`NotificationSettingSource`、`PermissionProbe`、
-  `SqliteStore`、`windows/` の実装。export しない。テストだけが直接 import する。
+  `SqliteStore`、`SqliteAccess`、`windows/` の実装。export しない。テストだけが直接 import する。
 - 識別子の正規化は上層で行う。下層は正規化済みの値を受け取るだけで、正規化と検査はしない (§3.3)。
 
 ---
@@ -299,6 +302,7 @@ Future<int> run(
 | `TAL` | `allocateTag` (重複回避)                                                            | TAG-R-005〜007, SCH-E-32                              |
 | `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                          | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26               |
 | `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5       |
+| `SQA` | `SqliteAccess` (`guard` / `transact` / `select` / `execute`)                        | SCH-R-026, implementation-schedule 2.5                |
 | `MID` | `MachineIdProvider` の実装 (`settings`)                                             | TAG-R-008〜010                                        |
 | `AVL` | `evaluateAvailability` と Mock                                                      | ENV-R-001〜007, ENV-R-012, 013                        |
 | `W5C` | `w5Check`                                                                           | ENV-R-014〜016, ENV-R-019                             |
@@ -317,7 +321,7 @@ Future<int> run(
 機能別の担当は次のとおり。
 
 - TAG / TAL / MID: implementation-tag.md
-- MAP / RPQ / ATP / SVA / SVP / SVX / SVL / SVG / SVN: implementation-schedule.md
+- MAP / RPQ / SQA / ATP / SVA / SVP / SVX / SVL / SVG / SVN: implementation-schedule.md
 - AVL / W5C / NEV: implementation-environment.md
 - ARG / CLI: 本書 §4
 - NID: 本書 §3.3
@@ -356,7 +360,7 @@ Future<int> run(
 | REQ-F-017 | `allocateTag`                                                | TAL                   | implementation-tag          |
 | REQ-F-018 | §2 の配置、`module.md` の owns                               | レビュー              | implementation-verification |
 | REQ-F-019 | `SqliteStore` の `MachineIdProvider`                         | MID                   | implementation-tag          |
-| REQ-F-020 | `SqliteStore` の `MappingTable`                              | MAP, RPQ              | implementation-schedule     |
+| REQ-F-020 | `SqliteStore` の `MappingTable`、`SqliteAccess`              | MAP, RPQ, SQA         | implementation-schedule     |
 | REQ-F-021 | `NotificationEnvironment`、Mock、`windows/`                  | AVL, CLI, 手動        | implementation-environment  |
 
 ---
@@ -402,3 +406,4 @@ Future<int> run(
 | 2026-11-22 | 1.3.2   | `models.dart` also holds constants shared by several modules (`kGroup`, `kMachineIdPattern`) (clarification)                                            |
 | 2026-11-23 | 1.3.3   | The default DB path uses `/` after `LOCALAPPDATA` (clarification; follows implementation-schedule v1.2.3)                                               |
 | 2026-11-24 | 1.3.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (5.2; follows tasks-index v1.1.0)                                           |
+| 2026-11-24 | 1.4.0   | Split `SqliteStore`: add `sqlite_access.dart` (`SqliteAccess`, the base layer) and the test target SQA (2, 5.2; follows implementation-schedule v1.5.0) |

@@ -175,6 +175,19 @@ class FakeMappingTable implements MappingTable {
     _superseded.remove(queueId);
   }
 
+  /// Queue ids passed to [abortReplacement], in call order.
+  final List<int> aborted = [];
+
+  @override
+  void abortReplacement(int queueId) {
+    log.add('table.abortReplacement');
+    aborted.add(queueId);
+    final pending = _queue.remove(queueId);
+    final old = _superseded.remove(queueId);
+    if (pending == null || old == null) return;
+    _rows[(old.batchId, old.alarmId)] = old;
+  }
+
   @override
   List<MappingRecord> all() {
     log.add('table.all');

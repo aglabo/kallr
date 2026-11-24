@@ -509,6 +509,60 @@ void main() {
           expect(f.table.get('b1', 'a1')?.tag, _old);
         });
       });
+
+      /// Stage 2 of a replacement (scheduler.add) is rejected by the OS; add aborts stage 1 and propagates the error (SCH-E-10, SCH-R-010).
+      group('When: 置換の段階 2 (OS の追加) を OS が拒否する', () {
+        _Fixture rejectingAdd() =>
+            _Fixture(withOld: true)
+              ..scheduler.failNext(ToastOp.add, Hresult.invalidArgument);
+
+        test('[Error] T-WDV-SVA-35: ScheduleException をそのまま投げる', () {
+          expect(
+            rejectingAdd().add,
+            throwsA(
+              isA<ScheduleException>().having(
+                (e) => e.hresult,
+                'hresult',
+                Hresult.invalidArgument,
+              ),
+            ),
+          );
+        });
+
+        test('[Error] T-WDV-SVA-36: replace の queueId で abortReplacement を 1 回だけ呼ぶ', () {
+          final f = rejectingAdd();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.table.aborted, [1]);
+          expect(
+            f.log.where((c) => c == 'table.abortReplacement'),
+            hasLength(1),
+          );
+        });
+
+        test('[Error] T-WDV-SVA-37: 対応表は OLD の行を current に戻す', () {
+          final f = rejectingAdd();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.table.get('b1', 'a1')?.tag, _old);
+        });
+
+        test('[Error] T-WDV-SVA-38: 保留が残らない', () {
+          final f = rejectingAdd();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.table.pendingRemovals(), isEmpty);
+        });
+
+        test('[Error] T-WDV-SVA-39: 予約一覧には OLD の 1 件だけが残る', () {
+          final f = rejectingAdd();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_old]);
+        });
+
+        test('[Error] T-WDV-SVA-40: OLD の予約を削除しない', () {
+          final f = rejectingAdd();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.log, isNot(contains('scheduler.remove')));
+        });
+      });
     });
   });
 }

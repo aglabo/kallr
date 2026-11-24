@@ -45,6 +45,8 @@ final class SchedulingService {
   ///
   /// When the key already has a toast in the scheduler, the toast is replaced in four stages
   /// (table.replace, scheduler.add, scheduler.remove, table.completeRemoval).
+  /// When stage 2 fails, stage 1 is aborted and the error is rethrown; a failure in a later stage
+  /// keeps the pending row.
   MappingRecord add({
     required String batchId,
     required String alarmId,
@@ -74,7 +76,13 @@ final class SchedulingService {
     final replaced = current != null && toasts.any((t) => t.tag == current.tag);
     if (replaced) {
       final queueId = _table.replace(record);
-      _scheduler.add(tag: tag, group: kGroup, at: at, title: title);
+      try {
+        _scheduler.add(tag: tag, group: kGroup, at: at, title: title);
+      } on Object {
+        // The OS refused the new toast: nothing was registered, so undo stage 1.
+        _table.abortReplacement(queueId);
+        rethrow;
+      }
       _scheduler.remove(current.tag, kGroup);
       _table.completeRemoval(queueId);
     } else {

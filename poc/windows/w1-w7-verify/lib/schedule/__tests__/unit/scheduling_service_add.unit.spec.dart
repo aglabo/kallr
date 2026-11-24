@@ -54,6 +54,9 @@ const Availability _unregistered = Availability(
 /// HRESULT the OS returns for a past `at` (E_INVALIDARG).
 const int _invalidArgument = 0x80070057;
 
+/// HRESULT the OS returns when the toast limit is exceeded.
+const int _tooManyToasts = 0x80070718;
+
 /// Fixed registration time of the clock.
 final DateTime _now = DateTime(2026, 11, 22, 10);
 
@@ -368,6 +371,27 @@ void main() {
           expect(f.table.get('b1', 'a1'), isNull);
           expect(f.log, isNot(contains('table.put')));
         });
+      });
+
+      /// The OS rejects a new registration over its toast limit; add propagates the error (SCH-E-16).
+      group('When: OS が予約件数の上限超過を拒否する', () {
+        test(
+          '[Error] T-WDV-SVA-23: hresult 0x80070718 の ScheduleException を投げる',
+          () {
+            final f = _Fixture()
+              ..scheduler.failNext(ToastOp.add, _tooManyToasts);
+            expect(
+              f.add,
+              throwsA(
+                isA<ScheduleException>().having(
+                  (e) => e.hresult,
+                  'hresult',
+                  _tooManyToasts,
+                ),
+              ),
+            );
+          },
+        );
       });
     });
   });

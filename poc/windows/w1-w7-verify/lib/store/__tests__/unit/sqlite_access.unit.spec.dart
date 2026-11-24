@@ -259,6 +259,21 @@ void main() {
           });
         });
       });
+
+      group('Given: 行が 1 件も無い空のテーブル (T-19-11)', () {
+        group('When: エッジケース (select(sql, [1]) で条件に合う行を探す)', () {
+          test('[Edge] T-WDV-SQA-16: 例外を投げず、空の結果を返す', () {
+            final Database db = sqlite3.openInMemory()
+              ..execute('CREATE TABLE t (a INTEGER)');
+            final SqliteAccess a = SqliteAccess(db);
+            addTearDown(a.close);
+
+            final ResultSet rows = a.select('SELECT a FROM t WHERE a = ?', [1]);
+
+            expect(rows, isEmpty);
+          });
+        });
+      });
     });
 
     group('T-WDV-SQA: execute', () {

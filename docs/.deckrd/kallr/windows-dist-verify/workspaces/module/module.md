@@ -28,6 +28,7 @@ Issue #19 の PoC-W (W1〜W5、W7) を、未パッケージ + HKCU 登録の配�
 | `SVA` | `SchedulingService.add` (新規・置換)                                                 |
 | `SVL` | `SchedulingService.list`                                                            |
 | `AVL` | `evaluateAvailability`                                                              |
+| `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister`)                 |
 | `ERR` | `errors.dart` の例外型と `Hresult`                                                  |
 | `AVO` | `Availability`                                                                      |
 | `STO` | `ScheduledToast`                                                                    |

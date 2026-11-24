@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Environment)"
 based-on: specifications-environment.md v1.0.0
 status: Draft
-version: 1.0.6
+version: 1.0.7
 created: "2026-11-22"
 ---
 
@@ -226,17 +226,19 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 
 テスト ID の略語と採番は implementation-index.md §5 に従う。このファイルは、担当する対象の略語と、確認する値だけを示す。
 
-| 略語  | 対象                             | 主な spec の規則               |
-| ----- | -------------------------------- | ------------------------------ |
-| `AVL` | `evaluateAvailability` と Mock   | ENV-R-001〜007, ENV-R-012, 013 |
-| `W5C` | `w5Check`                        | ENV-R-014〜016, ENV-R-019      |
-| `NEV` | `DefaultNotificationEnvironment` | specifications-index 3.1       |
+| 略語  | 対象                                                                | 主な spec の規則          |
+| ----- | ------------------------------------------------------------------- | ------------------------- |
+| `AVL` | `evaluateAvailability`                                              | ENV-R-001〜007, ENV-R-012 |
+| `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister`) | ENV-R-013, DR-06          |
+| `W5C` | `w5Check`                                                           | ENV-R-014〜016, ENV-R-019 |
+| `NEV` | `DefaultNotificationEnvironment`                                    | specifications-index 3.1  |
 
-| 対象 | 確認する値                                                                                                                                                    |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AVL  | 未登録、DisplayName なし/空/空白、無効 4 種、有効、未知の値で `RegistryException`、打ち切り時に `settings.read` が呼ばれない、`setting == null`、書き込みなし |
-| NEV  | 4 メソッドが aumid を正規化して下層に渡す、空・空白だけで `UsageException` を投げて下層を呼ばない                                                             |
-| W5C  | 3 欄完備で一致、AUMID 不一致、権限不一致、install-method の `notChecked`、`記載なし`/空白/未指定で `unclear` と exitCode 2、権限の値が不正で `UsageException` |
+| 対象 | 確認する値                                                                                                                                                       |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AVL  | 未登録、DisplayName なし/空/空白、無効 4 種、有効、未知の値で `RegistryException`、打ち切り時に `settings.read` が呼ばれない、`setting == null`、書き込みなし    |
+| MNE  | `check` が与えた `Availability` を返す、`register` / `unregister` は呼び出しを記録するだけで、注入した `AumidRegistry` と `NotificationSettingSource` を呼ばない |
+| NEV  | 4 メソッドが aumid を正規化して下層に渡す、空・空白だけで `UsageException` を投げて下層を呼ばない                                                                |
+| W5C  | 3 欄完備で一致、AUMID 不一致、権限不一致、install-method の `notChecked`、`記載なし`/空白/未指定で `unclear` と exitCode 2、権限の値が不正で `UsageException`    |
 
 ---
 
@@ -256,3 +258,4 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 | 2026-11-22 | 1.0.4   | Use normalizeId with a check in each method; the lower IFs take normalized values and are not public                                    |
 | 2026-11-22 | 1.0.5   | The environment implementation is DefaultNotificationEnvironment in env/; add NEV (automated with a Mock registry, then a manual check) |
 | 2026-11-22 | 1.0.6   | Mock location follows the new test layout: `lib/env/__tests__/` (implementation-index v1.3.0)                                           |
+| 2026-11-25 | 1.0.7   | Split the Mock out of AVL as the test target MNE (`check` / `register` / `unregister`; follows implementation-index v1.4.1)             |

@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Index)"
 based-on: specifications-index.md v1.3.0
 status: Draft
-version: 1.4.0
+version: 1.4.1
 created: "2026-11-22"
 ---
 
@@ -304,7 +304,8 @@ Future<int> run(
 | `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5       |
 | `SQA` | `SqliteAccess` (`guard` / `transact` / `select` / `execute`)                        | SCH-R-026, implementation-schedule 2.5                |
 | `MID` | `MachineIdProvider` の実装 (`settings`)                                             | TAG-R-008〜010                                        |
-| `AVL` | `evaluateAvailability` と Mock                                                      | ENV-R-001〜007, ENV-R-012, 013                        |
+| `AVL` | `evaluateAvailability`                                                              | ENV-R-001〜007, ENV-R-012                             |
+| `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister`)                 | ENV-R-013, DR-06                                      |
 | `W5C` | `w5Check`                                                                           | ENV-R-014〜016, ENV-R-019                             |
 | `NEV` | `DefaultNotificationEnvironment` (4 メソッドの正規化と検査)                         | specifications-index 3.1                              |
 | `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                                  |
@@ -322,7 +323,7 @@ Future<int> run(
 
 - TAG / TAL / MID: implementation-tag.md
 - MAP / RPQ / SQA / ATP / SVA / SVP / SVX / SVL / SVG / SVN: implementation-schedule.md
-- AVL / W5C / NEV: implementation-environment.md
+- AVL / MNE / W5C / NEV: implementation-environment.md
 - ARG / CLI: 本書 §4
 - NID: 本書 §3.3
 
@@ -407,3 +408,4 @@ Future<int> run(
 | 2026-11-23 | 1.3.3   | The default DB path uses `/` after `LOCALAPPDATA` (clarification; follows implementation-schedule v1.2.3)                                               |
 | 2026-11-24 | 1.3.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (5.2; follows tasks-index v1.1.0)                                           |
 | 2026-11-24 | 1.4.0   | Split `SqliteStore`: add `sqlite_access.dart` (`SqliteAccess`, the base layer) and the test target SQA (2, 5.2; follows implementation-schedule v1.5.0) |
+| 2026-11-25 | 1.4.1   | Split the test target MNE (`MockNotificationEnvironment`) out of AVL (5.2; follows implementation-environment v1.0.7)                                  |

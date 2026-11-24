@@ -50,18 +50,12 @@ String _gen({
   random: random,
 );
 
-/// Datetime-part cases: (case id, title, local input, expected 14-digit part).
-final List<(String, String, DateTime, String)> _datetimePartCases = [
-  (
-    'T-WDV-TAG-03',
-    '月日時分秒が 1 桁でもゼロ埋めの 2 桁にする',
-    DateTime(2026, 1, 2, 3, 4, 5),
-    '20260102030405',
-  ),
-  // The date tests (TAG-03, TAG-04 and the boundary dates) detect a toUtc() regression only
+/// Datetime-part cases: (title, local input, expected 14-digit part).
+final List<(String, DateTime, String)> _datetimePartCases = [
+  ('月日時分秒が 1 桁でもゼロ埋めの 2 桁にする', DateTime(2026, 1, 2, 3, 4, 5), '20260102030405'),
+  // The date tests (the datetime part and the boundary dates) detect a toUtc() regression only
   // when the runner's time zone is not UTC.
   (
-    'T-WDV-TAG-04',
     'ローカル日時を UTC へ変換せず、そのまま使う',
     DateTime(2026, 12, 31, 23, 59, 59),
     '20261231235959',
@@ -69,107 +63,80 @@ final List<(String, String, DateTime, String)> _datetimePartCases = [
 ];
 
 /// Valid boundary-input cases:
-/// (case id, title, registeredAt, machineId, random, expected whole Tag).
+/// (title, registeredAt, machineId, random, expected whole Tag).
 ///
 /// Year 0 is accepted and padded to `0000` (Dart's DateTime allows it and the
 /// 4-digit year field is zero-padded); year 9999 is the upper bound.
-final List<(String, String, DateTime, String, String, String)> _validTagCases =
-    [
-      (
-        'T-WDV-TAG-17',
-        '999 ミリ秒は切り上げずに切り捨てる',
-        DateTime(2026, 11, 22, 9, 5, 3, 999),
-        _machineId,
-        _random,
-        '20261122090503-a1b2c3d4-0123456789abcdef',
-      ),
-      (
-        'T-WDV-TAG-18',
-        '年 0 は 0000 として受け入れる (0000-01-01 00:00:00)',
-        DateTime(0, 1, 1),
-        _machineId,
-        _random,
-        '00000101000000-a1b2c3d4-0123456789abcdef',
-      ),
-      (
-        'T-WDV-TAG-19',
-        '年 9999 は 9999 として受け入れる (9999-12-31 23:59:59)',
-        DateTime(9999, 12, 31, 23, 59, 59),
-        _machineId,
-        _random,
-        '99991231235959-a1b2c3d4-0123456789abcdef',
-      ),
-      (
-        'T-WDV-TAG-20',
-        'マシン ID 00000000 は有効な値として受け入れる',
-        DateTime(2026, 11, 22, 9, 5, 3),
-        '00000000',
-        _random,
-        '20261122090503-00000000-0123456789abcdef',
-      ),
-      (
-        'T-WDV-TAG-21',
-        '乱数 ffffffffffffffff は有効な値として受け入れる',
-        DateTime(2026, 11, 22, 9, 5, 3),
-        _machineId,
-        'ffffffffffffffff',
-        '20261122090503-a1b2c3d4-ffffffffffffffff',
-      ),
-      (
-        'T-WDV-TAG-23',
-        'マシン ID ffffffff は有効な値として受け入れる',
-        DateTime(2026, 11, 22, 9, 5, 3),
-        'ffffffff',
-        _random,
-        '20261122090503-ffffffff-0123456789abcdef',
-      ),
-    ];
-
-/// Out-of-range year cases: (case id, title, input whose year is outside 0..9999).
-final List<(String, String, DateTime)> _outOfRangeYearCases = [
+final List<(String, DateTime, String, String, String)> _validTagCases = [
   (
-    'T-WDV-TAG-06',
-    '年が -1 なら ArgumentError を投げる',
-    DateTime(-1, 11, 22, 9, 5, 3),
+    '999 ミリ秒は切り上げずに切り捨てる',
+    DateTime(2026, 11, 22, 9, 5, 3, 999),
+    _machineId,
+    _random,
+    '20261122090503-a1b2c3d4-0123456789abcdef',
   ),
   (
-    'T-WDV-TAG-07',
-    '年が 10000 なら ArgumentError を投げる',
-    DateTime(10000, 11, 22, 9, 5, 3),
+    '年 0 は 0000 として受け入れる (0000-01-01 00:00:00)',
+    DateTime(0, 1, 1),
+    _machineId,
+    _random,
+    '00000101000000-a1b2c3d4-0123456789abcdef',
+  ),
+  (
+    '年 9999 は 9999 として受け入れる (9999-12-31 23:59:59)',
+    DateTime(9999, 12, 31, 23, 59, 59),
+    _machineId,
+    _random,
+    '99991231235959-a1b2c3d4-0123456789abcdef',
+  ),
+  (
+    'マシン ID 00000000 は有効な値として受け入れる',
+    DateTime(2026, 11, 22, 9, 5, 3),
+    '00000000',
+    _random,
+    '20261122090503-00000000-0123456789abcdef',
+  ),
+  (
+    '乱数 ffffffffffffffff は有効な値として受け入れる',
+    DateTime(2026, 11, 22, 9, 5, 3),
+    _machineId,
+    'ffffffffffffffff',
+    '20261122090503-a1b2c3d4-ffffffffffffffff',
+  ),
+  (
+    'マシン ID ffffffff は有効な値として受け入れる',
+    DateTime(2026, 11, 22, 9, 5, 3),
+    'ffffffff',
+    _random,
+    '20261122090503-ffffffff-0123456789abcdef',
   ),
 ];
 
-/// Invalid machine id cases: (case id, title, machineId not matching 8 lowercase hex digits).
-final List<(String, String, String)> _invalidMachineIdCases = [
-  ('T-WDV-TAG-08', 'マシン ID が 7 桁なら ArgumentError を投げる', 'a1b2c3d'),
-  ('T-WDV-TAG-09', 'マシン ID が 9 桁なら ArgumentError を投げる', 'a1b2c3d4e'),
-  ('T-WDV-TAG-10', 'マシン ID が大文字なら ArgumentError を投げる', 'A1B2C3D4'),
-  ('T-WDV-TAG-11', 'マシン ID に 16 進以外の文字があれば ArgumentError を投げる', 'g1b2c3d4'),
-  ('T-WDV-TAG-12', 'マシン ID が空文字なら ArgumentError を投げる', ''),
+/// Out-of-range year cases: (title, input whose year is outside 0..9999).
+final List<(String, DateTime)> _outOfRangeYearCases = [
+  ('年が -1 なら ArgumentError を投げる', DateTime(-1, 11, 22, 9, 5, 3)),
+  ('年が 10000 なら ArgumentError を投げる', DateTime(10000, 11, 22, 9, 5, 3)),
 ];
 
-/// Invalid random cases: (case id, title, random not matching 16 lowercase hex digits).
-final List<(String, String, String)> _invalidRandomCases = [
-  ('T-WDV-TAG-13', '乱数が 15 桁なら ArgumentError を投げる', '0123456789abcde'),
-  ('T-WDV-TAG-14', '乱数が 17 桁なら ArgumentError を投げる', '0123456789abcdef0'),
-  ('T-WDV-TAG-15', '乱数が大文字なら ArgumentError を投げる', '0123456789ABCDEF'),
-  ('T-WDV-TAG-16', '乱数に 16 進以外の文字があれば ArgumentError を投げる', '0123456789abcdeg'),
-  ('T-WDV-TAG-24', '乱数の末尾に改行があれば ArgumentError を投げる', '0123456789abcdef\n'),
-  (
-    'T-WDV-TAG-25',
-    '乱数に `/` (`0` の直前の文字) があれば ArgumentError を投げる',
-    '0123456789abcde/',
-  ),
-  (
-    'T-WDV-TAG-26',
-    '乱数に `:` (`9` の直後の文字) があれば ArgumentError を投げる',
-    '0123456789abcde:',
-  ),
-  (
-    'T-WDV-TAG-27',
-    '乱数にバッククォート (`a` の直前の文字) があれば ArgumentError を投げる',
-    '0123456789abcde`',
-  ),
+/// Invalid machine id cases: (title, machineId not matching 8 lowercase hex digits).
+final List<(String, String)> _invalidMachineIdCases = [
+  ('マシン ID が 7 桁なら ArgumentError を投げる', 'a1b2c3d'),
+  ('マシン ID が 9 桁なら ArgumentError を投げる', 'a1b2c3d4e'),
+  ('マシン ID が大文字なら ArgumentError を投げる', 'A1B2C3D4'),
+  ('マシン ID に 16 進以外の文字があれば ArgumentError を投げる', 'g1b2c3d4'),
+  ('マシン ID が空文字なら ArgumentError を投げる', ''),
+];
+
+/// Invalid random cases: (title, random not matching 16 lowercase hex digits).
+final List<(String, String)> _invalidRandomCases = [
+  ('乱数が 15 桁なら ArgumentError を投げる', '0123456789abcde'),
+  ('乱数が 17 桁なら ArgumentError を投げる', '0123456789abcdef0'),
+  ('乱数が大文字なら ArgumentError を投げる', '0123456789ABCDEF'),
+  ('乱数に 16 進以外の文字があれば ArgumentError を投げる', '0123456789abcdeg'),
+  ('乱数の末尾に改行があれば ArgumentError を投げる', '0123456789abcdef\n'),
+  ('乱数に `/` (`0` の直前の文字) があれば ArgumentError を投げる', '0123456789abcde/'),
+  ('乱数に `:` (`9` の直後の文字) があれば ArgumentError を投げる', '0123456789abcde:'),
+  ('乱数にバッククォート (`a` の直前の文字) があれば ArgumentError を投げる', '0123456789abcde`'),
 ];
 
 /// Tests for generateTag: format, length, zero padding and local-time use.
@@ -189,8 +156,8 @@ void main() {
           expect(tag.length, lessThanOrEqualTo(64));
         });
 
-        for (final (id, title, input, expected) in _datetimePartCases) {
-          test('[Normal] $id: $title ($expected)', () {
+        for (final (title, input, expected) in _datetimePartCases) {
+          test('[Normal] T-WDV-TAG-03: $title ($expected)', () {
             expect(_gen(registeredAt: input).substring(0, 14), expected);
           });
         }
@@ -205,9 +172,9 @@ void main() {
       });
 
       group('When: エッジケース (有効な境界値)', () {
-        for (final (id, title, registeredAt, machineId, random, expected)
+        for (final (title, registeredAt, machineId, random, expected)
             in _validTagCases) {
-          test('[Edge] $id: $title ($expected)', () {
+          test('[Edge] T-WDV-TAG-17: $title ($expected)', () {
             expect(
               _gen(
                 registeredAt: registeredAt,
@@ -239,25 +206,25 @@ void main() {
       });
 
       group('When: 異常系 (年が範囲外)', () {
-        for (final (id, title, input) in _outOfRangeYearCases) {
-          test('[Error] $id: $title', () {
+        for (final (title, input) in _outOfRangeYearCases) {
+          test('[Error] T-WDV-TAG-06: $title', () {
             expect(() => _gen(registeredAt: input), throwsArgumentError);
           });
         }
       });
 
       group('When: 異常系 (マシン ID の書式が不正)', () {
-        for (final (id, title, machineId) in _invalidMachineIdCases) {
-          test('[Error] $id: $title ("$machineId")', () {
+        for (final (title, machineId) in _invalidMachineIdCases) {
+          test('[Error] T-WDV-TAG-08: $title ("$machineId")', () {
             expect(() => _gen(machineId: machineId), throwsArgumentError);
           });
         }
       });
 
       group('When: 異常系 (乱数の書式が不正)', () {
-        for (final (id, title, random) in _invalidRandomCases) {
-          // Escape the value so a control character (TAG-24's newline) cannot split the test name.
-          test('[Error] $id: $title ("${_escaped(random)}")', () {
+        for (final (title, random) in _invalidRandomCases) {
+          // Escape the value so a control character (the trailing-newline case) cannot split the test name.
+          test('[Error] T-WDV-TAG-13: $title ("${_escaped(random)}")', () {
             expect(() => _gen(random: random), throwsArgumentError);
           });
         }

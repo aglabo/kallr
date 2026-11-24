@@ -15,6 +15,7 @@ import 'package:w1_w7_verify/errors.dart';
 import 'package:w1_w7_verify/models.dart';
 import 'package:w1_w7_verify/schedule/scheduling_service.dart';
 import 'package:w1_w7_verify/schedule/toast_scheduler.dart';
+import 'package:w1_w7_verify/tag/tag_allocator.dart';
 
 // internal helpers
 import '../fakes.dart';
@@ -440,7 +441,16 @@ void main() {
       group('When: Tag の重複が上限の後も続く', () {
         test('[Error] T-WDV-SVA-28: DuplicateTagException を投げる', () {
           final f = _Fixture(withDuplicateTag: true);
-          expect(f.add, throwsA(isA<DuplicateTagException>()));
+          expect(
+            f.add,
+            throwsA(
+              isA<DuplicateTagException>().having(
+                (e) => e.attempts,
+                'attempts',
+                kMaxTagAttempts,
+              ),
+            ),
+          );
         });
 
         test('[Error] T-WDV-SVA-29: OS の予約を作らない', () {

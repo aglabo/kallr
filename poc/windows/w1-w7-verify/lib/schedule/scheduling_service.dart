@@ -83,4 +83,30 @@ final class SchedulingService {
     }
     return record;
   }
+
+  /// Returns the merged view of the mapping table and the OS schedule.
+  ///
+  /// A toast the table does not know at all is an orphan (an earlier add stopped after the
+  /// OS registration). A table record without a toast is stale. Superseded toasts that
+  /// still await removal are not listed.
+  List<ScheduleEntry> list() {
+    final toasts = _scheduler.list(kGroup);
+    final records = _table.all();
+    final toastByTag = {for (final t in toasts) t.tag: t};
+    final knownTags = _table.tags();
+    final recordTags = {for (final r in records) r.tag};
+    return [
+      for (final r in records)
+        ScheduleEntry(
+          state: toastByTag.containsKey(r.tag)
+              ? EntryState.ok
+              : EntryState.stale,
+          record: r,
+          toast: toastByTag[r.tag],
+        ),
+      for (final t in toasts)
+        if (!recordTags.contains(t.tag) && !knownTags.contains(t.tag))
+          ScheduleEntry(state: EntryState.orphan, toast: t),
+    ];
+  }
 }

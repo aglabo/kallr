@@ -387,6 +387,38 @@ void main() {
           },
         );
       });
+
+      /// The table write fails after the OS registration; add propagates the error and keeps the toast (SCH-E-14, SCH-R-010).
+      group('When: 新規の予約の後に対応表の書き込みが失敗する', () {
+        _Fixture failingPut() =>
+            _Fixture()..table.failNextPut(const StorageException('disk full'));
+
+        test('[Error] T-WDV-SVA-24: StorageException をそのまま投げる', () {
+          expect(failingPut().add, throwsA(isA<StorageException>()));
+        });
+
+        test('[Error] T-WDV-SVA-25: 追加した予約は巻き戻さず残る', () {
+          final f = failingPut();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_add1]);
+          expect(f.log, isNot(contains('scheduler.remove')));
+        });
+
+        test('[Error] T-WDV-SVA-26: 対応表には項目が無い', () {
+          final f = failingPut();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(f.table.get('b1', 'a1'), isNull);
+        });
+
+        test('[Error] T-WDV-SVA-27: 続く list は残った予約を orphan として検出する', () {
+          final f = failingPut();
+          expect(f.add, throwsA(isA<StorageException>()));
+          final entries = f.service.list();
+          expect(entries.map((e) => (e.toast?.tag, e.state)), [
+            (_add1, EntryState.orphan),
+          ]);
+        });
+      });
     });
   });
 }

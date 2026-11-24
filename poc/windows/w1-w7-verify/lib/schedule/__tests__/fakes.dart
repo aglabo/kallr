@@ -116,9 +116,19 @@ class FakeMappingTable implements MappingTable {
     return _rows[(batchId, alarmId)];
   }
 
+  StorageException? _putFailure;
+
+  /// Makes the next [put] throw [error] (once; the call is still logged).
+  void failNextPut(StorageException error) => _putFailure = error;
+
   @override
   void put(MappingRecord record) {
     log.add('table.put');
+    final failure = _putFailure;
+    if (failure != null) {
+      _putFailure = null;
+      throw failure;
+    }
     _rows[(record.batchId, record.alarmId)] = record;
   }
 
@@ -153,6 +163,12 @@ class FakeMappingTable implements MappingTable {
     log.add('table.completeRemoval');
     _queue.remove(queueId);
     _superseded.remove(queueId);
+  }
+
+  @override
+  List<MappingRecord> all() {
+    log.add('table.all');
+    return _rows.values.toList();
   }
 
   @override

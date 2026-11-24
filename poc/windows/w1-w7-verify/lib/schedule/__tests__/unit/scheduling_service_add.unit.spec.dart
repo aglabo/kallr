@@ -744,6 +744,36 @@ void main() {
           expect(record.title, _mixedTitle);
         });
       });
+
+      /// OLD fires between the list read and stage 3, so scheduler.remove returns false; add treats it as success (SCH-E-13, SCH-R-030, SCH-DD-13).
+      group('When: 置換の途中で置換前の予約が発火済みになる', () {
+        _Fixture firedDuringReplace() =>
+            _Fixture(withOld: true)..scheduler.fireBeforeRemove(_old);
+
+        test(
+          '[Normal] T-WDV-SVA-59: 例外を投げず新しい Tag (ADD1) の MappingRecord を返す',
+          () {
+            final record = firedDuringReplace().add();
+            expect(record.tag, _add1);
+          },
+        );
+
+        test('[Normal] T-WDV-SVA-60: 段階 4 (completeRemoval) まで完了し、保留が残らない', () {
+          final f = firedDuringReplace()..add();
+          expect(f.log, contains('table.completeRemoval'));
+          expect(f.table.pendingRemovals(), isEmpty);
+        });
+
+        test('[Normal] T-WDV-SVA-61: 予約一覧には ADD1 の 1 件だけが残る', () {
+          final f = firedDuringReplace()..add();
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_add1]);
+        });
+
+        test('[Normal] T-WDV-SVA-62: 置換前の予約の削除を OS に 1 回だけ依頼する', () {
+          final f = firedDuringReplace()..add();
+          expect(f.log.where((c) => c == 'scheduler.remove'), hasLength(1));
+        });
+      });
     });
   });
 }

@@ -58,6 +58,11 @@ class MockToastScheduler implements ToastScheduler {
   final List<ScheduledToast> _toasts = [];
   final Map<ToastOp, int> _failures = {};
   final Map<ToastOp, Object> _errors = {};
+  final Set<String> _firedBeforeRemove = {};
+
+  /// Makes the next [remove] of [tag] behave as if its toast fired just before the call
+  /// (once; the toast leaves the list if present, [remove] returns false, the call is still logged).
+  void fireBeforeRemove(String tag) => _firedBeforeRemove.add(tag);
 
   /// Makes the next [op] throw `ScheduleException(hresult)` (once; the call is still logged).
   void failNext(ToastOp op, int hresult) => _failures[op] = hresult;
@@ -89,6 +94,10 @@ class MockToastScheduler implements ToastScheduler {
   bool remove(String tag, String group) {
     log.add('scheduler.remove');
     _throwIfFailing(ToastOp.remove);
+    if (_firedBeforeRemove.remove(tag)) {
+      _toasts.removeWhere((t) => t.tag == tag && t.group == group);
+      return false;
+    }
     final before = _toasts.length;
     _toasts.removeWhere((t) => t.tag == tag && t.group == group);
     return _toasts.length < before;

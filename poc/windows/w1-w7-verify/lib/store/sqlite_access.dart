@@ -11,6 +11,7 @@
 import 'package:sqlite3/sqlite3.dart';
 
 import '../errors.dart';
+import 'transaction.dart';
 
 /// Base layer over a [Database]: runs SQL and converts [SqliteException].
 ///
@@ -31,6 +32,11 @@ final class SqliteAccess {
       throw StorageException('$failurePrefix${e.message}');
     }
   }
+
+  /// Runs [body] between `BEGIN` and `COMMIT` inside [guard] and returns its
+  /// result.
+  T transact<T>(String failurePrefix, T Function() body) =>
+      guard(failurePrefix, () => runInTransaction(_db, body));
 
   /// Closes the underlying database.
   void close() => _db.close();

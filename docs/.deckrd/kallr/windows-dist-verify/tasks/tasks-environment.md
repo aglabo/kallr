@@ -61,49 +61,49 @@ version: 1.0.0
 
 #### T-08-03: Given Mock が 7 つの状態の 1 つで構築されている, When check を呼ぶ
 
-- [ ] **T-08-03-01**: Mock の状態「OK (通知できる)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-01**: Mock の状態「OK (通知できる)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「OK (通知できる)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then ok=true の Availability (`registered=true`、`displayNameSet=true`、`setting=enabled`) を返す
 
-- [ ] **T-08-03-02**: Mock の状態「未登録」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-02**: Mock の状態「未登録」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「未登録」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `registered=false`、`ok=false`、`setting=null`、`reason=未登録` の Availability を返す
 
-- [ ] **T-08-03-03**: Mock の状態「DisplayName 空」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-03**: Mock の状態「DisplayName 空」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「DisplayName 空」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `registered=true`、`displayNameSet=false`、`ok=false`、`setting=null`、`reason=DisplayName が空` の Availability を返す
 
-- [ ] **T-08-03-04**: Mock の状態「無効 (disabledForApplication)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-04**: Mock の状態「無効 (disabledForApplication)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledForApplication)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledForApplication`、`ok=false` の Availability を返す
 
-- [ ] **T-08-03-05**: Mock の状態「無効 (disabledForUser)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-05**: Mock の状態「無効 (disabledForUser)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledForUser)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledForUser`、`ok=false` の Availability を返す
 
-- [ ] **T-08-03-06**: Mock の状態「無効 (disabledByGroupPolicy)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-06**: Mock の状態「無効 (disabledByGroupPolicy)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledByGroupPolicy)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledByGroupPolicy`、`ok=false` の Availability を返す
 
-- [ ] **T-08-03-07**: Mock の状態「無効 (disabledByManifest)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-07**: Mock の状態「無効 (disabledByManifest)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledByManifest)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledByManifest`、`ok=false` の Availability を返す
 
 #### T-08-04: Given Mock, When register / unregister を呼ぶ
 
-- [ ] **T-08-04-01**: register は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
+- [x] **T-08-04-01**: register は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
   - Target: `MockNotificationEnvironment.register`
   - Scenario: Given `MockNotificationEnvironment` と、呼ばれると失敗する Fake AumidRegistry / NotificationSettingSource, When `register('com.kallr.app', 'Kallr')` を呼ぶ
   - Expected: Then 記録に (`com.kallr.app`, `Kallr`) が 1 件残り、Fake の AumidRegistry と NotificationSettingSource は 1 度も呼ばれず、例外を投げない
 
-- [ ] **T-08-04-02**: unregister は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
+- [x] **T-08-04-02**: unregister は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
   - Target: `MockNotificationEnvironment.unregister`
   - Scenario: Given `MockNotificationEnvironment` と、呼ばれると失敗する Fake AumidRegistry / NotificationSettingSource, When `unregister('com.kallr.app')` を呼ぶ
   - Expected: Then 記録に `com.kallr.app` の削除が 1 件残り、Fake の AumidRegistry と NotificationSettingSource は 1 度も呼ばれず、例外を投げない

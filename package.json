@@ -31,6 +31,7 @@
     "lint:text": "cross-env MSYS='NOGLOB' bash runners/run-textlint.sh ",
     "lint:markdown": "cross-env MSYS='NOGLOB' bash runners/run-markdownlint.sh ",
     "check:dart": "dart format --output=none --set-exit-if-changed apps packages poc",
+    "lint:dart": "dart analyze --fatal-infos apps packages poc",
     "format:dart": "dart format apps packages poc",
     "test:dart": "pnpm --dir poc/windows/w1-w7-verify run test"
   },

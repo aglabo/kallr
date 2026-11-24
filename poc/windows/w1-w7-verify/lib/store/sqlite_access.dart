@@ -38,6 +38,9 @@ final class SqliteAccess {
   T transact<T>(String failurePrefix, T Function() body) =>
       guard(failurePrefix, () => runInTransaction(_db, body));
 
+  /// Runs [sql] with [params] bound and returns the resulting rows.
+  ResultSet select(String sql, List<Object?> params) => _db.select(sql, params);
+
   /// Closes the underlying database.
   void close() => _db.close();
 }

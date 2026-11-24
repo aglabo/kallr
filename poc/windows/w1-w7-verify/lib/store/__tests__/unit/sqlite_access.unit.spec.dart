@@ -71,5 +71,23 @@ void main() {
         });
       });
     });
+
+    group('T-WDV-SQA: select', () {
+      group('Given: a = 1 と a = 2 の 2 行があるテーブル (T-19-03)', () {
+        group('When: 正常系 (select(sql, [2]) で値をバインドする)', () {
+          test('[Normal] T-WDV-SQA-04: 条件に合う a = 2 の 1 行だけを返す', () {
+            final Database db = sqlite3.openInMemory()
+              ..execute('CREATE TABLE t (a INTEGER)')
+              ..execute('INSERT INTO t (a) VALUES (1), (2)');
+            final SqliteAccess a = SqliteAccess(db);
+            addTearDown(a.close);
+
+            final ResultSet rows = a.select('SELECT a FROM t WHERE a = ?', [2]);
+
+            expect(rows.map((Row r) => r['a']), <Object?>[2]);
+          });
+        });
+      });
+    });
   });
 }

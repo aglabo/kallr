@@ -39,7 +39,9 @@ DB の設計は db-migration.md が正本。共通の前提、ファイル構成
 - (`group_name`, `tag`) の UNIQUE が SCH-R-025 の「Tag は対応表の全体で一意」を DB 側でも守る。
 - `at` は UTC の絶対時刻として保存し、読み戻して `DateTime.parse(...)` で同じ時刻を復元する (再登録で同じ時刻を使うため)。
 - `title` は UTF-8 のまま保存する (SCH-E-23)。
-- マシン ID は `settings` の `machine_id` キーに 1 行だけ持つ。`settings` の値の読み取りは、key で直接行う (`SELECT value FROM settings WHERE key = ?`)。書き込みと削除は、key から `id` を引いて、`id` 経由で行う。
+- マシン ID は `settings` の `machine_id` キーに 1 行だけ持つ。
+  `settings` の値の読み取りは、key で直接行う (`SELECT value FROM settings WHERE key = ?`)。
+  書き込みと削除は、key から `id` を引いて、`id` 経由で行う。
 
 ### 2.3 接続の開き方
 
@@ -76,6 +78,11 @@ abstract interface class MappingTable {
   - 有効な行 (旧行) の `notify_status` を 0 (`superseded`) にする。
   - 新しい行を `notify_status = 2` (`pending`) で追加する。
   - `(new_id, old_id)` を `replacement_queue` に追加する。
+- `replace` は、同じキーの有効な行 (旧行) が無いと `StorageException` を投げて何も変えない。置換する対象が無いため。
+- 同じキーの有効な行が pending (`notify_status = 2`。前の置換が未完了) のとき、`replace` は前の置換を取り消して最新の置換だけを残す。
+  1 トランザクションで、前の新行を削除する (キューの行は `ON DELETE CASCADE` で消える)。
+  次に、その旧行 (superseded) を起点にして新しい行 (pending) とキューの行 `(new_id, old_id)` を追加する。
+  最初の旧行は superseded のまま残り、その削除は最新の置換が担う。
 - `completeRemoval` は、1 トランザクションで旧行を削除し、新行を `notify_status = 1` にする。`ON DELETE SET NULL` で `old_id` が NULL になる。
 - `abortReplacement` は、OS が置換後の予約の追加を拒否したときに使う。
   1 トランザクションで、新行を削除 (`ON DELETE CASCADE` でキューの行も消える) し、旧行を `notify_status = 1` に戻す。

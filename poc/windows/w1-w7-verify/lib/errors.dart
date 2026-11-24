@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Furukawa Atsushi <atsushifx@gmail.com>
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 // src: lib/errors.dart
 // @(#) : exception types shared across the verification tool
 //
@@ -44,3 +48,4 @@ class StorageException implements Exception {
   @override
   String toString() => 'StorageException: $message';
 }
+

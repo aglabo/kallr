@@ -44,7 +44,7 @@ created: "2026-11-22"
     `hooks.user_defines.sqlite3.url_pattern` で配布先を変えるか、OS 付属の SQLite を使う設定にする (`sqlite3` パッケージの `doc/hook.md`)。
   - 配布先の Windows での読み込みと、DLL の入手方法の確認は、手動検証で行う。
     根拠は implementation-verification.md §4 の「SQLite のネイティブライブラリを、Windows の Dart から読み込めるか」である。
-- 既存の `lib/map_toast_key.dart` と `test/map_toast_key.unit.spec.dart` (T-WDV-MTK-*) は削除する (旧配置のため、削除までは `test/` に残す)。
+- 既存の `lib/map_toast_key.dart` と `test/map_toast_key.unit.spec.dart` (T-WDV-MTK-*) は削除する。旧配置のため、削除までは `test/` に残す。
   `module.md` の略語表の `MTK` 行も同時に削除する (IDX-DD-09)。
 - 例外から終了コードへの変換は `run()` の 1 か所だけで行う (IDX-DD-05)。それ以外の層は終了コードを知らない。
 - プロセスは一度に 1 つだけ動く前提とする。ロックや排他制御は実装しない (SCH-E-24)。
@@ -289,7 +289,7 @@ Future<int> run(
 
 - OS に触れない部分 (各機能ファイルの実装) は、Mock と一時ディレクトリの SQLite で自動テストする (REQ-C-002)。
   1 つのテストは 1 つの観測できる値 (戻り値、例外、終了コード、DB の内容) だけを確認する (REQ-NF-002)。
-- テストファイルは、対象の実装の隣の `__tests__/<種別>/<対象>.<種別>.spec.dart` (例: `lib/tag/__tests__/unit/generate_tag.unit.spec.dart`)。
+- テストファイルは、対象の実装の隣の `__tests__/<種別>/<対象>.<種別>.spec.dart`。例は `lib/tag/__tests__/unit/generate_tag.unit.spec.dart`。
   `__tests__/` の直下には、複数のテストが使う helper と mock だけを置く。テスト ID は `T-WDV-<略語>-NN`。略語は PoC のラベル (W1 など) と別物とする (REQ-C-003)。
 - `windows/` は自動テストの対象外。手動検証 (implementation-verification.md §4) で確かめる。
 - テスト ID の採番と機械検査は `deckrd-rule-testing-guidelines.md` に従う。ID の採番は `tasks` で行う。

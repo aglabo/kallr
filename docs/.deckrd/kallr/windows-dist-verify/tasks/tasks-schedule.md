@@ -19,12 +19,11 @@ version: 1.2.0
 
 ## Task Summary
 
-| Test Target                            | Scenarios | Cases | Status  |
-| -------------------------------------- | --------- | ----- | ------- |
-| T-04: parseAt (ATP)                    | 18        | 28    | done    |
-| T-05: MappingTable / SqliteStore (MAP) | 22        | 44    | done    |
-| T-06: 置換キュー (RPQ)                 | 14        | 34    | done    |
-| T-19: SqliteAccess (SQA)               | 12        | 17    | pending |
+| Test Target                            | Scenarios | Cases | Status |
+| -------------------------------------- | --------- | ----- | ------ |
+| T-04: parseAt (ATP)                    | 18        | 28    | done   |
+| T-05: MappingTable / SqliteStore (MAP) | 22        | 44    | done   |
+| T-06: 置換キュー (RPQ)                 | 14        | 34    | done   |
 
 <!-- Status may be: pending | in progress | done -->
 
@@ -508,107 +507,107 @@ version: 1.2.0
 
 #### T-06-01: Given: 旧行が current の状態で replace した直後 (SCH-R-009 段階 1, SCH-DD-01)
 
-- [ ] **T-06-01-01**: 置換後の行が pending で追加される
+- [x] **T-06-01-01**: 置換後の行が pending で追加される
   - Target: `MappingTable.replace`
   - Scenario: Given 旧行が current, When 置換後の `MappingRecord` で `replace` する
   - Expected: Then tag `PND` の行が `notify_status = 2` で存在する
 
-- [ ] **T-06-01-02**: 旧行が superseded になる
+- [x] **T-06-01-02**: 旧行が superseded になる
   - Target: `MappingTable.replace`
   - Scenario: Given 旧行が current, When 置換後の `MappingRecord` で `replace` する
   - Expected: Then tag `OLD` の行が `notify_status = 0` である
 
-- [ ] **T-06-01-03**: キューに (新行の id, 旧行の id) が入る
+- [x] **T-06-01-03**: キューに (新行の id, 旧行の id) が入る
   - Target: `MappingTable.replace`
   - Scenario: Given 旧行が current, When 置換後の `MappingRecord` で `replace` する
   - Expected: Then `replacement_queue` に `new_id` が新行の id、`old_id` が旧行の id の行がちょうど 1 件ある
 
-- [ ] **T-06-01-04**: 戻り値はキューの行の id である
+- [x] **T-06-01-04**: 戻り値はキューの行の id である
   - Target: `MappingTable.replace`
   - Scenario: Given 旧行が current, When 置換後の `MappingRecord` で `replace` する
   - Expected: Then 戻り値が `replacement_queue.id` と等しい
 
 #### T-06-02: Given: replace 直後の参照 (implementation-schedule.md §2.4)
 
-- [ ] **T-06-02-01**: get は置換後の行を返す
+- [x] **T-06-02-01**: get は置換後の行を返す
   - Target: `MappingTable.get`
   - Scenario: Given `replace` した直後, When `get('b1','a1')` を呼ぶ
   - Expected: Then tag `PND` の `MappingRecord` を返す
 
-- [ ] **T-06-02-02**: all は旧行を含まず pending の行を含む
+- [x] **T-06-02-02**: all は旧行を含まず pending の行を含む
   - Target: `MappingTable.all`
   - Scenario: Given `replace` した直後, When `all()` を呼ぶ
   - Expected: Then tag `PND` の 1 件だけを返す
 
-- [ ] **T-06-02-03**: tags は旧行の Tag を含む
+- [x] **T-06-02-03**: tags は旧行の Tag を含む
   - Target: `MappingTable.tags`
   - Scenario: Given `replace` した直後, When `tags()` を呼ぶ
   - Expected: Then `OLD` と `PND` の両方を含む
 
 #### T-06-03: Given: 保留が 1 件ある
 
-- [ ] **T-06-03-01**: pendingRemovals は旧行の Tag・Group・置換後の値を返す
+- [x] **T-06-03-01**: pendingRemovals は旧行の Tag・Group・置換後の値を返す
   - Target: `MappingTable.pendingRemovals`
   - Scenario: Given `replace` した直後, When `pendingRemovals()` を呼ぶ
   - Expected: Then 1 件で、`queueId` が `replace` の戻り値、`oldTag` が `OLD`、`group` が `kallr`、置換後の `MappingRecord` が tag `PND` の値である
 
 #### T-06-04: Given: 保留が 2 件ある
 
-- [ ] **T-06-04-01**: pendingRemovals は queueId の昇順で返す
+- [x] **T-06-04-01**: pendingRemovals は queueId の昇順で返す
   - Target: `MappingTable.pendingRemovals`
   - Scenario: Given `b1`/`a1` を先に、`b2`/`a2` を後に `replace` した, When `pendingRemovals()` を呼ぶ
   - Expected: Then `b1`/`a1` の保留、`b2`/`a2` の保留の順で 2 件を返す
 
 #### T-06-05: Given: 保留を completeRemoval した後 (SCH-R-009 段階 4)
 
-- [ ] **T-06-05-01**: 旧行が削除される
+- [x] **T-06-05-01**: 旧行が削除される
   - Target: `MappingTable.completeRemoval`
   - Scenario: Given `replace` 済みで `queueId` を得た, When `completeRemoval(queueId)` を呼ぶ
   - Expected: Then tag `OLD` の行が `notifications` に存在しない
 
-- [ ] **T-06-05-02**: 新行が current になる
+- [x] **T-06-05-02**: 新行が current になる
   - Target: `MappingTable.completeRemoval`
   - Scenario: Given `replace` 済みで `queueId` を得た, When `completeRemoval(queueId)` を呼ぶ
   - Expected: Then tag `PND` の行が `notify_status = 1` である
 
-- [ ] **T-06-05-03**: キューの行は残り `old_id` が NULL になる
+- [x] **T-06-05-03**: キューの行は残り `old_id` が NULL になる
   - Target: `MappingTable.completeRemoval`
   - Scenario: Given `replace` 済みで `queueId` を得た, When `completeRemoval(queueId)` を呼ぶ
   - Expected: Then `replacement_queue` の該当行が残り、`old_id` が NULL である
 
-- [ ] **T-06-05-04**: 完了済みの行は pendingRemovals に出ない
+- [x] **T-06-05-04**: 完了済みの行は pendingRemovals に出ない
   - Target: `MappingTable.pendingRemovals`
   - Scenario: Given `completeRemoval` 済み, When `pendingRemovals()` を呼ぶ
   - Expected: Then 空のリストを返す
 
-- [ ] **T-06-05-05**: tags から旧行の Tag が消える
+- [x] **T-06-05-05**: tags から旧行の Tag が消える
   - Target: `MappingTable.tags`
   - Scenario: Given `completeRemoval` 済み, When `tags()` を呼ぶ
   - Expected: Then `PND` を含み、`OLD` を含まない
 
 #### T-06-06: Given: 保留を abortReplacement した後 (SCH-R-010)
 
-- [ ] **T-06-06-01**: 新行が削除される
+- [x] **T-06-06-01**: 新行が削除される
   - Target: `MappingTable.abortReplacement`
   - Scenario: Given `replace` 済みで `queueId` を得た, When `abortReplacement(queueId)` を呼ぶ
   - Expected: Then tag `PND` の行が `notifications` に存在しない
 
-- [ ] **T-06-06-02**: キューの行も削除される
+- [x] **T-06-06-02**: キューの行も削除される
   - Target: `MappingTable.abortReplacement`
   - Scenario: Given `replace` 済みで `queueId` を得た, When `abortReplacement(queueId)` を呼ぶ
   - Expected: Then `replacement_queue` に該当行が存在しない (`ON DELETE CASCADE`)
 
-- [ ] **T-06-06-03**: 旧行が current に戻る
+- [x] **T-06-06-03**: 旧行が current に戻る
   - Target: `MappingTable.abortReplacement`
   - Scenario: Given `replace` 済みで `queueId` を得た, When `abortReplacement(queueId)` を呼ぶ
   - Expected: Then tag `OLD` の行が `notify_status = 1` である
 
-- [ ] **T-06-06-04**: get は旧行の値を返す
+- [x] **T-06-06-04**: get は旧行の値を返す
   - Target: `MappingTable.get`
   - Scenario: Given `abortReplacement` 済み, When `get('b1','a1')` を呼ぶ
   - Expected: Then tag `OLD` の `MappingRecord` を返す
 
-- [ ] **T-06-06-05**: 取り消した保留は pendingRemovals に出ない
+- [x] **T-06-06-05**: 取り消した保留は pendingRemovals に出ない
   - Target: `MappingTable.pendingRemovals`
   - Scenario: Given `abortReplacement` 済み, When `pendingRemovals()` を呼ぶ
   - Expected: Then 空のリストを返す
@@ -617,59 +616,71 @@ version: 1.2.0
 
 #### T-06-07: Given: 置換後の Tag が別のキーの Tag と衝突する replace (SCH-R-026, SCH-E-11)
 
-- [ ] **T-06-07-01**: StorageException になる
+- [x] **T-06-07-01**: StorageException になる
   - Target: `MappingTable.replace`
   - Scenario: Given `b9`/`a9` が tag `PND` を持つ, When `b1`/`a1` を tag `PND` で `replace` する
   - Expected: Then `StorageException` を投げる
 
-- [ ] **T-06-07-02**: 旧行は current のまま変わらない
+- [x] **T-06-07-02**: 旧行は current のまま変わらない
   - Target: `MappingTable.replace`
   - Scenario: Given `b9`/`a9` が tag `PND` を持つ, When `b1`/`a1` を tag `PND` で `replace` して失敗した
   - Expected: Then tag `OLD` の行が `notify_status = 1` である
 
-- [ ] **T-06-07-03**: 新行とキューの行は作られない
+- [x] **T-06-07-03**: 新行とキューの行は作られない
   - Target: `MappingTable.replace`
   - Scenario: Given `b9`/`a9` が tag `PND` を持つ, When `b1`/`a1` を tag `PND` で `replace` して失敗した
   - Expected: Then `replacement_queue` が 0 件で、`notifications` に pending の行が無い
 
 #### T-06-08: Given: 置換後の Tag が旧行の Tag と同じ replace
 
-- [ ] **T-06-08-01**: StorageException になる
+- [x] **T-06-08-01**: StorageException になる
   - Target: `MappingTable.replace`
   - Scenario: Given 旧行の tag が `OLD`, When `b1`/`a1` を tag `OLD` で `replace` する
   - Expected: Then `StorageException` を投げる
 
-- [ ] **T-06-08-02**: 旧行は current のまま変わらない
+- [x] **T-06-08-02**: 旧行は current のまま変わらない
   - Target: `MappingTable.replace`
   - Scenario: Given 旧行の tag が `OLD`, When `b1`/`a1` を tag `OLD` で `replace` して失敗した
   - Expected: Then tag `OLD` の行が `notify_status = 1` である
+
+#### T-06-13: Given: 置換する旧行 (current な行) が無い replace (番号は既存 ID を振り直さないため末尾)
+
+- [x] **T-06-13-01**: StorageException になる
+  - Target: `MappingTable.replace`
+  - Scenario: Given `b1`/`a1` の行が無い, When `b1`/`a1` を tag `PND` で `replace` する
+  - Expected: Then `StorageException` を投げる
+
+- [x] **T-06-13-02**: 新行とキューの行は作られない
+  - Target: `MappingTable.replace`
+  - Scenario: Given `b1`/`a1` の行が無い, When `b1`/`a1` を tag `PND` で `replace` して失敗した
+  - Expected: Then `notifications` と `replacement_queue` が 0 件である
 
 ### [エッジケース] Edge Cases
 
 #### T-06-09: Given: 2 件の保留のうち 1 件を complete する
 
-- [ ] **T-06-09-01**: もう 1 件は保留のまま残る
+- [x] **T-06-09-01**: もう 1 件は保留のまま残る
   - Target: `MappingTable.completeRemoval`
   - Scenario: Given `b1`/`a1` と `b2`/`a2` を `replace` 済み, When `b1`/`a1` の `completeRemoval` を呼ぶ
   - Expected: Then `pendingRemovals()` が `b2`/`a2` の 1 件だけを返す
 
 #### T-06-10: Given: 2 件の保留のうち 1 件を abort する
 
-- [ ] **T-06-10-01**: もう 1 件の新行は pending のまま残る
+- [x] **T-06-10-01**: もう 1 件の新行は pending のまま残る
   - Target: `MappingTable.abortReplacement`
   - Scenario: Given `b1`/`a1` と `b2`/`a2` を `replace` 済み, When `b1`/`a1` の `abortReplacement` を呼ぶ
   - Expected: Then `b2`/`a2` の新行が `notify_status = 2` のままである
 
 #### T-06-11: Given: 完了後にもう一度 replace する (AUTOINCREMENT)
 
-- [ ] **T-06-11-01**: キューの id を再利用しない
+- [x] **T-06-11-01**: キューの id を再利用しない
   - Target: `MappingTable.replace`
   - Scenario: Given 1 回目の `replace` の `queueId` を `completeRemoval` した, When 同じキーを別の tag で 2 回目の `replace` する
   - Expected: Then 戻り値が 1 回目の `queueId` より大きい
 
 #### T-06-12: Given: 完了済みのキュー行が残っている状態で、同じキーをもう一度 replace する
 
-- [ ] **T-06-12-01**: pendingRemovals は新しい保留の 1 件だけを返す
+- [x] **T-06-12-01**: pendingRemovals は新しい保留の 1 件だけを返す
   - Target: `MappingTable.pendingRemovals`
   - Scenario: Given 1 回目の置換を `completeRemoval` 済みで、2 回目の `replace` をした, When `pendingRemovals()` を呼ぶ
   - Expected: Then 2 回目の保留 1 件だけを返す (完了済みの行を含まない)
@@ -697,131 +708,6 @@ version: 1.2.0
   - Target: `MappingTable.replace`
   - Scenario: Given 前の置換が未完了, When C で `replace` する
   - Expected: Then 戻り値が `replacement_queue.id` と等しく、前の `replace` の戻り値とは異なる
-
----
-
-## T-19: SqliteAccess (SQA)
-
-> `SqliteStore` から基礎層を分ける移設 (implementation-schedule.md §2.5)。
-> 移設そのものは振る舞いを変えない。既存の MAP (T-05)、MID (T-03)、RPQ (T-06) のテストを変えずに通すことが、移設の安全網である。
-> 新しい Case は、基礎層 `SqliteAccess` を単体で確かめる。テストは、一時ファイルの SQLite か、メモリ上の SQLite で行う。
-> `SqliteStore.open` と `SqliteStore.fromDatabase` の公開の形は変えない。
-> 番号は既存 ID を振り直さないため末尾 (T-19) とする。
-
-### [正常] Normal Cases
-
-#### T-19-01: Given: 成功する action を guard に渡す
-
-- [ ] **T-19-01-01**: 戻り値をそのまま返す
-  - Target: `SqliteAccess.guard`
-  - Scenario: Given 42 を返す action, When `guard('p: ', action)` を呼ぶ
-  - Expected: Then 42 を返す
-
-#### T-19-02: Given: 成功する body を transact に渡す
-
-- [ ] **T-19-02-01**: body の戻り値を返す
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given 1 行を `INSERT` して 42 を返す body, When `transact('p: ', body)` を呼ぶ
-  - Expected: Then 42 を返す
-
-- [ ] **T-19-02-02**: 変更が確定する
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given 1 行を `INSERT` する body, When `transact('p: ', body)` を呼ぶ
-  - Expected: Then 別の接続から、その 1 行を読める
-
-#### T-19-03: Given: 値をバインドした select
-
-- [ ] **T-19-03-01**: 条件に合う行だけを返す
-  - Target: `SqliteAccess.select`
-  - Scenario: Given `a = 1` と `a = 2` の 2 行があるテーブル, When `select('SELECT a FROM t WHERE a = ?', [2])` を呼ぶ
-  - Expected: Then `a = 2` の 1 行だけを返す
-
-#### T-19-04: Given: 3 行のうち 2 行に当たる UPDATE を execute した直後
-
-- [ ] **T-19-04-01**: updatedRows が 2 である
-  - Target: `SqliteAccess.updatedRows`
-  - Scenario: Given 3 行のうち 2 行に当たる `UPDATE` を `execute` した, When `updatedRows` を読む
-  - Expected: Then 2 を返す
-
-#### T-19-05: Given: AUTOINCREMENT のテーブルに 1 行を INSERT した直後
-
-- [ ] **T-19-05-01**: lastInsertRowId が追加した行の id である
-  - Target: `SqliteAccess.lastInsertRowId`
-  - Scenario: Given AUTOINCREMENT のテーブルに 1 行を `INSERT` した, When `lastInsertRowId` を読む
-  - Expected: Then 追加した行の `id` と等しい
-
-### [異常] Error Cases
-
-#### T-19-06: Given: SqliteException を投げる action を guard に渡す (存在しないテーブルを SELECT する)
-
-- [ ] **T-19-06-01**: StorageException になる
-  - Target: `SqliteAccess.guard`
-  - Scenario: Given 存在しないテーブルを `SELECT` する action, When `guard('p: ', action)` を呼ぶ
-  - Expected: Then `StorageException` を投げる
-
-- [ ] **T-19-06-02**: メッセージは prefix の後ろに SQLite のメッセージが続く
-  - Target: `SqliteAccess.guard`
-  - Scenario: Given 存在しないテーブルを `SELECT` する action, When `guard('p: ', action)` を呼んで失敗した
-  - Expected: Then メッセージが渡した prefix で始まり、SQLite のメッセージ (`no such table`) を含む
-
-#### T-19-07: Given: SqliteException 以外の例外を投げる action を guard に渡す
-
-- [ ] **T-19-07-01**: 同じ例外がそのまま出る
-  - Target: `SqliteAccess.guard`
-  - Scenario: Given `StateError` を投げる action, When `guard('p: ', action)` を呼ぶ
-  - Expected: Then `StateError` を投げる (`StorageException` に変えない)
-
-#### T-19-08: Given: SqliteException を投げる body を transact に渡す (1 行を INSERT した後に存在しないテーブルを SELECT する)
-
-- [ ] **T-19-08-01**: StorageException になる
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given 1 行を `INSERT` した後に存在しないテーブルを `SELECT` する body, When `transact('p: ', body)` を呼ぶ
-  - Expected: Then `StorageException` を投げる
-
-- [ ] **T-19-08-02**: 変更は取り消される
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given 1 行を `INSERT` した後に存在しないテーブルを `SELECT` する body, When `transact('p: ', body)` を呼んで失敗した
-  - Expected: Then `INSERT` した行が残っていない
-
-#### T-19-09: Given: SqliteException 以外の例外を投げる body を transact に渡す (1 行を INSERT した後に StateError を投げる)
-
-- [ ] **T-19-09-01**: 同じ例外がそのまま出る
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given 1 行を `INSERT` した後に `StateError` を投げる body, When `transact('p: ', body)` を呼ぶ
-  - Expected: Then `StateError` を投げる (`StorageException` に変えない)
-
-- [ ] **T-19-09-02**: 変更は取り消される
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given 1 行を `INSERT` した後に `StateError` を投げる body, When `transact('p: ', body)` を呼んで失敗した
-  - Expected: Then `INSERT` した行が残っていない
-
-### [エッジケース] Edge Cases
-
-#### T-19-10: Given: すでにトランザクションが開いているときに transact を呼ぶ (BEGIN が失敗する)
-
-- [ ] **T-19-10-01**: StorageException になる
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given `execute('BEGIN')` で外側のトランザクションを開いてある, When `transact('p: ', body)` を呼ぶ
-  - Expected: Then `StorageException` を投げる
-
-- [ ] **T-19-10-02**: 外側のトランザクションは取り消されず、COMMIT できる
-  - Target: `SqliteAccess.transact`
-  - Scenario: Given `execute('BEGIN')` で外側のトランザクションを開き 1 行を `INSERT` してある, When `transact('p: ', body)` が失敗した後に `execute('COMMIT')` を呼ぶ
-  - Expected: Then 外側で `INSERT` した行が、別の接続から読める
-
-#### T-19-11: Given: 条件に合う行が無い select
-
-- [ ] **T-19-11-01**: 空の結果を返す
-  - Target: `SqliteAccess.select`
-  - Scenario: Given 空のテーブル, When `select('SELECT a FROM t WHERE a = ?', [1])` を呼ぶ
-  - Expected: Then 空の結果を返す (例外を投げない)
-
-#### T-19-12: Given: params を省略した select
-
-- [ ] **T-19-12-01**: バインドなしで実行される
-  - Target: `SqliteAccess.select`
-  - Scenario: Given `?` を含まない SQL `SELECT 1 AS n`, When `params` を省略して `select` を呼ぶ
-  - Expected: Then `n` が 1 の 1 行を返す
 
 ---
 
@@ -894,7 +780,6 @@ version: 1.2.0
 | T-04: parseAt                    | Normal: 8  | Error: 6  | Edge: 14 | [OK]   |
 | T-05: MappingTable / SqliteStore | Normal: 21 | Error: 15 | Edge: 8  | [OK]   |
 | T-06: 置換キュー                 | Normal: 19 | Error: 7  | Edge: 8  | [OK]   |
-| T-19: SqliteAccess               | Normal: 6  | Error: 7  | Edge: 4  | [OK]   |
 
 <!--
 Task ID Format: T-<TestTarget>-<Scenario>-<Case>

@@ -255,4 +255,4 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 | 2026-11-22 | 1.0.3   | NotificationEnvironment methods, evaluateAvailability and w5Check normalize the AUMID with requireId / normalizeId                      |
 | 2026-11-22 | 1.0.4   | Use normalizeId with a check in each method; the lower IFs take normalized values and are not public                                    |
 | 2026-11-22 | 1.0.5   | The environment implementation is DefaultNotificationEnvironment in env/; add NEV (automated with a Mock registry, then a manual check) |
-| 2026-11-22 | 1.0.6   | Mock location follows the new test layout: `lib/env/__tests__/` (implementation-index v1.3.0)                                                          |
+| 2026-11-22 | 1.0.6   | Mock location follows the new test layout: `lib/env/__tests__/` (implementation-index v1.3.0)                                           |

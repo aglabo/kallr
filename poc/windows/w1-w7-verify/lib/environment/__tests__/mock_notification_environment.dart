@@ -6,19 +6,29 @@
 // Released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+import 'package:w1_w7_verify/environment/aumid_registry.dart';
 import 'package:w1_w7_verify/environment/notification_environment.dart';
+import 'package:w1_w7_verify/environment/notification_setting_source.dart';
 
 /// [NotificationEnvironment] that never touches the OS: [check] returns the
-/// [Availability] given at construction.
+/// [Availability] given at construction; [register] / [unregister] only record
+/// their calls.
 class MockNotificationEnvironment implements NotificationEnvironment {
   /// Creates a mock whose [check] returns [_availability].
-  const MockNotificationEnvironment(this._availability);
+  ///
+  /// [registry] and [settings] are held only so tests can inject fakes and
+  /// verify they are never called; this mock never calls them.
+  MockNotificationEnvironment(
+    this._availability, {
+    this.registry,
+    this.settings,
+  });
 
   /// State: notifications can be shown.
-  const MockNotificationEnvironment.ok() : this(const Availability.ok());
+  MockNotificationEnvironment.ok() : this(const Availability.ok());
 
   /// State: the AUMID is not registered.
-  const MockNotificationEnvironment.unregistered()
+  MockNotificationEnvironment.unregistered()
     : this(
         const Availability(
           registered: false,
@@ -29,7 +39,7 @@ class MockNotificationEnvironment implements NotificationEnvironment {
       );
 
   /// State: registered, but the DisplayName is empty.
-  const MockNotificationEnvironment.displayNameEmpty()
+  MockNotificationEnvironment.displayNameEmpty()
     : this(
         const Availability(
           registered: true,
@@ -40,7 +50,7 @@ class MockNotificationEnvironment implements NotificationEnvironment {
       );
 
   /// State: the OS setting is disabledForApplication.
-  const MockNotificationEnvironment.disabledForApplication()
+  MockNotificationEnvironment.disabledForApplication()
     : this(
         const Availability(
           registered: true,
@@ -52,7 +62,7 @@ class MockNotificationEnvironment implements NotificationEnvironment {
       );
 
   /// State: the OS setting is disabledForUser.
-  const MockNotificationEnvironment.disabledForUser()
+  MockNotificationEnvironment.disabledForUser()
     : this(
         const Availability(
           registered: true,
@@ -64,7 +74,7 @@ class MockNotificationEnvironment implements NotificationEnvironment {
       );
 
   /// State: the OS setting is disabledByGroupPolicy.
-  const MockNotificationEnvironment.disabledByGroupPolicy()
+  MockNotificationEnvironment.disabledByGroupPolicy()
     : this(
         const Availability(
           registered: true,
@@ -76,7 +86,7 @@ class MockNotificationEnvironment implements NotificationEnvironment {
       );
 
   /// State: the OS setting is disabledByManifest.
-  const MockNotificationEnvironment.disabledByManifest()
+  MockNotificationEnvironment.disabledByManifest()
     : this(
         const Availability(
           registered: true,
@@ -88,6 +98,25 @@ class MockNotificationEnvironment implements NotificationEnvironment {
       );
 
   final Availability _availability;
+
+  /// Injected registry; never called by this mock.
+  final AumidRegistry? registry;
+
+  /// Injected setting source; never called by this mock.
+  final NotificationSettingSource? settings;
+
+  /// Arguments of every [register] call, in call order.
+  final List<({String aumid, String displayName})> registerCalls = [];
+
+  /// AUMID of every [unregister] call, in call order.
+  final List<String> unregisterCalls = [];
+
+  /// Records the call only; never touches the registry or the OS.
+  void register(String aumid, String displayName) =>
+      registerCalls.add((aumid: aumid, displayName: displayName));
+
+  /// Records the call only; never touches the registry or the OS.
+  void unregister(String aumid) => unregisterCalls.add(aumid);
 
   @override
   Availability check(String aumid) => _availability;

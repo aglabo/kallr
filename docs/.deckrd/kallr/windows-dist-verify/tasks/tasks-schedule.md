@@ -19,11 +19,11 @@ version: 1.1.0
 
 ## Task Summary
 
-| Test Target                            | Scenarios | Cases | Status      |
-| -------------------------------------- | --------- | ----- | ----------- |
-| T-04: parseAt (ATP)                    | 18        | 28    | done        |
-| T-05: MappingTable / SqliteStore (MAP) | 22        | 44    | done        |
-| T-06: 置換キュー (RPQ)                 | 14        | 34    | done        |
+| Test Target                            | Scenarios | Cases | Status |
+| -------------------------------------- | --------- | ----- | ------ |
+| T-04: parseAt (ATP)                    | 18        | 28    | done   |
+| T-05: MappingTable / SqliteStore (MAP) | 22        | 44    | done   |
+| T-06: 置換キュー (RPQ)                 | 14        | 34    | done   |
 
 <!-- Status may be: pending | in progress | done -->
 

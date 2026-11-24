@@ -470,6 +470,7 @@ void main() {
           expect(f.table.get('b1', 'a1'), isNull);
         });
 
+        /// orphan 判定そのものは T-WDV-SVL-03 が検証する。ここは add 失敗後のシナリオを確かめる。
         test('[Error] T-WDV-SVA-27: 続く list は残った予約を orphan として検出する', () {
           final f = failingPut();
           expect(f.add, throwsA(isA<StorageException>()));

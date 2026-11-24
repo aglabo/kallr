@@ -85,12 +85,15 @@ class SqliteStore implements MappingTable, MachineIdProvider {
     [batchId, alarmId, ..._currentRowParams],
   ).firstOrNull;
 
-  /// Returns every current record (`notify_status` 1 or 2).
+  /// Returns every current record (`notify_status` 1 or 2), in ascending
+  /// `notifications.id` order (insertion order of the rows).
   ///
   /// A [SqliteException] is thrown as a [StorageException].
   @override
-  List<MappingRecord> all() =>
-      _selectRecords('WHERE $_currentRowPredicate', _currentRowParams);
+  List<MappingRecord> all() => _selectRecords(
+    'WHERE $_currentRowPredicate ORDER BY id',
+    _currentRowParams,
+  );
 
   /// Returns the Tag of every row, including superseded ones (`notify_status` 0),
   /// because the OS may still hold their notifications.

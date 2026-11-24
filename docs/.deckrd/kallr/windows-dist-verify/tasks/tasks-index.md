@@ -2,7 +2,7 @@
 title: "Implementation Tasks (Index): Windows Distribution Verify"
 module: kallr/windows-dist-verify
 status: Active
-version: 1.2.0
+version: 1.2.1
 created: "2026-11-22 00:00:00"
 source: specifications-index.md
 ---
@@ -12,28 +12,28 @@ source: specifications-index.md
 
 ## Task Summary
 
-| Test Target | 略語 | ファイル             | Scenarios | Cases |
-| ----------- | ---- | -------------------- | --------: | ----: |
-| T-01        | TAG  | tasks-tag.md         |        10 |    28 |
-| T-02        | TAL  | tasks-tag.md         |        13 |    18 |
-| T-03        | MID  | tasks-tag.md         |        21 |    34 |
-| T-04        | ATP  | tasks-schedule.md    |        18 |    28 |
-| T-05        | MAP  | tasks-schedule.md    |        22 |    44 |
-| T-06        | RPQ  | tasks-schedule.md    |        14 |    34 |
-| T-07        | SVA  | tasks-service.md     |        17 |    54 |
-| T-08        | AVL  | tasks-environment.md |        14 |    36 |
-| T-09        | W5C  | tasks-environment.md |        14 |    40 |
-| T-10        | ARG  | tasks-cli.md         |        31 |    60 |
-| T-11        | CLI  | tasks-cli.md         |        24 |    88 |
-| T-12        | NID  | tasks-cli.md         |         6 |     6 |
-| T-13        | NEV  | tasks-environment.md |        10 |    13 |
-| T-14        | SVP  | tasks-service.md     |        13 |    34 |
-| T-15        | SVX  | tasks-service.md     |         7 |    17 |
-| T-16        | SVL  | tasks-service.md     |        10 |    15 |
-| T-17        | SVG  | tasks-service.md     |         9 |    23 |
-| T-18        | SVN  | tasks-service.md     |        17 |    21 |
-| T-19        | SQA  | tasks-schedule.md    |        12 |    17 |
-| 合計        |      |                      |           |   604 |
+| Test Target | 略語     | ファイル             | Scenarios | Cases |
+| ----------- | -------- | -------------------- | --------: | ----: |
+| T-01        | TAG      | tasks-tag.md         |        10 |    28 |
+| T-02        | TAL      | tasks-tag.md         |        13 |    18 |
+| T-03        | MID      | tasks-tag.md         |        21 |    34 |
+| T-04        | ATP      | tasks-schedule.md    |        18 |    28 |
+| T-05        | MAP      | tasks-schedule.md    |        22 |    44 |
+| T-06        | RPQ      | tasks-schedule.md    |        14 |    34 |
+| T-07        | SVA      | tasks-service.md     |        17 |    54 |
+| T-08        | AVL, MNE | tasks-environment.md |        14 |    36 |
+| T-09        | W5C      | tasks-environment.md |        14 |    40 |
+| T-10        | ARG      | tasks-cli.md         |        31 |    60 |
+| T-11        | CLI      | tasks-cli.md         |        24 |    88 |
+| T-12        | NID      | tasks-cli.md         |         6 |     6 |
+| T-13        | NEV      | tasks-environment.md |        10 |    13 |
+| T-14        | SVP      | tasks-service.md     |        13 |    34 |
+| T-15        | SVX      | tasks-service.md     |         7 |    17 |
+| T-16        | SVL      | tasks-service.md     |        10 |    15 |
+| T-17        | SVG      | tasks-service.md     |         9 |    23 |
+| T-18        | SVN      | tasks-service.md     |        17 |    21 |
+| T-19        | SQA      | tasks-schedule.md    |        12 |    17 |
+| 合計        |          |                      |           |   604 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 
@@ -133,8 +133,9 @@ source: specifications-index.md
 
 ## Change History
 
-| Date       | Version | Description                                                                  |
-| ---------- | ------- | ---------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Initial tasks                                                                |
-| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md |
-| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore  |
+| Date       | Version | Description                                                                                             |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Initial tasks                                                                                           |
+| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md                            |
+| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore                             |
+| 2026-11-25 | 1.2.1   | T-08 also covers the test target MNE (Mock cases T-08-03, T-08-04; follows implementation-index v1.4.1) |

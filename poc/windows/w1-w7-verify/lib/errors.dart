@@ -10,6 +10,8 @@
 // Released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+import 'environment/notification_environment.dart';
+
 /// Thrown when a unique Tag could not be allocated within the retry limit.
 class DuplicateTagException implements Exception {
   /// Creates the exception for [attempts] duplicate Tags in a row.
@@ -59,4 +61,16 @@ class ScheduleException implements Exception {
 
   @override
   String toString() => 'ScheduleException: 0x${hresult.toRadixString(16)}';
+}
+
+/// Thrown when toast notifications cannot be shown (the availability check is not ok).
+class UnavailableException implements Exception {
+  /// Creates the exception for the failed [availability] check.
+  const UnavailableException(this.availability);
+
+  /// Result of the failed check.
+  final Availability availability;
+
+  @override
+  String toString() => 'UnavailableException: ${availability.reason}';
 }

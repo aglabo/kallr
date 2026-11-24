@@ -45,6 +45,11 @@ abstract interface class ToastScheduler {
     required String title,
   });
 
+  /// Removes the toast of ([tag], [group]); returns false when none exists (already fired).
+  ///
+  /// Throws a `ScheduleException` when the OS fails.
+  bool remove(String tag, String group);
+
   /// Returns the scheduled toasts of [group].
   List<ScheduledToast> list(String group);
 }

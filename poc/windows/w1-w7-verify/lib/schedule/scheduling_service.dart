@@ -7,6 +7,7 @@
 // https://opensource.org/licenses/MIT
 
 import '../environment/notification_environment.dart';
+import '../errors.dart';
 import '../models.dart';
 import '../store/mapping_table.dart';
 import '../tag/providers.dart';
@@ -38,7 +39,12 @@ final class SchedulingService {
   final RandomSourceProvider _random;
   final MachineIdProvider _machineId;
 
-  /// Registers a new notification for ([batchId], [alarmId]) at [at] and returns its record.
+  /// Registers a notification for ([batchId], [alarmId]) at [at] and returns its record.
+  ///
+  /// Throws [UnavailableException] before any side effect when notifications cannot be shown.
+  ///
+  /// When the key already has a toast in the scheduler, the toast is replaced in four stages
+  /// (table.replace, scheduler.add, scheduler.remove, table.completeRemoval).
   MappingRecord add({
     required String batchId,
     required String alarmId,
@@ -46,12 +52,15 @@ final class SchedulingService {
     required String title,
     required String aumid,
   }) {
-    _env.check(aumid);
+    final availability = _env.check(aumid);
+    if (!availability.ok) throw UnavailableException(availability);
+    final current = _table.get(batchId, alarmId);
+    final toasts = _scheduler.list(kGroup);
     final registeredAt = _clock.now();
     final tag = allocateTag(
       random: _random,
       machineId: _machineId,
-      existingTags: _table.tags(),
+      existingTags: {...toasts.map((t) => t.tag), ..._table.tags()},
       registeredAt: registeredAt,
     );
     final record = MappingRecord(
@@ -62,8 +71,16 @@ final class SchedulingService {
       title: title,
       registeredAt: registeredAt,
     );
-    _scheduler.add(tag: tag, group: kGroup, at: at, title: title);
-    _table.put(record);
+    final replaced = current != null && toasts.any((t) => t.tag == current.tag);
+    if (replaced) {
+      final queueId = _table.replace(record);
+      _scheduler.add(tag: tag, group: kGroup, at: at, title: title);
+      _scheduler.remove(current.tag, kGroup);
+      _table.completeRemoval(queueId);
+    } else {
+      _scheduler.add(tag: tag, group: kGroup, at: at, title: title);
+      _table.put(record);
+    }
     return record;
   }
 }

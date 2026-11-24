@@ -7,6 +7,7 @@
 // https://opensource.org/licenses/MIT
 
 import 'package:w1_w7_verify/environment/notification_environment.dart';
+import 'package:w1_w7_verify/errors.dart';
 import 'package:w1_w7_verify/models.dart';
 import 'package:w1_w7_verify/schedule/clock_provider.dart';
 import 'package:w1_w7_verify/schedule/toast_scheduler.dart';
@@ -16,10 +17,15 @@ import 'package:w1_w7_verify/tag/providers.dart';
 /// Ordered record of the calls made to the fakes that share it.
 typedef CallLog = List<String>;
 
-/// Fake environment that always reports an available environment and logs `env.check`.
+/// Fake environment that reports a fixed [Availability] and logs `env.check`.
 class FakeEnvironment implements NotificationEnvironment {
   /// Creates the fake; [log] receives one entry per call.
-  FakeEnvironment(this.log);
+  ///
+  /// [availability] is what [check] returns (default: an available environment).
+  FakeEnvironment(this.log, {this.availability = const Availability.ok()});
+
+  /// Result returned by [check].
+  final Availability availability;
 
   /// Shared call log.
   final CallLog log;
@@ -31,9 +37,12 @@ class FakeEnvironment implements NotificationEnvironment {
   Availability check(String aumid) {
     checked.add(aumid);
     log.add('env.check');
-    return const Availability.ok();
+    return availability;
   }
 }
+
+/// Operation of [ToastScheduler] that [MockToastScheduler.failNext] can make fail.
+enum ToastOp { add, remove, list }
 
 /// In-memory [ToastScheduler] that logs calls.
 class MockToastScheduler implements ToastScheduler {
@@ -44,6 +53,15 @@ class MockToastScheduler implements ToastScheduler {
   final CallLog log;
 
   final List<ScheduledToast> _toasts = [];
+  final Map<ToastOp, int> _failures = {};
+
+  /// Makes the next [op] throw `ScheduleException(hresult)` (once; the call is still logged).
+  void failNext(ToastOp op, int hresult) => _failures[op] = hresult;
+
+  void _throwIfFailing(ToastOp op) {
+    final hresult = _failures.remove(op);
+    if (hresult != null) throw ScheduleException(hresult);
+  }
 
   @override
   void add({
@@ -53,17 +71,33 @@ class MockToastScheduler implements ToastScheduler {
     required String title,
   }) {
     log.add('scheduler.add');
+    _throwIfFailing(ToastOp.add);
     _toasts.add(ScheduledToast(tag: tag, group: group, at: at));
   }
 
   @override
+  bool remove(String tag, String group) {
+    log.add('scheduler.remove');
+    _throwIfFailing(ToastOp.remove);
+    final before = _toasts.length;
+    _toasts.removeWhere((t) => t.tag == tag && t.group == group);
+    return _toasts.length < before;
+  }
+
+  /// Puts [toast] into the scheduled list without logging (test setup).
+  void seed(ScheduledToast toast) => _toasts.add(toast);
+
+  @override
   List<ScheduledToast> list(String group) {
     log.add('scheduler.list');
+    _throwIfFailing(ToastOp.list);
     return _toasts.where((t) => t.group == group).toList();
   }
 }
 
 /// In-memory [MappingTable] that logs calls. Only the methods the add path needs are implemented.
+///
+/// Superseded rows stay in [tags] until the removal completes, like the real table.
 class FakeMappingTable implements MappingTable {
   /// Creates an empty table; [log] receives one entry per call.
   FakeMappingTable(this.log);
@@ -72,6 +106,9 @@ class FakeMappingTable implements MappingTable {
   final CallLog log;
 
   final Map<(String, String), MappingRecord> _rows = {};
+  final Map<int, MappingRecord> _superseded = {};
+  final Map<int, MappingRecord> _queue = {};
+  int _lastQueueId = 0;
 
   @override
   MappingRecord? get(String batchId, String alarmId) {
@@ -86,9 +123,42 @@ class FakeMappingTable implements MappingTable {
   }
 
   @override
+  int replace(MappingRecord record) {
+    log.add('table.replace');
+    final old = _rows[(record.batchId, record.alarmId)];
+    if (old == null) throw const StorageException('no current record');
+    final queueId = ++_lastQueueId;
+    _superseded[queueId] = old;
+    _rows[(record.batchId, record.alarmId)] = record;
+    _queue[queueId] = record;
+    return queueId;
+  }
+
+  @override
+  List<PendingRemoval> pendingRemovals() {
+    log.add('table.pendingRemovals');
+    return [
+      for (final MapEntry(:key, :value) in _queue.entries)
+        PendingRemoval(
+          queueId: key,
+          oldTag: _superseded[key]!.tag,
+          group: kGroup,
+          record: value,
+        ),
+    ];
+  }
+
+  @override
+  void completeRemoval(int queueId) {
+    log.add('table.completeRemoval');
+    _queue.remove(queueId);
+    _superseded.remove(queueId);
+  }
+
+  @override
   Set<String> tags() {
     log.add('table.tags');
-    return _rows.values.map((r) => r.tag).toSet();
+    return [..._rows.values, ..._superseded.values].map((r) => r.tag).toSet();
   }
 
   @override

@@ -15,6 +15,7 @@ import '../models.dart';
 import '../tag/providers.dart';
 import 'mapping_table.dart';
 import 'schema.dart';
+import 'sqlite_access.dart';
 import 'transaction.dart';
 
 /// Key of the machine id row in `settings`.
@@ -60,20 +61,22 @@ class SqliteStore implements MappingTable, MachineIdProvider {
   ///
   /// The caller must have created the schema (as [SqliteStore.open] does), and the store takes ownership
   /// of [db] ([close] closes it). Mainly a seam for injecting a test double.
-  SqliteStore.fromDatabase(this._db);
+  SqliteStore.fromDatabase(Database db) : _db = db, _access = SqliteAccess(db);
 
   /// Opens (creating if needed) the database at [path] and ensures the schema
   /// (see [openDatabase]).
   factory SqliteStore.open(String path) =>
       SqliteStore.fromDatabase(openDatabase(path));
 
+  // Transitional: _db and _access wrap the same Database until _db is removed.
   final Database _db;
+  final SqliteAccess _access;
 
   /// Value returned by [machineId] after its first successful call.
   String? _cachedMachineId;
 
   /// Closes the underlying database.
-  void close() => _db.close();
+  void close() => _access.close();
 
   /// Returns the current record (`notify_status` 1 or 2) for ([batchId], [alarmId]),
   /// or null when none exists. A superseded row (0) is never returned.

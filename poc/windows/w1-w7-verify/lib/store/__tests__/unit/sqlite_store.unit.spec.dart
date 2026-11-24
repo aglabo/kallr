@@ -1992,5 +1992,18 @@ void main() {
         },
       );
     });
+
+    group('Given: a store wrapping an open in-memory Database', () {
+      group('When: 正常系 (close is called once)', () {
+        test('[Normal] T-WDV-MID-45: the underlying Database is closed and can no longer be used', () {
+          final Database db = sqlite3.openInMemory();
+          final SqliteStore store = SqliteStore.fromDatabase(db);
+
+          store.close();
+
+          expect(() => db.select('SELECT 1'), throwsStateError);
+        });
+      });
+    });
   });
 }

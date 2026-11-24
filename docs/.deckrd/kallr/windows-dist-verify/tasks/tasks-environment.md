@@ -636,14 +636,14 @@ version: 1.0.0
 
 ### 対象外 (この文書では扱わない)
 
-| Source item                                                                                            | 扱う場所                                                                          |
-| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Source item                                                                                            | 扱う場所                                                                                 |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | ENV-R-008 と ENV-E-01 の add の終了コード 3、ENV-E-15 の add の成否                                    | SchedulingService.add のタスク (tasks-service.md の T-07)。終了コード変換は tasks-cli.md |
-| ENV-R-009, ENV-R-010, ENV-E-09, ENV-E-10, ENV-E-20, ENV-E-21, ENV-E-26 (register-reg / unregister-reg) | tasks-cli.md (T-10 / T-11)。`windows/` の登録・削除は手動検証                     |
-| ENV-R-011 の Windows 実装 (レジストリでの存在確認)、ENV-E-14 の登録の前後で文字が変わらないこと        | 手動検証 (`windows/win_registry.dart`)                                            |
-| ENV-R-017, ENV-R-018, ENV-E-22, ENV-E-23, ENV-E-24 (引数検査と show の終了コード)                      | tasks-cli.md (T-10 / T-11)                                                        |
-| ENV-R-019 の `--recorded-*` の引数解析、ENV-DD-07, ENV-DD-08, ENV-DD-09, ENV-DD-11                     | tasks-cli.md (T-10 / T-11)                                                        |
-| ENV-E-13 (集中モード・ロック状態)                                                                      | 確認の対象外。観測する入力が無く自動テストの対象外。手動検証で限界を記録する      |
+| ENV-R-009, ENV-R-010, ENV-E-09, ENV-E-10, ENV-E-20, ENV-E-21, ENV-E-26 (register-reg / unregister-reg) | tasks-cli.md (T-10 / T-11)。`windows/` の登録・削除は手動検証                            |
+| ENV-R-011 の Windows 実装 (レジストリでの存在確認)、ENV-E-14 の登録の前後で文字が変わらないこと        | 手動検証 (`windows/win_registry.dart`)                                                   |
+| ENV-R-017, ENV-R-018, ENV-E-22, ENV-E-23, ENV-E-24 (引数検査と show の終了コード)                      | tasks-cli.md (T-10 / T-11)                                                               |
+| ENV-R-019 の `--recorded-*` の引数解析、ENV-DD-07, ENV-DD-08, ENV-DD-09, ENV-DD-11                     | tasks-cli.md (T-10 / T-11)                                                               |
+| ENV-E-13 (集中モード・ロック状態)                                                                      | 確認の対象外。観測する入力が無く自動テストの対象外。手動検証で限界を記録する             |
 
 ## Category Balance
 

@@ -467,6 +467,48 @@ void main() {
           expect(f.table.get('b1', 'a1'), isNull);
         });
       });
+
+      /// Stage 1 of a replacement (table.replace) fails; add propagates the error before touching the OS schedule (SCH-E-11, SCH-DD-01).
+      group('When: 置換の段階 1 (DB への記録) が失敗する', () {
+        _Fixture failingReplace() =>
+            _Fixture(withOld: true)
+              ..table.failNextReplace(const StorageException('disk full'));
+
+        test('[Error] T-WDV-SVA-31: StorageException をそのまま投げる', () {
+          expect(
+            failingReplace().add,
+            throwsA(
+              isA<StorageException>().having(
+                (e) => e.message,
+                'message',
+                'disk full',
+              ),
+            ),
+          );
+        });
+
+        test('[Error] T-WDV-SVA-32: OS の予約を追加も削除もしない', () {
+          final f = failingReplace();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(
+            f.log.where({'scheduler.add', 'scheduler.remove'}.contains),
+            isEmpty,
+          );
+        });
+
+        test('[Error] T-WDV-SVA-33: 予約一覧には OLD の 1 件だけが残る', () {
+          final f = failingReplace();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_old]);
+        });
+
+        test('[Error] T-WDV-SVA-34: 対応表は OLD の行を current のまま持つ', () {
+          final f = failingReplace();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(f.table.pendingRemovals(), isEmpty);
+          expect(f.table.get('b1', 'a1')?.tag, _old);
+        });
+      });
     });
   });
 }

@@ -132,9 +132,19 @@ class FakeMappingTable implements MappingTable {
     _rows[(record.batchId, record.alarmId)] = record;
   }
 
+  StorageException? _replaceFailure;
+
+  /// Makes the next [replace] throw [error] (once; the call is still logged, rows and queue stay unchanged).
+  void failNextReplace(StorageException error) => _replaceFailure = error;
+
   @override
   int replace(MappingRecord record) {
     log.add('table.replace');
+    final failure = _replaceFailure;
+    if (failure != null) {
+      _replaceFailure = null;
+      throw failure;
+    }
     final old = _rows[(record.batchId, record.alarmId)];
     if (old == null) throw const StorageException('no current record');
     final queueId = ++_lastQueueId;

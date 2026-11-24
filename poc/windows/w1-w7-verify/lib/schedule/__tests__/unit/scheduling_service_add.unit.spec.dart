@@ -62,11 +62,14 @@ class _Fixture {
   /// With [fired], `OLD` is only in the table: its toast already fired and left the scheduler.
   /// With [stoppedBeforeStage3] (P3), the replacement of `OLD` by `PND` stopped before stage 3:
   /// the table holds `OLD` superseded and `PND` pending, and the scheduler holds both.
+  /// With [withDuplicateTag], the table already holds `ADD1` under b9/a9, so every
+  /// Tag the fixed random source allocates for b1/a1 is a duplicate (table only).
   /// [availability] is what `env.check` returns.
   _Fixture({
     bool withOld = false,
     bool fired = false,
     bool stoppedBeforeStage3 = false,
+    bool withDuplicateTag = false,
     DateTime? oldAt,
     String oldTitle = 't0',
     Availability availability = const Availability.ok(),
@@ -82,6 +85,19 @@ class _Fixture {
       random: FixedRandom('0123456789abcdef'),
       machineId: FixedMachineId('a1b2c3d4'),
     );
+    if (withDuplicateTag) {
+      table.put(
+        MappingRecord(
+          batchId: 'b9',
+          alarmId: 'a9',
+          tag: _add1,
+          at: _a1.toUtc(),
+          title: 't9',
+          registeredAt: _now,
+        ),
+      );
+      log.clear();
+    }
     final registeredOldAt = oldAt ?? _oldAt;
     if (withOld || stoppedBeforeStage3) {
       table.put(
@@ -417,6 +433,28 @@ void main() {
           expect(entries.map((e) => (e.toast?.tag, e.state)), [
             (_add1, EntryState.orphan),
           ]);
+        });
+      });
+
+      /// Every allocated Tag is already in the table; add gives up after the retry limit (SCH-R-007, SCH-E-15).
+      group('When: Tag の重複が上限の後も続く', () {
+        test('[Error] T-WDV-SVA-28: DuplicateTagException を投げる', () {
+          final f = _Fixture(withDuplicateTag: true);
+          expect(f.add, throwsA(isA<DuplicateTagException>()));
+        });
+
+        test('[Error] T-WDV-SVA-29: OS の予約を作らない', () {
+          final f = _Fixture(withDuplicateTag: true);
+          expect(f.add, throwsA(isA<DuplicateTagException>()));
+          expect(f.log, isNot(contains('scheduler.add')));
+          expect(f.scheduler.list('kallr'), isEmpty);
+        });
+
+        test('[Error] T-WDV-SVA-30: 対応表を書き換えない', () {
+          final f = _Fixture(withDuplicateTag: true);
+          expect(f.add, throwsA(isA<DuplicateTagException>()));
+          expect(f.log.where({'table.put', 'table.replace'}.contains), isEmpty);
+          expect(f.table.get('b1', 'a1'), isNull);
         });
       });
     });

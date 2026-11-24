@@ -39,22 +39,22 @@ version: 1.0.0
 
 #### T-08-02: Given 登録あり・DisplayName あり・通知設定が enabled 以外の既知の値, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-02-01**: 通知設定が `disabledForApplication` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
+- [x] **T-08-02-01**: 通知設定が `disabledForApplication` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledForApplication` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledForApplication`、`ok=false` を返し、`reason` に `disabledForApplication` を含める
 
-- [ ] **T-08-02-02**: 通知設定が `disabledForUser` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
+- [x] **T-08-02-02**: 通知設定が `disabledForUser` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledForUser` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledForUser`、`ok=false` を返し、`reason` に `disabledForUser` を含める
 
-- [ ] **T-08-02-03**: 通知設定が `disabledByGroupPolicy` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
+- [x] **T-08-02-03**: 通知設定が `disabledByGroupPolicy` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledByGroupPolicy` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledByGroupPolicy`、`ok=false` を返し、`reason` に `disabledByGroupPolicy` を含める
 
-- [ ] **T-08-02-04**: 通知設定が `disabledByManifest` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04, ENV-E-05)
+- [x] **T-08-02-04**: 通知設定が `disabledByManifest` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04, ENV-E-05)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledByManifest` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledByManifest`、`ok=false` を返し、`reason` に `disabledByManifest` を含める

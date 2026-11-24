@@ -298,6 +298,20 @@ void main() {
         });
       });
 
+      /// The generated Tag collides only with a Tag in the mapping table (its toast already fired); add draws again (SCH-E-32, D8).
+      group('When: 生成した Tag が対応表にだけある Tag と重複する', () {
+        test('[Edge] T-WDV-SVA-52: 乱数を再生成した Tag (ADD2) を使い、対応表に保存する', () {
+          final f = _Fixture(
+            withDuplicateTag: true,
+            random: SequenceRandom(['0123456789abcdef', 'fedcba9876543210']),
+          );
+          final record = f.add();
+          expect(record.tag, _add2);
+          expect(f.table.get('b1', 'a1'), record);
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_add2]);
+        });
+      });
+
       /// A mapping row whose toast is gone from the scheduler already fired: add registers it as new (SCH-E-08).
       group('When: 発火済み', () {
         test('[Normal] T-WDV-SVA-13: 発火済みの項目は新しい Tag の MappingRecord を返す', () {

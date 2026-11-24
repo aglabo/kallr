@@ -15,6 +15,7 @@ import 'package:w1_w7_verify/errors.dart';
 import 'package:w1_w7_verify/models.dart';
 import 'package:w1_w7_verify/schedule/scheduling_service.dart';
 import 'package:w1_w7_verify/schedule/toast_scheduler.dart';
+import 'package:w1_w7_verify/tag/providers.dart';
 import 'package:w1_w7_verify/tag/tag_allocator.dart';
 
 // internal helpers
@@ -37,6 +38,9 @@ final DateTime _oldRegisteredAt = DateTime(2026, 11, 22, 9);
 
 /// Notification time of `OLD` (2026-11-22T11:00:00+09:00).
 final DateTime _oldAt = DateTime.parse('2026-11-22T11:00:00+09:00');
+
+/// Tag allocated when the first random value collides (`ADD2`).
+const String _add2 = '20261122100000-a1b2c3d4-fedcba9876543210';
 
 /// Tag of the pending row `PND` of a stopped replacement.
 const String _pnd = '20261122093000-a1b2c3d4-0123456789abcdef';
@@ -65,25 +69,29 @@ class _Fixture {
   /// the table holds `OLD` superseded and `PND` pending, and the scheduler holds both.
   /// With [withDuplicateTag], the table already holds `ADD1` under b9/a9, so every
   /// Tag the fixed random source allocates for b1/a1 is a duplicate (table only).
+  /// [firstQueueId] is the queue id the table assigns to the first replacement.
+  /// [random] replaces the fixed random source (default: always `0123456789abcdef`).
   /// [availability] is what `env.check` returns.
   _Fixture({
     bool withOld = false,
     bool fired = false,
     bool stoppedBeforeStage3 = false,
     bool withDuplicateTag = false,
+    int firstQueueId = 1,
     DateTime? oldAt,
     String oldTitle = 't0',
+    RandomSourceProvider? random,
     Availability availability = const Availability.ok(),
   }) {
     env = FakeEnvironment(log, availability: availability);
     scheduler = MockToastScheduler(log);
-    table = FakeMappingTable(log);
+    table = FakeMappingTable(log, firstQueueId: firstQueueId);
     service = SchedulingService(
       env: env,
       scheduler: scheduler,
       table: table,
       clock: FixedClock(_now),
-      random: FixedRandom('0123456789abcdef'),
+      random: random ?? FixedRandom('0123456789abcdef'),
       machineId: FixedMachineId('a1b2c3d4'),
     );
     if (withDuplicateTag) {
@@ -270,6 +278,24 @@ void main() {
             ]);
           },
         );
+      });
+
+      /// The generated Tag collides only with a Tag in the scheduler list; add draws again (SCH-R-007, D8: scheduler list and table).
+      group('When: 生成した Tag が予約一覧にだけある Tag と重複する', () {
+        _Fixture schedulerOnlyDuplicate() {
+          final f = _Fixture(
+            random: SequenceRandom(['0123456789abcdef', 'fedcba9876543210']),
+          );
+          f.scheduler.seed(ScheduledToast(tag: _add1, group: 'kallr', at: _a1));
+          return f;
+        }
+
+        test('[Edge] T-WDV-SVA-49: 乱数を再生成した Tag (ADD2) を使う', () {
+          final f = schedulerOnlyDuplicate();
+          final record = f.add();
+          expect(record.tag, _add2);
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_add1, _add2]);
+        });
       });
 
       /// A mapping row whose toast is gone from the scheduler already fired: add registers it as new (SCH-E-08).
@@ -512,8 +538,8 @@ void main() {
 
       /// Stage 2 of a replacement (scheduler.add) is rejected by the OS; add aborts stage 1 and propagates the error (SCH-E-10, SCH-R-010).
       group('When: 置換の段階 2 (OS の追加) を OS が拒否する', () {
-        _Fixture rejectingAdd() =>
-            _Fixture(withOld: true)
+        _Fixture rejectingAdd({int firstQueueId = 1}) =>
+            _Fixture(withOld: true, firstQueueId: firstQueueId)
               ..scheduler.failNext(ToastOp.add, Hresult.invalidArgument);
 
         test('[Error] T-WDV-SVA-35: ScheduleException をそのまま投げる', () {
@@ -530,9 +556,9 @@ void main() {
         });
 
         test('[Error] T-WDV-SVA-36: replace の queueId で abortReplacement を 1 回だけ呼ぶ', () {
-          final f = rejectingAdd();
+          final f = rejectingAdd(firstQueueId: 7);
           expect(f.add, throwsA(isA<ScheduleException>()));
-          expect(f.table.aborted, [1]);
+          expect(f.table.aborted, [7]);
           expect(
             f.log.where((c) => c == 'table.abortReplacement'),
             hasLength(1),
@@ -561,6 +587,98 @@ void main() {
           final f = rejectingAdd();
           expect(f.add, throwsA(isA<ScheduleException>()));
           expect(f.log, isNot(contains('scheduler.remove')));
+        });
+
+        test('[Error] T-WDV-SVA-51: ScheduleException 以外の例外は巻き戻さずそのまま投げる', () {
+          final f = _Fixture(withOld: true)
+            ..scheduler.failNextWith(ToastOp.add, StateError('bug'));
+          expect(f.add, throwsA(isA<StateError>()));
+          expect(f.table.aborted, isEmpty);
+          expect(f.log, isNot(contains('table.abortReplacement')));
+          expect(f.table.pendingRemovals(), hasLength(1));
+        });
+      });
+
+      /// Stage 3 of a replacement (scheduler.remove) fails; add propagates the error and keeps the pending row, with no rollback (SCH-E-12, SCH-DD-01).
+      group('When: 置換の段階 3 (置換前の予約の削除) が失敗する', () {
+        _Fixture failingRemove() =>
+            _Fixture(withOld: true)
+              ..scheduler.failNext(ToastOp.remove, Hresult.invalidArgument);
+
+        test('[Error] T-WDV-SVA-41: ScheduleException をそのまま投げる', () {
+          expect(
+            failingRemove().add,
+            throwsA(
+              isA<ScheduleException>().having(
+                (e) => e.hresult,
+                'hresult',
+                Hresult.invalidArgument,
+              ),
+            ),
+          );
+        });
+
+        test('[Error] T-WDV-SVA-42: 予約一覧には OLD と新しい Tag の 2 件が残る', () {
+          final f = failingRemove();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_old, _add1]);
+        });
+
+        test('[Error] T-WDV-SVA-43: 保留が置換キューに 1 件残る', () {
+          final f = failingRemove();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.table.pendingRemovals(), hasLength(1));
+        });
+
+        test('[Error] T-WDV-SVA-44: 段階 4 (completeRemoval) に進まない', () {
+          final f = failingRemove();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.log, isNot(contains('table.completeRemoval')));
+        });
+
+        test('[Error] T-WDV-SVA-45: 段階 1 を巻き戻さない (abortReplacement を呼ばない)', () {
+          final f = failingRemove();
+          expect(f.add, throwsA(isA<ScheduleException>()));
+          expect(f.table.aborted, isEmpty);
+          expect(f.log, isNot(contains('table.abortReplacement')));
+        });
+      });
+
+      /// Stage 4 of a replacement (table.completeRemoval) fails; add propagates the error and keeps the pending row, with no rollback (SCH-E-12, SCH-DD-01).
+      group('When: 置換の段階 4 (DB の完了) が失敗する', () {
+        _Fixture failingComplete() => _Fixture(withOld: true)
+          ..table.failNextCompleteRemoval(const StorageException('disk full'));
+
+        test('[Error] T-WDV-SVA-46: StorageException をそのまま投げる', () {
+          expect(
+            failingComplete().add,
+            throwsA(
+              isA<StorageException>().having(
+                (e) => e.message,
+                'message',
+                'disk full',
+              ),
+            ),
+          );
+        });
+
+        test('[Error] T-WDV-SVA-47: 予約一覧には ADD1 の 1 件だけが残る', () {
+          final f = failingComplete();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(f.scheduler.list('kallr').map((t) => t.tag), [_add1]);
+        });
+
+        test('[Error] T-WDV-SVA-48: 保留が置換キューに 1 件残る', () {
+          final f = failingComplete();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(f.table.pendingRemovals(), hasLength(1));
+        });
+
+        test('[Error] T-WDV-SVA-50: 段階 1 を巻き戻さない (abortReplacement を呼ばない)', () {
+          final f = failingComplete();
+          expect(f.add, throwsA(isA<StorageException>()));
+          expect(f.table.aborted, isEmpty);
+          expect(f.log, isNot(contains('table.abortReplacement')));
         });
       });
     });

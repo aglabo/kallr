@@ -54,11 +54,17 @@ class MockToastScheduler implements ToastScheduler {
 
   final List<ScheduledToast> _toasts = [];
   final Map<ToastOp, int> _failures = {};
+  final Map<ToastOp, Object> _errors = {};
 
   /// Makes the next [op] throw `ScheduleException(hresult)` (once; the call is still logged).
   void failNext(ToastOp op, int hresult) => _failures[op] = hresult;
 
+  /// Makes the next [op] throw [error] as is (once; the call is still logged).
+  void failNextWith(ToastOp op, Object error) => _errors[op] = error;
+
   void _throwIfFailing(ToastOp op) {
+    final error = _errors.remove(op);
+    if (error != null) throw error;
     final hresult = _failures.remove(op);
     if (hresult != null) throw ScheduleException(hresult);
   }
@@ -100,7 +106,10 @@ class MockToastScheduler implements ToastScheduler {
 /// Superseded rows stay in [tags] until the removal completes, like the real table.
 class FakeMappingTable implements MappingTable {
   /// Creates an empty table; [log] receives one entry per call.
-  FakeMappingTable(this.log);
+  ///
+  /// [firstQueueId] is the id the first [replace] returns (default 1).
+  FakeMappingTable(this.log, {int firstQueueId = 1})
+    : _lastQueueId = firstQueueId - 1;
 
   /// Shared call log.
   final CallLog log;
@@ -108,7 +117,7 @@ class FakeMappingTable implements MappingTable {
   final Map<(String, String), MappingRecord> _rows = {};
   final Map<int, MappingRecord> _superseded = {};
   final Map<int, MappingRecord> _queue = {};
-  int _lastQueueId = 0;
+  int _lastQueueId;
 
   @override
   MappingRecord? get(String batchId, String alarmId) {
@@ -168,9 +177,20 @@ class FakeMappingTable implements MappingTable {
     ];
   }
 
+  StorageException? _completeRemovalFailure;
+
+  /// Makes the next [completeRemoval] throw [error] (once; the call is still logged, rows and queue stay unchanged).
+  void failNextCompleteRemoval(StorageException error) =>
+      _completeRemovalFailure = error;
+
   @override
   void completeRemoval(int queueId) {
     log.add('table.completeRemoval');
+    final failure = _completeRemovalFailure;
+    if (failure != null) {
+      _completeRemovalFailure = null;
+      throw failure;
+    }
     _queue.remove(queueId);
     _superseded.remove(queueId);
   }
@@ -226,6 +246,24 @@ class FixedRandom implements RandomSourceProvider {
 
   @override
   String randomHex64() => value;
+}
+
+/// Random source returning [values] in order, then repeating the last one.
+class SequenceRandom implements RandomSourceProvider {
+  /// Creates a source that returns [values] in order; [values] must not be empty.
+  SequenceRandom(List<String> values)
+    : assert(values.isNotEmpty, 'values must not be empty'),
+      _values = List.unmodifiable(values);
+
+  final List<String> _values;
+  int _next = 0;
+
+  @override
+  String randomHex64() {
+    final value = _values[_next < _values.length ? _next : _values.length - 1];
+    _next++;
+    return value;
+  }
 }
 
 /// Machine id provider returning a fixed id.

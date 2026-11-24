@@ -56,6 +56,9 @@ const Availability _unregistered = Availability(
   reason: 'AUMID が未登録',
 );
 
+/// Title mixing CJK, a space, a non-BMP emoji (surrogate pair) and accented Latin (SVA-57, SVA-58).
+const String _mixedTitle = '会議 🔔 Ünï';
+
 /// Fixed registration time of the clock.
 final DateTime _now = DateTime(2026, 11, 22, 10);
 
@@ -693,6 +696,52 @@ void main() {
           expect(f.add, throwsA(isA<StorageException>()));
           expect(f.table.aborted, isEmpty);
           expect(f.log, isNot(contains('table.abortReplacement')));
+        });
+      });
+
+      /// A UTF-8 (non-ASCII) title is passed to the OS and returned unchanged (SCH-E-23, REQ-NF-004).
+      group('When: UTF-8 の title を渡す', () {
+        const title = '会議の開始';
+
+        test('[Normal] T-WDV-SVA-53: OS の追加に title をそのまま渡す', () {
+          final f = _Fixture()..add(title: title);
+          expect(f.scheduler.addedTitles, [title]);
+        });
+
+        test('[Normal] T-WDV-SVA-54: 返り値の title も同じである', () {
+          final record = _Fixture().add(title: title);
+          expect(record.title, title);
+        });
+
+        test(
+          '[Normal] T-WDV-SVA-54-01: 保存された MappingRecord の title も同じである',
+          () {
+            final f = _Fixture()..add(title: title);
+            expect(f.table.get('b1', 'a1')?.title, title);
+          },
+        );
+
+        test('[Normal] T-WDV-SVA-55: 置換でも OS の追加に title をそのまま渡す', () {
+          final f = _Fixture(withOld: true)..add(title: title);
+          expect(f.scheduler.addedTitles, [title]);
+        });
+
+        test('[Normal] T-WDV-SVA-56: 置換の返り値の title も同じである', () {
+          final record = _Fixture(withOld: true).add(title: title);
+          expect(record.title, title);
+        });
+
+        test(
+          '[Edge] T-WDV-SVA-57: 絵文字 (サロゲートペア) を含む title を OS の追加にそのまま渡す',
+          () {
+            final f = _Fixture()..add(title: _mixedTitle);
+            expect(f.scheduler.addedTitles, [_mixedTitle]);
+          },
+        );
+
+        test('[Edge] T-WDV-SVA-58: 絵文字を含む title の返り値も同じである', () {
+          final record = _Fixture().add(title: _mixedTitle);
+          expect(record.title, _mixedTitle);
         });
       });
     });

@@ -52,6 +52,9 @@ class MockToastScheduler implements ToastScheduler {
   /// Shared call log.
   final CallLog log;
 
+  /// Titles passed to [add], in call order (recorded even when the call then fails).
+  final List<String> addedTitles = [];
+
   final List<ScheduledToast> _toasts = [];
   final Map<ToastOp, int> _failures = {};
   final Map<ToastOp, Object> _errors = {};
@@ -77,6 +80,7 @@ class MockToastScheduler implements ToastScheduler {
     required String title,
   }) {
     log.add('scheduler.add');
+    addedTitles.add(title);
     _throwIfFailing(ToastOp.add);
     _toasts.add(ScheduledToast(tag: tag, group: group, at: at));
   }

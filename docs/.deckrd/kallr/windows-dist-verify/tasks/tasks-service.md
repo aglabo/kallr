@@ -23,7 +23,7 @@ version: 1.0.0
 
 | Test Target                                       | Scenarios | Cases | Status  |
 | ------------------------------------------------- | --------- | ----- | ------- |
-| T-07: SchedulingService.add: 新規・置換 (SVA)     | 17        | 54    | done |
+| T-07: SchedulingService.add: 新規・置換 (SVA)     | 17        | 54    | done    |
 | T-14: SchedulingService: 保留の再開 (SVP)         | 13        | 34    | pending |
 | T-15: SchedulingService.cancel (SVX)              | 7         | 17    | pending |
 | T-16: SchedulingService.list (SVL)                | 10        | 15    | pending |

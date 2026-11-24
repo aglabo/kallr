@@ -18,11 +18,11 @@ version: 1.0.0
 
 ## Task Summary
 
-| Test Target                                | Scenarios | Cases | Status  |
-| ------------------------------------------ | --------- | ----- | ------- |
-| T-08: evaluateAvailability (AVL)           | 14        | 36    | pending |
-| T-09: w5Check (W5C)                        | 14        | 40    | pending |
-| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
+| Test Target                                | Scenarios | Cases | Status      |
+| ------------------------------------------ | --------- | ----- | ----------- |
+| T-08: evaluateAvailability (AVL)           | 14        | 36    | in progress |
+| T-09: w5Check (W5C)                        | 14        | 40    | pending     |
+| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending     |
 
 ---
 
@@ -32,7 +32,7 @@ version: 1.0.0
 
 #### T-08-01: Given 登録あり・DisplayName あり・通知設定が enabled, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-01-01**: 通知できる状態では ok=true の結果を返す (ENV-R-006)
+- [x] **T-08-01-01**: 通知できる状態では ok=true の結果を返す (ENV-R-006)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `enabled` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `registered=true`、`displayNameSet=true`、`setting=enabled`、`ok=true`、`reason=null` の Availability を返す

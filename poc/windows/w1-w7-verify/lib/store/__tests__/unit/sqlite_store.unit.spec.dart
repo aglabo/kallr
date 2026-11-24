@@ -29,49 +29,32 @@ const int _sqliteConstraintUnique = 2067;
 /// Pattern of a machine id: 8 lowercase hex digits.
 final RegExp _machineIdPattern = RegExp(r'^[0-9a-f]{8}$');
 
-/// Invalid stored machine_id cases: (case id, title, stored value not matching 8 lowercase hex digits).
-final List<(String, String, String)> _invalidStoredValueCases = [
-  ('T-WDV-MID-09', '16 進以外の文字なら StorageException を投げる', 'zzzzzzzz'),
-  ('T-WDV-MID-10', '7 桁なら StorageException を投げる', 'a1b2c3d'),
-  ('T-WDV-MID-11', '大文字なら StorageException を投げる', 'A1B2C3D4'),
-  ('T-WDV-MID-12', '9 桁なら StorageException を投げる', 'a1b2c3d4e'),
-  ('T-WDV-MID-13', '空文字なら StorageException を投げる', ''),
-  (
-    'T-WDV-MID-26',
-    '`/` を含む値 (`0` の直前の文字) なら StorageException を投げる',
-    '0123456/',
-  ),
-  (
-    'T-WDV-MID-27',
-    '`:` を含む値 (`9` の直後の文字) なら StorageException を投げる',
-    '0123456:',
-  ),
-  (
-    'T-WDV-MID-28',
-    'バッククォートを含む値 (`a` の直前の文字) なら StorageException を投げる',
-    '0123456`',
-  ),
-  (
-    'T-WDV-MID-29',
-    '`g` を含む値 (`f` の直後の文字) なら StorageException を投げる',
-    '0123456g',
-  ),
-  ('T-WDV-MID-44', '末尾に改行がある値なら StorageException を投げる', 'a1b2c3d4\n'),
+/// Invalid stored machine_id cases: (title, stored value not matching 8 lowercase hex digits).
+final List<(String, String)> _invalidStoredValueCases = [
+  ('16 進以外の文字なら StorageException を投げる', 'zzzzzzzz'),
+  ('7 桁なら StorageException を投げる', 'a1b2c3d'),
+  ('大文字なら StorageException を投げる', 'A1B2C3D4'),
+  ('9 桁なら StorageException を投げる', 'a1b2c3d4e'),
+  ('空文字なら StorageException を投げる', ''),
+  ('`/` を含む値 (`0` の直前の文字) なら StorageException を投げる', '0123456/'),
+  ('`:` を含む値 (`9` の直後の文字) なら StorageException を投げる', '0123456:'),
+  ('バッククォートを含む値 (`a` の直前の文字) なら StorageException を投げる', '0123456`'),
+  ('`g` を含む値 (`f` の直後の文字) なら StorageException を投げる', '0123456g'),
+  ('末尾に改行がある値なら StorageException を投げる', 'a1b2c3d4\n'),
 ];
 
-/// Boundary stored machine_id cases that are valid: (case id, title, stored value).
-final List<(String, String, String)> _boundaryStoredValueCases = [
-  ('T-WDV-MID-23', '全ゼロ `00000000` は有効な値として返す', '00000000'),
-  ('T-WDV-MID-24', '最大値 `ffffffff` は有効な値として返す', 'ffffffff'),
-  ('T-WDV-MID-25', 'digit/letter seam `89abcdef` は有効な値として返す', '89abcdef'),
+/// Boundary stored machine_id cases that are valid: (title, stored value).
+final List<(String, String)> _boundaryStoredValueCases = [
+  ('全ゼロ `00000000` は有効な値として返す', '00000000'),
+  ('最大値 `ffffffff` は有効な値として返す', 'ffffffff'),
+  ('digit/letter seam `89abcdef` は有効な値として返す', '89abcdef'),
 ];
 
-/// Save-failure cases (fake Database): (case id, title, SQL prefix -> failure
+/// Save-failure cases (fake Database): (title, SQL prefix -> failure
 /// thrown, expected write path after the first call, matcher of the thrown error).
-final List<(String, String, Map<String, Object>, List<String>, Matcher)>
+final List<(String, Map<String, Object>, List<String>, Matcher)>
 _saveFailureCases = [
   (
-    'T-WDV-MID-33',
     'INSERT throws StateError: rolls back and rethrows it unchanged, returns no value and caches nothing (TAG-R-009, IDX-DD-01)',
     {'INSERT': StateError('insert bug')},
     ['BEGIN', 'INSERT', 'ROLLBACK'],
@@ -82,7 +65,6 @@ _saveFailureCases = [
     ),
   ),
   (
-    'T-WDV-MID-34',
     'INSERT throws SqliteException while ROLLBACK also fails: throws the INSERT failure as StorageException, not the ROLLBACK failure, returns no value and caches nothing (TAG-R-009, IDX-DD-01)',
     {
       'INSERT': _blocked('insert blocked'),
@@ -100,7 +82,6 @@ _saveFailureCases = [
     ),
   ),
   (
-    'T-WDV-MID-35',
     'BEGIN throws SqliteException: throws StorageException without INSERT, ROLLBACK or COMMIT, returns no value and caches nothing (TAG-R-009, IDX-DD-01)',
     {'BEGIN': _blocked('begin blocked')},
     // The transaction never started: nothing to roll back, since a ROLLBACK
@@ -113,7 +94,6 @@ _saveFailureCases = [
     ),
   ),
   (
-    'T-WDV-MID-36',
     'INSERT throws StateError while ROLLBACK also fails: rethrows the StateError unchanged, not the ROLLBACK failure, returns no value and caches nothing (TAG-R-009, IDX-DD-01)',
     {
       'INSERT': StateError('insert bug'),
@@ -127,7 +107,6 @@ _saveFailureCases = [
     ),
   ),
   (
-    'T-WDV-MID-37',
     'COMMIT throws SqliteException: rolls back and throws StorageException with the SQLite message, returns no value and caches nothing (TAG-R-009, IDX-DD-01)',
     {'COMMIT': _blocked('commit blocked')},
     ['BEGIN', 'INSERT', 'COMMIT', 'ROLLBACK'],
@@ -138,7 +117,6 @@ _saveFailureCases = [
     ),
   ),
   (
-    'T-WDV-MID-38',
     'COMMIT throws StateError: rolls back and rethrows it unchanged, returns no value and caches nothing (TAG-R-009, IDX-DD-01)',
     {'COMMIT': StateError('commit bug')},
     ['BEGIN', 'INSERT', 'COMMIT', 'ROLLBACK'],
@@ -200,16 +178,13 @@ MappingRecord _longTagRecord() => _sampleRecord(tag: 'a' * 41);
 /// Size in bytes of one page of a DB created by SQLite with the default settings.
 const int _sqlitePageSize = 4096;
 
-/// Corrupt existing file forms: (open-fails case id, file-kept case id, title, writes the corrupt file to the given path).
+/// Corrupt existing file forms: (title, writes the corrupt file to the given path).
 ///
 /// - 01: 100 bytes of text that is not an SQLite file (the header check fails at the first query).
 /// - 02: a real DB with a valid header whose pages after the first are overwritten,
 ///   so only `PRAGMA quick_check` finds it (implementation-schedule.md 2.3).
-final List<(String, String, String, void Function(String path))>
-_corruptFileCases = [
+final List<(String, void Function(String path))> _corruptFileCases = [
   (
-    'T-WDV-MAP-29-01',
-    'T-WDV-MAP-30-01',
     '100 バイトの SQLite でない文字列のファイル',
     (String path) => File(path).writeAsBytesSync(
       List<int>.generate(
@@ -219,8 +194,6 @@ _corruptFileCases = [
     ),
   ),
   (
-    'T-WDV-MAP-29-02',
-    'T-WDV-MAP-30-02',
     '先頭ヘッダーが正しく、2 ページ目以降を 0xFF で上書きしたファイル (quick_check でだけ見つかる)',
     (String path) {
       _openWithStoredRow(path, 1, 'a1b2c3d4').close();
@@ -1182,15 +1155,10 @@ void main() {
 
     group('Given: 壊れた既存ファイル (SCH-R-027, SCH-E-20)', () {
       group('When: 異常系 (open する)', () {
-        for (final (
-              String throwsId,
-              String keptId,
-              String title,
-              void Function(String) prepare,
-            )
+        for (final (String title, void Function(String) prepare)
             in _corruptFileCases) {
           test(
-            '[Error] $throwsId: $title は StorageException を投げる (SCH-R-027, SCH-E-20)',
+            '[Error] T-WDV-MAP-29: $title は StorageException を投げる (SCH-R-027, SCH-E-20)',
             () async {
               await _withDbPath((String path) async {
                 prepare(path);
@@ -1203,7 +1171,7 @@ void main() {
           );
 
           test(
-            '[Error] $keptId: $title は open が失敗しても作り直さず、バイト列・長さが同じで -journal / -wal / -shm も残らない (SCH-R-027, SCH-E-20)',
+            '[Error] T-WDV-MAP-30: $title は open が失敗しても作り直さず、バイト列・長さが同じで -journal / -wal / -shm も残らない (SCH-R-027, SCH-E-20)',
             () async {
               await _withDbPath((String path) async {
                 prepare(path);
@@ -1472,9 +1440,9 @@ void main() {
 
     group('Given: DB whose settings holds a boundary machine_id value', () {
       group('When: 正常系 (machineId is called)', () {
-        for (final (caseId, title, stored) in _boundaryStoredValueCases) {
+        for (final (title, stored) in _boundaryStoredValueCases) {
           test(
-            '[Normal] $caseId: $title ("${_escaped(stored)}", TAG-R-010)',
+            '[Normal] T-WDV-MID-23: $title ("${_escaped(stored)}", TAG-R-010)',
             () async {
               await _withDbPath((String path) async {
                 final String id = await _withStore(
@@ -1587,9 +1555,9 @@ void main() {
 
     group('Given: DB whose settings holds an invalid machine_id value', () {
       group('When: 異常系 (machineId is called)', () {
-        for (final (id, title, stored) in _invalidStoredValueCases) {
+        for (final (title, stored) in _invalidStoredValueCases) {
           test(
-            '[Error] $id: $title ("${_escaped(stored)}", TAG-R-010)',
+            '[Error] T-WDV-MID-09: $title ("${_escaped(stored)}", TAG-R-010)',
             () async {
               await _withDbPath((String path) async {
                 await _withStore(path, (SqliteStore store) {
@@ -1774,8 +1742,8 @@ void main() {
 
     group('Given: settings has no machine_id row and a write step fails (fake Database)', () {
       group('When: 異常系 (machineId is called)', () {
-        for (final (id, title, fails, path, thrown) in _saveFailureCases) {
-          test('[Error] $id: $title', () {
+        for (final (title, fails, path, thrown) in _saveFailureCases) {
+          test('[Error] T-WDV-MID-33: $title', () {
             final _FakeDatabase fake = _FakeDatabase(failOn: _failOn(fails));
             final SqliteStore store = SqliteStore.fromDatabase(fake);
 

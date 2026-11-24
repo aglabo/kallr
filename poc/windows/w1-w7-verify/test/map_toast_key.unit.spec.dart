@@ -39,46 +39,21 @@ String _referenceFnv1a64Hex(String text) {
   return hash.toRadixString(16).padLeft(16, '0');
 }
 
-/// One mapToastKey call and its test identity (case id and name).
-typedef _Case = ({String caseId, String name, String id, int maxLength});
+/// One mapToastKey call and its condition (title).
+typedef _Case = ({String name, String id, int maxLength});
 
 /// Invalid arguments that must raise ArgumentError (no fallback value).
 const List<_Case> _invalidArgumentCases = [
-  (
-    caseId: 'T-WDV-MTK-05',
-    name: 'maxLength が 0',
-    id: 'batch-001',
-    maxLength: 0,
-  ),
-  (
-    caseId: 'T-WDV-MTK-06',
-    name: 'maxLength が負数',
-    id: 'batch-001',
-    maxLength: -1,
-  ),
-  (caseId: 'T-WDV-MTK-07', name: '空文字の ID', id: '', maxLength: 64),
-  (
-    caseId: 'T-WDV-MTK-08',
-    name: '短縮が必要で maxLength が 16 未満',
-    id: 'aaaaaaaaaaaaaaaaaaaa',
-    maxLength: 15,
-  ),
+  (name: 'maxLength が 0', id: 'batch-001', maxLength: 0),
+  (name: 'maxLength が負数', id: 'batch-001', maxLength: -1),
+  (name: '空文字の ID', id: '', maxLength: 64),
+  (name: '短縮が必要で maxLength が 16 未満', id: 'aaaaaaaaaaaaaaaaaaaa', maxLength: 15),
 ];
 
 /// Ids that fit in maxLength and must come back unchanged (boundary cases).
 final List<_Case> _unchangedCases = [
-  (
-    caseId: 'T-WDV-MTK-09',
-    name: '長さが maxLength ちょうどなら無変更',
-    id: 'a' * 64,
-    maxLength: 64,
-  ),
-  (
-    caseId: 'T-WDV-MTK-12',
-    name: '極小の maxLength でも ID が収まれば無変更',
-    id: 'a',
-    maxLength: 1,
-  ),
+  (name: '長さが maxLength ちょうどなら無変更', id: 'a' * 64, maxLength: 64),
+  (name: '極小の maxLength でも ID が収まれば無変更', id: 'a', maxLength: 1),
 ];
 
 /// True when [text] contains a UTF-16 surrogate that is not part of a valid pair.
@@ -122,10 +97,8 @@ void main() {
         });
 
         for (final (index, id) in _hashSampleIds.indexed) {
-          final caseId =
-              'T-WDV-MTK-15-${(index + 1).toString().padLeft(2, '0')}';
           test(
-            '[Normal] $caseId: 短縮結果は FNV-1a 64bit の 16 桁小文字 16 進 (${id.length} units)',
+            '[Normal] T-WDV-MTK-15: 短縮結果は FNV-1a 64bit の 16 桁小文字 16 進 (#$index, ${id.length} units)',
             () {
               expect(mapToastKey(id, maxLength: 16), _referenceFnv1a64Hex(id));
             },
@@ -135,7 +108,7 @@ void main() {
 
       group('When: 異常系', () {
         for (final c in _invalidArgumentCases) {
-          test('[Error] ${c.caseId}: ${c.name} -> ArgumentError', () {
+          test('[Error] T-WDV-MTK-05: ${c.name} -> ArgumentError', () {
             expect(
               () => mapToastKey(c.id, maxLength: c.maxLength),
               throwsArgumentError,
@@ -146,7 +119,7 @@ void main() {
 
       group('When: エッジケース', () {
         for (final c in _unchangedCases) {
-          test('[Edge] ${c.caseId}: ${c.name}', () {
+          test('[Edge] T-WDV-MTK-09: ${c.name}', () {
             expect(mapToastKey(c.id, maxLength: c.maxLength), c.id);
           });
         }

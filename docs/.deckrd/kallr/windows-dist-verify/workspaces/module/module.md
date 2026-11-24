@@ -24,3 +24,4 @@ Issue #19 の PoC-W (W1〜W5、W7) を、未パッケージ + HKCU 登録の配�
 | `MTK` | `mapToastKey`                                                                       |
 | `TAG` | `generateTag`                                                                       |
 | `TAL` | `allocateTag`                                                                       |
+| `SVA` | `SchedulingService.add` (新規・置換)                                                 |

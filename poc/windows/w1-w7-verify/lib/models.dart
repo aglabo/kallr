@@ -10,6 +10,8 @@
 // Released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+import 'schedule/toast_scheduler.dart' show ScheduledToast;
+
 /// Fixed toast Group name (TAG-R-004). Must be 64 characters or fewer.
 const String kGroup = 'kallr';
 
@@ -98,4 +100,31 @@ final class PendingRemoval {
 
   @override
   int get hashCode => Object.hash(queueId, oldTag, group, record);
+}
+
+/// How an entry of the OS schedule and the mapping table relate.
+enum EntryState {
+  /// Present in both the table and the scheduler.
+  ok,
+
+  /// Present in the scheduler only.
+  orphan,
+
+  /// Present in the table only.
+  stale,
+}
+
+/// One row of the merged view of the mapping table and the OS schedule.
+final class ScheduleEntry {
+  /// Creates an entry; [record] is null for an orphan, [toast] is null for a stale one.
+  const ScheduleEntry({required this.state, this.record, this.toast});
+
+  /// Table record, or null when the table has none.
+  final MappingRecord? record;
+
+  /// Scheduled toast, or null when the scheduler has none.
+  final ScheduledToast? toast;
+
+  /// Relation between [record] and [toast].
+  final EntryState state;
 }

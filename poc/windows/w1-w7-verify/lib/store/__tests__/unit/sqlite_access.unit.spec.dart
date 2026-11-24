@@ -17,13 +17,13 @@ import 'package:w1_w7_verify/errors.dart';
 import 'package:w1_w7_verify/store/sqlite_access.dart';
 
 void main() {
-  group('SqliteAccess', () {
+  group('T-WDV-SQA: SqliteAccess', () {
     late SqliteAccess access;
 
     setUp(() => access = SqliteAccess(sqlite3.openInMemory()));
     tearDown(() => access.close());
 
-    group('T-WDV-SQA: guard', () {
+    group('guard', () {
       group('Given: 成功する action (T-19-01)', () {
         group('When: 正常系 (guard(p: , action) を呼ぶ)', () {
           test('[Normal] T-WDV-SQA-01: action の戻り値をそのまま返す', () {
@@ -63,7 +63,7 @@ void main() {
       });
     });
 
-    group('T-WDV-SQA: guard (passthrough)', () {
+    group('guard (passthrough)', () {
       group('Given: StateError を投げる action (T-19-07)', () {
         group('When: 異常系 (guard(p: , action) を呼ぶ)', () {
           test(
@@ -79,7 +79,7 @@ void main() {
       });
     });
 
-    group('T-WDV-SQA: transact', () {
+    group('transact', () {
       group('Given: 1 行を INSERT して 42 を返す body (T-19-02)', () {
         group('When: 正常系 (transact(p: , body) を呼ぶ)', () {
           test('[Normal] T-WDV-SQA-02: body の戻り値を返す', () {
@@ -243,7 +243,7 @@ void main() {
       });
     });
 
-    group('T-WDV-SQA: select', () {
+    group('select', () {
       group('Given: a = 1 と a = 2 の 2 行があるテーブル (T-19-03)', () {
         group('When: 正常系 (select(sql, [2]) で値をバインドする)', () {
           test('[Normal] T-WDV-SQA-04: 条件に合う a = 2 の 1 行だけを返す', () {
@@ -289,7 +289,7 @@ void main() {
       });
     });
 
-    group('T-WDV-SQA: execute', () {
+    group('execute', () {
       group('Given: 3 行のうち 2 行に当たる UPDATE を execute した直後 (T-19-04)', () {
         group('When: 正常系 (execute の後に updatedRows を読む)', () {
           test('[Normal] T-WDV-SQA-05: updatedRows が 2 である', () {

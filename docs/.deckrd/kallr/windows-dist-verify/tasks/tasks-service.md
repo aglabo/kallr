@@ -23,7 +23,7 @@ version: 1.0.0
 
 | Test Target                                       | Scenarios | Cases | Status  |
 | ------------------------------------------------- | --------- | ----- | ------- |
-| T-07: SchedulingService.add: 新規・置換 (SVA)     | 17        | 54    | pending |
+| T-07: SchedulingService.add: 新規・置換 (SVA)     | 17        | 54    | done |
 | T-14: SchedulingService: 保留の再開 (SVP)         | 13        | 34    | pending |
 | T-15: SchedulingService.cancel (SVX)              | 7         | 17    | pending |
 | T-16: SchedulingService.list (SVL)                | 10        | 15    | pending |
@@ -58,83 +58,83 @@ version: 1.0.0
 
 #### T-07-01: Given: 対応表に無いキーで add する (新規。SCH-R-004, SCH-R-008, SCH-R-011, IDX-R-004)
 
-- [ ] **T-07-01-01**: 新しい MappingRecord を返す
+- [x] **T-07-01-01**: 新しい MappingRecord を返す
   - Target: `SchedulingService.add`
   - Scenario: Given 空の対応表と空の予約一覧, When `add(batchId: 'b1', alarmId: 'a1', at: A1, title: 't1', aumid: 'Kallr.Test')` を呼ぶ
   - Expected: Then tag `ADD1`、at `A1`、title `t1`、registeredAt `2026-11-22T10:00:00` の `MappingRecord` を返す
 
-- [ ] **T-07-01-02**: 予約一覧に新しい Tag の予約がちょうど 1 件できる
+- [x] **T-07-01-02**: 予約一覧に新しい Tag の予約がちょうど 1 件できる
   - Target: `SchedulingService.add`
   - Scenario: Given 空の対応表と空の予約一覧, When `add` を呼ぶ
   - Expected: Then `scheduler.list('kallr')` が tag `ADD1`、group `kallr`、at `A1` の 1 件だけを返す
 
-- [ ] **T-07-01-03**: 対応表に同じ内容が記録される
+- [x] **T-07-01-03**: 対応表に同じ内容が記録される
   - Target: `SchedulingService.add`
   - Scenario: Given 空の対応表と空の予約一覧, When `add` を呼ぶ
   - Expected: Then `table.get('b1','a1')` が返り値と等しい
 
-- [ ] **T-07-01-04**: 予約の追加が対応表の更新より先である
+- [x] **T-07-01-04**: 予約の追加が対応表の更新より先である
   - Target: `SchedulingService.add`
   - Scenario: Given 空の対応表と空の予約一覧, When `add` を呼ぶ
   - Expected: Then 呼び出し順が `scheduler.add` → `table.put` である
 
-- [ ] **T-07-01-05**: 通知可否の確認に aumid を渡す
+- [x] **T-07-01-05**: 通知可否の確認に aumid を渡す
   - Target: `SchedulingService.add`
   - Scenario: Given 空の対応表と空の予約一覧, When `add(aumid: 'Kallr.Test')` を呼ぶ
   - Expected: Then `env.check` が `Kallr.Test` で 1 回呼ばれる
 
 #### T-07-02: Given: 対応表の Tag が予約一覧にある同じキーで add する (置換。SCH-R-005, SCH-R-009, SCH-R-011, IDX-R-005, DR-05, DR-07, DR-08)
 
-- [ ] **T-07-02-01**: 新しい Tag の MappingRecord を返す
+- [x] **T-07-02-01**: 新しい Tag の MappingRecord を返す
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にある, When 新しい at `A1` と title `t2` で `add` する
   - Expected: Then tag `ADD1` (`OLD` ではない)、registeredAt `2026-11-22T10:00:00` の `MappingRecord` を返す
 
-- [ ] **T-07-02-02**: 予約一覧に置換前の Tag の予約が無い
+- [x] **T-07-02-02**: 予約一覧に置換前の Tag の予約が無い
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にある, When `add` する
   - Expected: Then `scheduler.list('kallr')` が tag `ADD1` の 1 件だけを返し、`OLD` を含まない
 
-- [ ] **T-07-02-03**: 対応表は置換後の内容を current として持つ
+- [x] **T-07-02-03**: 対応表は置換後の内容を current として持つ
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にある, When `add` する
   - Expected: Then `table.get('b1','a1')` が返り値と等しい
 
-- [ ] **T-07-02-04**: 完了後に保留が残らない
+- [x] **T-07-02-04**: 完了後に保留が残らない
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にある, When `add` する
   - Expected: Then `table.pendingRemovals()` が空である
 
-- [ ] **T-07-02-05**: 4 つの段階が DB 先・追加・削除・DB 完了の順で呼ばれる
+- [x] **T-07-02-05**: 4 つの段階が DB 先・追加・削除・DB 完了の順で呼ばれる
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にある, When `add` する
   - Expected: Then 呼び出し順が `table.replace` → `scheduler.add(ADD1)` → `scheduler.remove(OLD, 'kallr')` → `table.completeRemoval` である
 
 #### T-07-03: Given: 同じ at と title での再 add (SCH-E-09)
 
-- [ ] **T-07-03-01**: 内容が同じでも置換として扱い、新しい Tag を付ける
+- [x] **T-07-03-01**: 内容が同じでも置換として扱い、新しい Tag を付ける
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD`・at `A1`・title `t1` で対応表と予約一覧にある, When 同じ at `A1` と title `t1` で `add` する
   - Expected: Then 返り値の tag が `ADD1` で、`scheduler.list('kallr')` が `ADD1` の 1 件だけを返す
 
 #### T-07-04: Given: 対応表に項目があり、その Tag が予約一覧に無い (発火済み。SCH-R-006, SCH-E-08, REQ-F-006)
 
-- [ ] **T-07-04-01**: 新しい MappingRecord を返す
+- [x] **T-07-04-01**: 新しい MappingRecord を返す
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表にだけある (予約一覧は空), When `add` する
   - Expected: Then tag `ADD1` の `MappingRecord` を返す
 
-- [ ] **T-07-04-02**: 対応表の項目が新しい内容で上書きされる
+- [x] **T-07-04-02**: 対応表の項目が新しい内容で上書きされる
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表にだけある, When at `A1`・title `t2` で `add` する
   - Expected: Then `table.get('b1','a1')` が tag `ADD1`、title `t2`、registeredAt `2026-11-22T10:00:00` である
 
-- [ ] **T-07-04-03**: 置換の手順を行わない
+- [x] **T-07-04-03**: 置換の手順を行わない
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表にだけある, When `add` する
   - Expected: Then `table.replace` と `scheduler.remove` が 1 回も呼ばれない
 
-- [ ] **T-07-04-04**: 予約一覧に新しい予約だけがある
+- [x] **T-07-04-04**: 予約一覧に新しい予約だけがある
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表にだけある, When `add` する
   - Expected: Then `scheduler.list('kallr')` が tag `ADD1` の 1 件だけを返す
@@ -143,178 +143,178 @@ version: 1.0.0
 
 #### T-07-05: Given: 通知可否の確認が「通知できる」でない (SCH-R-003, SCH-E-06, IDX-R-001)
 
-- [ ] **T-07-05-01**: UnavailableException を投げる
+- [x] **T-07-05-01**: UnavailableException を投げる
   - Target: `SchedulingService.add`
   - Scenario: Given `env.check` が `ok = false` で理由 `AUMID が未登録` を返す, When `add` を呼ぶ
   - Expected: Then `UnavailableException` を投げ、その `availability` が `env.check` の返した値である
 
-- [ ] **T-07-05-02**: OS の予約を一切呼ばない
+- [x] **T-07-05-02**: OS の予約を一切呼ばない
   - Target: `SchedulingService.add`
   - Scenario: Given `env.check` が `ok = false` を返す, When `add` を呼ぶ
   - Expected: Then `scheduler` の `add`・`remove`・`list` が 1 回も呼ばれない
 
-- [ ] **T-07-05-03**: 対応表を一切呼ばない
+- [x] **T-07-05-03**: 対応表を一切呼ばない
   - Target: `SchedulingService.add`
   - Scenario: Given `env.check` が `ok = false` を返す, When `add` を呼ぶ
   - Expected: Then `table` の `get`・`put`・`replace` が 1 回も呼ばれない
 
-- [ ] **T-07-05-04**: 保留の再開もしない
+- [x] **T-07-05-04**: 保留の再開もしない
   - Target: `SchedulingService.add`
   - Scenario: Given `env.check` が `ok = false` を返し、P3 の状態である, When `add` を呼ぶ
   - Expected: Then `table.pendingRemovals()` が 1 件のままで、`scheduler.list('kallr')` が `OLD` と `PND` の両方を持つ
 
 #### T-07-06: Given: 過去の at を OS が拒否する新規 add (SCH-E-04, SCH-DD-05)
 
-- [ ] **T-07-06-01**: ScheduleException を 0x80070057 で投げる
+- [x] **T-07-06-01**: ScheduleException を 0x80070057 で投げる
   - Target: `SchedulingService.add`
   - Scenario: Given `scheduler.add` が `ScheduleException(0x80070057)` を投げる設定, When 新規の `add` を呼ぶ
   - Expected: Then `hresult` が `0x80070057` の `ScheduleException` を投げる
 
-- [ ] **T-07-06-02**: 対応表を変えない
+- [x] **T-07-06-02**: 対応表を変えない
   - Target: `SchedulingService.add`
   - Scenario: Given `scheduler.add` が `ScheduleException(0x80070057)` を投げる設定, When 新規の `add` を呼んで失敗した
   - Expected: Then `table.get('b1','a1')` が null で、`table.put` が 1 回も呼ばれない
 
 #### T-07-07: Given: 予約件数の上限超過を OS が拒否する新規 add (SCH-E-16)
 
-- [ ] **T-07-07-01**: ScheduleException を 0x80070718 で投げる
+- [x] **T-07-07-01**: ScheduleException を 0x80070718 で投げる
   - Target: `SchedulingService.add`
   - Scenario: Given `scheduler.add` が `ScheduleException(0x80070718)` を投げる設定, When 新規の `add` を呼ぶ
   - Expected: Then `hresult` が `0x80070718` の `ScheduleException` を投げる
 
 #### T-07-08: Given: 新規の予約の追加後に対応表の書き込みが失敗する (SCH-E-14, SCH-R-010)
 
-- [ ] **T-07-08-01**: StorageException をそのまま伝える
+- [x] **T-07-08-01**: StorageException をそのまま伝える
   - Target: `SchedulingService.add`
   - Scenario: Given `table.put` が `StorageException` を投げる設定, When 新規の `add` を呼ぶ
   - Expected: Then `StorageException` を投げる
 
-- [ ] **T-07-08-02**: 追加した予約は巻き戻さず残る
+- [x] **T-07-08-02**: 追加した予約は巻き戻さず残る
   - Target: `SchedulingService.add`
   - Scenario: Given `table.put` が `StorageException` を投げる設定, When 新規の `add` を呼んで失敗した
   - Expected: Then `scheduler.list('kallr')` が tag `ADD1` の 1 件を持ち、`scheduler.remove` が 1 回も呼ばれない
 
-- [ ] **T-07-08-03**: 対応表には項目が無い
+- [x] **T-07-08-03**: 対応表には項目が無い
   - Target: `SchedulingService.add`
   - Scenario: Given `table.put` が `StorageException` を投げる設定, When 新規の `add` を呼んで失敗した
   - Expected: Then `table.get('b1','a1')` が null である
 
-- [ ] **T-07-08-04**: 続く list が孤立した予約として検出する
+- [x] **T-07-08-04**: 続く list が孤立した予約として検出する
   - Target: `SchedulingService.list`
   - Scenario: Given 上の失敗の後 (予約一覧に `ADD1` だけがある), When `list()` を呼ぶ
   - Expected: Then tag `ADD1` の要素の `state` が `EntryState.orphan` である
 
 #### T-07-09: Given: Tag の重複が上限の後も続く (SCH-R-007, SCH-E-15, SCH-DD-10)
 
-- [ ] **T-07-09-01**: DuplicateTagException を投げる
+- [x] **T-07-09-01**: DuplicateTagException を投げる
   - Target: `SchedulingService.add`
   - Scenario: Given `random` が常に `0123456789abcdef` を返し、その Tag `ADD1` が対応表の `b9`/`a9` に既にある, When `add` を呼ぶ
   - Expected: Then `DuplicateTagException` を投げる
 
-- [ ] **T-07-09-02**: 予約を作らない
+- [x] **T-07-09-02**: 予約を作らない
   - Target: `SchedulingService.add`
   - Scenario: Given `random` が常に同じ値を返し、その Tag が既にある, When `add` を呼んで失敗した
   - Expected: Then `scheduler.add` が 1 回も呼ばれない
 
-- [ ] **T-07-09-03**: 対応表を変えない
+- [x] **T-07-09-03**: 対応表を変えない
   - Target: `SchedulingService.add`
   - Scenario: Given `random` が常に同じ値を返し、その Tag が既にある, When `add` を呼んで失敗した
   - Expected: Then `table.put` と `table.replace` が 1 回も呼ばれない
 
 #### T-07-10: Given: 置換の段階 1 (DB への記録) が失敗する (SCH-E-11, 3.5 段階 1 の失敗)
 
-- [ ] **T-07-10-01**: StorageException をそのまま伝える
+- [x] **T-07-10-01**: StorageException をそのまま伝える
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にあり、`table.replace` が `StorageException` を投げる設定, When `add` を呼ぶ
   - Expected: Then `StorageException` を投げる
 
-- [ ] **T-07-10-02**: OS の予約に触れない
+- [x] **T-07-10-02**: OS の予約に触れない
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `scheduler.add` と `scheduler.remove` が 1 回も呼ばれない
 
-- [ ] **T-07-10-03**: 置換前の予約だけが残る
+- [x] **T-07-10-03**: 置換前の予約だけが残る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `scheduler.list('kallr')` が `OLD` の 1 件だけを返す
 
-- [ ] **T-07-10-04**: 対応表は置換前の行が current のまま変わらない
+- [x] **T-07-10-04**: 対応表は置換前の行が current のまま変わらない
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.get('b1','a1')` が tag `OLD` の MappingRecord を返す
 
 #### T-07-11: Given: 置換の段階 2 (OS の追加) を OS が拒否する (SCH-E-10, SCH-R-010, 3.5 段階 2 の拒否)
 
-- [ ] **T-07-11-01**: ScheduleException をそのまま伝える
+- [x] **T-07-11-01**: ScheduleException をそのまま伝える
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にあり、`scheduler.add` が `ScheduleException(0x80070057)` を投げる設定, When `add` を呼ぶ
   - Expected: Then `hresult` が `0x80070057` の `ScheduleException` を投げる
 
-- [ ] **T-07-11-02**: 段階 1 の記録を取り消す
+- [x] **T-07-11-02**: 段階 1 の記録を取り消す
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.abortReplacement` が `table.replace` の返した queueId で 1 回呼ばれる
 
-- [ ] **T-07-11-03**: 対応表は置換前の行が current に戻る
+- [x] **T-07-11-03**: 対応表は置換前の行が current に戻る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.get('b1','a1')` が tag `OLD` の MappingRecord を返す
 
-- [ ] **T-07-11-04**: 保留が残らない
+- [x] **T-07-11-04**: 保留が残らない
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.pendingRemovals()` が空である
 
-- [ ] **T-07-11-05**: 置換前の予約だけが残る
+- [x] **T-07-11-05**: 置換前の予約だけが残る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `scheduler.list('kallr')` が `OLD` の 1 件だけを返す
 
-- [ ] **T-07-11-06**: 置換前の予約を削除しない
+- [x] **T-07-11-06**: 置換前の予約を削除しない
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `scheduler.remove` が 1 回も呼ばれない
 
 #### T-07-12: Given: 置換の段階 3 (置換前の予約の削除) が失敗する (SCH-E-12, 3.5 段階 3 の失敗)
 
-- [ ] **T-07-12-01**: ScheduleException をそのまま伝える
+- [x] **T-07-12-01**: ScheduleException をそのまま伝える
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にあり、`scheduler.remove` が `ScheduleException` を投げる設定, When `add` を呼ぶ
   - Expected: Then `ScheduleException` を投げる
 
-- [ ] **T-07-12-02**: 両方の予約が残る
+- [x] **T-07-12-02**: 両方の予約が残る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `scheduler.list('kallr')` が `OLD` と `ADD1` の 2 件を返す
 
-- [ ] **T-07-12-03**: 保留が置換キューに残る
+- [x] **T-07-12-03**: 保留が置換キューに残る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.pendingRemovals()` が 1 件を返す
 
-- [ ] **T-07-12-04**: 段階 4 に進まない
+- [x] **T-07-12-04**: 段階 4 に進まない
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.completeRemoval` が 1 回も呼ばれない
 
-- [ ] **T-07-12-05**: 巻き戻さない
+- [x] **T-07-12-05**: 巻き戻さない
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.abortReplacement` が 1 回も呼ばれない
 
 #### T-07-13: Given: 置換の段階 4 (DB の完了) が失敗する (SCH-E-12, 3.5 段階 4 の失敗)
 
-- [ ] **T-07-13-01**: StorageException をそのまま伝える
+- [x] **T-07-13-01**: StorageException をそのまま伝える
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にあり、`table.completeRemoval` が `StorageException` を投げる設定, When `add` を呼ぶ
   - Expected: Then `StorageException` を投げる
 
-- [ ] **T-07-13-02**: 置換後の予約だけが残る
+- [x] **T-07-13-02**: 置換後の予約だけが残る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `scheduler.list('kallr')` が `ADD1` の 1 件だけを返す
 
-- [ ] **T-07-13-03**: 保留が置換キューに残る
+- [x] **T-07-13-03**: 保留が置換キューに残る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼んで失敗した
   - Expected: Then `table.pendingRemovals()` が 1 件を返す
@@ -323,43 +323,43 @@ version: 1.0.0
 
 #### T-07-14: Given: 生成した Tag が予約一覧にだけある Tag と重複する (SCH-R-007, TAG 重複の確認先)
 
-- [ ] **T-07-14-01**: 乱数を再生成した Tag を使う
+- [x] **T-07-14-01**: 乱数を再生成した Tag を使う
   - Target: `SchedulingService.add`
   - Scenario: Given 予約一覧にだけ `ADD1` の予約 (別キー `b9`/`a9`、対応表に無い) があり、`random` が `0123456789abcdef`、次に `fedcba9876543210` を返す, When `b1`/`a1` を `add` する
   - Expected: Then 返り値の tag が `ADD2` である
 
 #### T-07-15: Given: 生成した Tag が対応表にだけある (発火済み) Tag と重複する (SCH-E-32, D8)
 
-- [ ] **T-07-15-01**: 乱数を再生成した Tag を使う
+- [x] **T-07-15-01**: 乱数を再生成した Tag を使う
   - Target: `SchedulingService.add`
   - Scenario: Given 対応表の `b9`/`a9` に `ADD1` があり予約一覧は空で、`random` が `0123456789abcdef`、次に `fedcba9876543210` を返す, When `b1`/`a1` を `add` する
   - Expected: Then 返り値の tag が `ADD2` である
 
 #### T-07-16: Given: UTF-8 の title (SCH-E-23, REQ-NF-004)
 
-- [ ] **T-07-16-01**: OS の追加に title をそのまま渡す
+- [x] **T-07-16-01**: OS の追加に title をそのまま渡す
   - Target: `SchedulingService.add`
   - Scenario: Given title が `会議の開始`, When `add` する
   - Expected: Then `scheduler.add` の title が `会議の開始` で呼ばれる
 
-- [ ] **T-07-16-02**: 返り値の title も同じである
+- [x] **T-07-16-02**: 返り値の title も同じである
   - Target: `SchedulingService.add`
   - Scenario: Given title が `会議の開始`, When `add` する
   - Expected: Then 返り値の title が `会議の開始` である
 
 #### T-07-17: Given: 置換の途中で置換前の予約が発火済みになる (SCH-E-13, SCH-R-030, SCH-DD-13)
 
-- [ ] **T-07-17-01**: 例外を投げず MappingRecord を返す
+- [x] **T-07-17-01**: 例外を投げず MappingRecord を返す
   - Target: `SchedulingService.add`
   - Scenario: Given `b1`/`a1` が `OLD` で対応表と予約一覧にあり、`scheduler.remove('OLD')` が false を返す設定, When `add` を呼ぶ
   - Expected: Then 例外を投げず tag `ADD1` の MappingRecord を返す
 
-- [ ] **T-07-17-02**: 段階 4 まで完了する
+- [x] **T-07-17-02**: 段階 4 まで完了する
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼ぶ
   - Expected: Then `table.completeRemoval` が呼ばれ、`table.pendingRemovals()` が空である
 
-- [ ] **T-07-17-03**: 置換後の予約だけが残る
+- [x] **T-07-17-03**: 置換後の予約だけが残る
   - Target: `SchedulingService.add`
   - Scenario: Given 同上, When `add` を呼ぶ
   - Expected: Then `scheduler.list('kallr')` が `ADD1` の 1 件だけを返す

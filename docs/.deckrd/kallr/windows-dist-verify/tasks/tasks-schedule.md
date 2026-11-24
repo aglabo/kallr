@@ -19,11 +19,12 @@ version: 1.2.0
 
 ## Task Summary
 
-| Test Target                            | Scenarios | Cases | Status |
-| -------------------------------------- | --------- | ----- | ------ |
-| T-04: parseAt (ATP)                    | 18        | 28    | done   |
-| T-05: MappingTable / SqliteStore (MAP) | 22        | 44    | done   |
-| T-06: 置換キュー (RPQ)                 | 14        | 34    | done   |
+| Test Target                            | Scenarios | Cases | Status      |
+| -------------------------------------- | --------- | ----- | ----------- |
+| T-04: parseAt (ATP)                    | 18        | 28    | done        |
+| T-05: MappingTable / SqliteStore (MAP) | 22        | 44    | done        |
+| T-06: 置換キュー (RPQ)                 | 14        | 34    | done        |
+| T-19: SqliteAccess (SQA)               | 12        | 17    | in progress |
 
 <!-- Status may be: pending | in progress | done -->
 
@@ -711,6 +712,131 @@ version: 1.2.0
 
 ---
 
+## T-19: SqliteAccess (SQA)
+
+> `SqliteStore` から基礎層を分ける移設 (implementation-schedule.md §2.5)。
+> 移設そのものは振る舞いを変えない。既存の MAP (T-05)、MID (T-03)、RPQ (T-06) のテストを変えずに通すことが、移設の安全網である。
+> 新しい Case は、基礎層 `SqliteAccess` を単体で確かめる。テストは、一時ファイルの SQLite か、メモリ上の SQLite で行う。
+> `SqliteStore.open` と `SqliteStore.fromDatabase` の公開の形は変えない。
+> 番号は既存 ID を振り直さないため末尾 (T-19) とする。
+
+### [正常] Normal Cases
+
+#### T-19-01: Given: 成功する action を guard に渡す
+
+- [x] **T-19-01-01**: 戻り値をそのまま返す
+  - Target: `SqliteAccess.guard`
+  - Scenario: Given 42 を返す action, When `guard('p: ', action)` を呼ぶ
+  - Expected: Then 42 を返す
+
+#### T-19-02: Given: 成功する body を transact に渡す
+
+- [ ] **T-19-02-01**: body の戻り値を返す
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given 1 行を `INSERT` して 42 を返す body, When `transact('p: ', body)` を呼ぶ
+  - Expected: Then 42 を返す
+
+- [ ] **T-19-02-02**: 変更が確定する
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given 1 行を `INSERT` する body, When `transact('p: ', body)` を呼ぶ
+  - Expected: Then 別の接続から、その 1 行を読める
+
+#### T-19-03: Given: 値をバインドした select
+
+- [ ] **T-19-03-01**: 条件に合う行だけを返す
+  - Target: `SqliteAccess.select`
+  - Scenario: Given `a = 1` と `a = 2` の 2 行があるテーブル, When `select('SELECT a FROM t WHERE a = ?', [2])` を呼ぶ
+  - Expected: Then `a = 2` の 1 行だけを返す
+
+#### T-19-04: Given: 3 行のうち 2 行に当たる UPDATE を execute した直後
+
+- [ ] **T-19-04-01**: updatedRows が 2 である
+  - Target: `SqliteAccess.updatedRows`
+  - Scenario: Given 3 行のうち 2 行に当たる `UPDATE` を `execute` した, When `updatedRows` を読む
+  - Expected: Then 2 を返す
+
+#### T-19-05: Given: AUTOINCREMENT のテーブルに 1 行を INSERT した直後
+
+- [ ] **T-19-05-01**: lastInsertRowId が追加した行の id である
+  - Target: `SqliteAccess.lastInsertRowId`
+  - Scenario: Given AUTOINCREMENT のテーブルに 1 行を `INSERT` した, When `lastInsertRowId` を読む
+  - Expected: Then 追加した行の `id` と等しい
+
+### [異常] Error Cases
+
+#### T-19-06: Given: SqliteException を投げる action を guard に渡す (存在しないテーブルを SELECT する)
+
+- [ ] **T-19-06-01**: StorageException になる
+  - Target: `SqliteAccess.guard`
+  - Scenario: Given 存在しないテーブルを `SELECT` する action, When `guard('p: ', action)` を呼ぶ
+  - Expected: Then `StorageException` を投げる
+
+- [ ] **T-19-06-02**: メッセージは prefix の後ろに SQLite のメッセージが続く
+  - Target: `SqliteAccess.guard`
+  - Scenario: Given 存在しないテーブルを `SELECT` する action, When `guard('p: ', action)` を呼んで失敗した
+  - Expected: Then メッセージが渡した prefix で始まり、SQLite のメッセージ (`no such table`) を含む
+
+#### T-19-07: Given: SqliteException 以外の例外を投げる action を guard に渡す
+
+- [ ] **T-19-07-01**: 同じ例外がそのまま出る
+  - Target: `SqliteAccess.guard`
+  - Scenario: Given `StateError` を投げる action, When `guard('p: ', action)` を呼ぶ
+  - Expected: Then `StateError` を投げる (`StorageException` に変えない)
+
+#### T-19-08: Given: SqliteException を投げる body を transact に渡す (1 行を INSERT した後に存在しないテーブルを SELECT する)
+
+- [ ] **T-19-08-01**: StorageException になる
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given 1 行を `INSERT` した後に存在しないテーブルを `SELECT` する body, When `transact('p: ', body)` を呼ぶ
+  - Expected: Then `StorageException` を投げる
+
+- [ ] **T-19-08-02**: 変更は取り消される
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given 1 行を `INSERT` した後に存在しないテーブルを `SELECT` する body, When `transact('p: ', body)` を呼んで失敗した
+  - Expected: Then `INSERT` した行が残っていない
+
+#### T-19-09: Given: SqliteException 以外の例外を投げる body を transact に渡す (1 行を INSERT した後に StateError を投げる)
+
+- [ ] **T-19-09-01**: 同じ例外がそのまま出る
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given 1 行を `INSERT` した後に `StateError` を投げる body, When `transact('p: ', body)` を呼ぶ
+  - Expected: Then `StateError` を投げる (`StorageException` に変えない)
+
+- [ ] **T-19-09-02**: 変更は取り消される
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given 1 行を `INSERT` した後に `StateError` を投げる body, When `transact('p: ', body)` を呼んで失敗した
+  - Expected: Then `INSERT` した行が残っていない
+
+### [エッジケース] Edge Cases
+
+#### T-19-10: Given: すでにトランザクションが開いているときに transact を呼ぶ (BEGIN が失敗する)
+
+- [ ] **T-19-10-01**: StorageException になる
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given `execute('BEGIN')` で外側のトランザクションを開いてある, When `transact('p: ', body)` を呼ぶ
+  - Expected: Then `StorageException` を投げる
+
+- [ ] **T-19-10-02**: 外側のトランザクションは取り消されず、COMMIT できる
+  - Target: `SqliteAccess.transact`
+  - Scenario: Given `execute('BEGIN')` で外側のトランザクションを開き 1 行を `INSERT` してある, When `transact('p: ', body)` が失敗した後に `execute('COMMIT')` を呼ぶ
+  - Expected: Then 外側で `INSERT` した行が、別の接続から読める
+
+#### T-19-11: Given: 条件に合う行が無い select
+
+- [ ] **T-19-11-01**: 空の結果を返す
+  - Target: `SqliteAccess.select`
+  - Scenario: Given 空のテーブル, When `select('SELECT a FROM t WHERE a = ?', [1])` を呼ぶ
+  - Expected: Then 空の結果を返す (例外を投げない)
+
+#### T-19-12: Given: params を省略した select
+
+- [ ] **T-19-12-01**: バインドなしで実行される
+  - Target: `SqliteAccess.select`
+  - Scenario: Given `?` を含まない SQL `SELECT 1 AS n`, When `params` を省略して `select` を呼ぶ
+  - Expected: Then `n` が 1 の 1 行を返す
+
+---
+
 ## Coverage Check
 
 ### 除外 (別ファイルが担当)
@@ -780,6 +906,7 @@ version: 1.2.0
 | T-04: parseAt                    | Normal: 8  | Error: 6  | Edge: 14 | [OK]   |
 | T-05: MappingTable / SqliteStore | Normal: 21 | Error: 15 | Edge: 8  | [OK]   |
 | T-06: 置換キュー                 | Normal: 19 | Error: 7  | Edge: 8  | [OK]   |
+| T-19: SqliteAccess               | Normal: 6  | Error: 7  | Edge: 4  | [OK]   |
 
 <!--
 Task ID Format: T-<TestTarget>-<Scenario>-<Case>

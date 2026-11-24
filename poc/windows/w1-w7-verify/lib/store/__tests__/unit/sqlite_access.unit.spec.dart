@@ -63,6 +63,22 @@ void main() {
       });
     });
 
+    group('T-WDV-SQA: guard (passthrough)', () {
+      group('Given: StateError を投げる action (T-19-07)', () {
+        group('When: 異常系 (guard(p: , action) を呼ぶ)', () {
+          test(
+            '[Abnormal] T-WDV-SQA-09: StorageException に変換せず StateError のまま投げる',
+            () {
+              expect(
+                () => access.guard<int>('p: ', () => throw StateError('boom')),
+                throwsA(isA<StateError>()),
+              );
+            },
+          );
+        });
+      });
+    });
+
     group('T-WDV-SQA: transact', () {
       group('Given: 1 行を INSERT して 42 を返す body (T-19-02)', () {
         group('When: 正常系 (transact(p: , body) を呼ぶ)', () {

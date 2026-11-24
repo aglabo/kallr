@@ -39,7 +39,9 @@ final class SqliteAccess {
       guard(failurePrefix, () => runInTransaction(_db, body));
 
   /// Runs [sql] with [params] bound and returns the resulting rows.
-  ResultSet select(String sql, List<Object?> params) => _db.select(sql, params);
+  /// [params] may be omitted for SQL without placeholders.
+  ResultSet select(String sql, [List<Object?> params = const <Object?>[]]) =>
+      _db.select(sql, params);
 
   /// Runs [sql] with [params] bound, discarding any rows.
   void execute(String sql, [List<Object?> params = const <Object?>[]]) =>

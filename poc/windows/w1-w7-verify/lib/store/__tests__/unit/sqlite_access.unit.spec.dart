@@ -274,6 +274,19 @@ void main() {
           });
         });
       });
+
+      group('Given: ? を含まない SQL `SELECT 1 AS n` (T-19-12)', () {
+        group('When: エッジケース (params を省略して select を呼ぶ)', () {
+          test('[Edge] T-WDV-SQA-17: n = 1 の 1 行を返す', () {
+            final SqliteAccess a = SqliteAccess(sqlite3.openInMemory());
+            addTearDown(a.close);
+
+            final ResultSet rows = a.select('SELECT 1 AS n');
+
+            expect(rows.map((Row r) => r['n']), <Object?>[1]);
+          });
+        });
+      });
     });
 
     group('T-WDV-SQA: execute', () {

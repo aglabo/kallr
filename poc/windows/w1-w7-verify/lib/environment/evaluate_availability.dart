@@ -21,10 +21,12 @@ Availability evaluateAvailability(
 ) {
   final id = normalizeId(aumid);
   final setting = settings.read(id);
+  final ok = setting == NotificationSetting.enabled;
   return Availability(
     registered: registry.exists(id),
     displayNameSet: (registry.readDisplayName(id) ?? '').trim().isNotEmpty,
     setting: setting,
-    ok: setting == NotificationSetting.enabled,
+    ok: ok,
+    reason: ok ? null : setting.name,
   );
 }

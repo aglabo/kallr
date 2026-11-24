@@ -41,6 +41,110 @@ void main() {
           });
         });
       });
+
+      group(
+        'Given: AUMID と DisplayName が登録済みで通知設定が disabledForApplication',
+        () {
+          final registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+          const settings = FakeNotificationSettingSource(
+            NotificationSetting.disabledForApplication,
+          );
+
+          group('When: evaluateAvailability を呼ぶ', () {
+            test('[Normal] T-WDV-AVL-02: disabledForApplication では ok=false で理由に種別名を含める', () {
+              final result = evaluateAvailability(
+                'com.kallr.app',
+                registry,
+                settings,
+              );
+
+              expect(result.registered, isTrue);
+              expect(result.displayNameSet, isTrue);
+              expect(
+                result.setting,
+                NotificationSetting.disabledForApplication,
+              );
+              expect(result.ok, isFalse);
+              expect(result.reason, contains('disabledForApplication'));
+            });
+          });
+        },
+      );
+
+      group('Given: AUMID と DisplayName が登録済みで通知設定が disabledForUser', () {
+        final registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+        const settings = FakeNotificationSettingSource(
+          NotificationSetting.disabledForUser,
+        );
+
+        group('When: evaluateAvailability を呼ぶ', () {
+          test(
+            '[Normal] T-WDV-AVL-03: disabledForUser では ok=false で理由に種別名を含める',
+            () {
+              final result = evaluateAvailability(
+                'com.kallr.app',
+                registry,
+                settings,
+              );
+
+              expect(result.registered, isTrue);
+              expect(result.displayNameSet, isTrue);
+              expect(result.setting, NotificationSetting.disabledForUser);
+              expect(result.ok, isFalse);
+              expect(result.reason, contains('disabledForUser'));
+            },
+          );
+        });
+      });
+
+      group('Given: AUMID と DisplayName が登録済みで通知設定が disabledByGroupPolicy', () {
+        final registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+        const settings = FakeNotificationSettingSource(
+          NotificationSetting.disabledByGroupPolicy,
+        );
+
+        group('When: evaluateAvailability を呼ぶ', () {
+          test('[Normal] T-WDV-AVL-04: disabledByGroupPolicy では ok=false で理由に種別名を含める', () {
+            final result = evaluateAvailability(
+              'com.kallr.app',
+              registry,
+              settings,
+            );
+
+            expect(result.registered, isTrue);
+            expect(result.displayNameSet, isTrue);
+            expect(result.setting, NotificationSetting.disabledByGroupPolicy);
+            expect(result.ok, isFalse);
+            expect(result.reason, contains('disabledByGroupPolicy'));
+          });
+        });
+      });
+
+      group('Given: AUMID と DisplayName が登録済みで通知設定が disabledByManifest', () {
+        final registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+        const settings = FakeNotificationSettingSource(
+          NotificationSetting.disabledByManifest,
+        );
+
+        group('When: evaluateAvailability を呼ぶ', () {
+          test(
+            '[Normal] T-WDV-AVL-05: disabledByManifest では ok=false で理由に種別名を含める',
+            () {
+              final result = evaluateAvailability(
+                'com.kallr.app',
+                registry,
+                settings,
+              );
+
+              expect(result.registered, isTrue);
+              expect(result.displayNameSet, isTrue);
+              expect(result.setting, NotificationSetting.disabledByManifest);
+              expect(result.ok, isFalse);
+              expect(result.reason, contains('disabledByManifest'));
+            },
+          );
+        });
+      });
     });
   });
 }

@@ -86,7 +86,8 @@ CREATE UNIQUE INDEX settings_key ON settings (key);
 - 接続ごとに `PRAGMA foreign_keys = ON` を実行します。
 - `settings` は、kallr の設定を 1 行 1 値で持つテーブルです。マシン ID もここに置きます。key は §3.3 に示します。
 - 行は物理 ID (`id`) で指します。読み書きと削除は `id` 経由で行います。
-- ただし `settings` の値の読み取りは、`id` を引かずに、key で直接読みます (`SELECT value FROM settings WHERE key = ?`)。`settings_key` の一意インデックスが 1 回の検索で行を特定するためです。
+- ただし `settings` の値の読み取りは、`id` を引かずに、key で直接読みます
+  (`SELECT value FROM settings WHERE key = ?`)。`settings_key` の一意インデックスが 1 回の検索で行を特定するためです。
 
 ### 2.3 Replacement Queue
 

@@ -132,7 +132,8 @@ version: 1.0.0
 
 - [x] **T-01-06-05**: 乱数の末尾に改行があれば `ArgumentError` を投げる
   - Target: `generateTag`
-  - Scenario: Given random が `0123456789abcdef ` (16 桁の後ろに改行)、有効な registeredAt と machineId, When `generateTag` を呼ぶ
+  - Scenario: Given random が `0123456789abcdef
+` (16 桁の後ろに改行)、有効な registeredAt と machineId, When `generateTag` を呼ぶ
   - Expected: Then `ArgumentError` を投げる。改行を取り除かない (TAG-R-001)
 
 - [x] **T-01-06-06**: 乱数に `/` (`0` の直前の文字) があれば `ArgumentError` を投げる
@@ -406,7 +407,8 @@ version: 1.0.0
 
 - [x] **T-03-05-06**: 保存済みの値の末尾に改行があれば `StorageException` を投げる
   - Target: `MachineIdProvider.machineId` (`SqliteStore`
-  - Scenario: Given `settings` の `machine_id` の value が `a1b2c3d4 ` (8 桁の後ろに改行), When `machineId()` を呼ぶ
+  - Scenario: Given `settings` の `machine_id` の value が `a1b2c3d4
+` (8 桁の後ろに改行), When `machineId()` を呼ぶ
   - Expected: Then `StorageException` を投げる。改行を取り除かず、新しい値を作らない (TAG-R-010)
 
 #### T-03-06: 不正な値は作り直さない

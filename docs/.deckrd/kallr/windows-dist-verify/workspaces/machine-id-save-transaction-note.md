@@ -45,7 +45,9 @@ INSERT INTO settings (key, value) VALUES (?, ?)
 
 `SqliteStore` は、将来、次の 2 つを持つ。変わる理由が別なので、T-05 の最初に、ファイルを分けることを検討する。
 
-- 接続と初期化: ファイルの有無の判定、親ディレクトリの作成、`PRAGMA quick_check`、`PRAGMA user_version` の判定、3 つのテーブル (`notifications`、`replacement_queue`、`settings`) と索引の作成、将来の版の移行 (implementation-schedule.md §2.3、db-migration.md §3)。
+- 接続と初期化: ファイルの有無の判定、親ディレクトリの作成、`PRAGMA quick_check`、`PRAGMA user_version` の判定、
+  3 つのテーブル (`notifications`、`replacement_queue`、`settings`) と索引の作成、
+  将来の版の移行 (implementation-schedule.md §2.3、db-migration.md §3)。
 - 通常のデータ操作: `MappingTable` の CRUD、置換キュー、`MachineIdProvider` (`machineId`)。
 
 ### 分け方の案
@@ -61,7 +63,9 @@ lib/store/
 ```
 
 - `SqliteStore.fromDatabase(db)` は、スキーマを作らずに `Database` を包む入口で、すでに CRUD 側の入口になっている。
-- テストも分かれる。T-WDV-MID-05 (スキーマ作成の失敗) と T-WDV-MID-16 (SQLite でないファイル) は初期化側。`machineId` の読み書きは CRUD 側。初期化側は `schema.unit.spec.dart` に分け、`module.md` の略語表に新しい行 (例: `SCM`) を足す。
+- テストも分かれる。T-WDV-MID-05 (スキーマ作成の失敗) と T-WDV-MID-16 (SQLite でないファイル) は初期化側。
+  `machineId` の読み書きは CRUD 側。初期化側は `schema.unit.spec.dart` に分け、
+  `module.md` の略語表に新しい行 (例: `SCM`) を足す。
 - 設計書の更新が要る: implementation-index.md §2 のモジュール構成にファイルを足す (版を上げる)。
 
 ### 今は分けない理由

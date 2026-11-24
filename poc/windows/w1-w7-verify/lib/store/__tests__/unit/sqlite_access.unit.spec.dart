@@ -13,6 +13,7 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
 // test target
+import 'package:w1_w7_verify/errors.dart';
 import 'package:w1_w7_verify/store/sqlite_access.dart';
 
 void main() {
@@ -28,6 +29,36 @@ void main() {
           test('[Normal] T-WDV-SQA-01: action の戻り値をそのまま返す', () {
             expect(access.guard('p: ', () => 42), 42);
           });
+        });
+      });
+
+      group('Given: 存在しないテーブルを SELECT する action (T-19)', () {
+        group('When: 異常系 (guard(p: , action) を呼ぶ)', () {
+          int failingAction() =>
+              access.select('SELECT a FROM missing', const <Object?>[]).length;
+
+          test('[Abnormal] T-WDV-SQA-07: StorageException を投げる', () {
+            expect(
+              () => access.guard('p: ', failingAction),
+              throwsA(isA<StorageException>()),
+            );
+          });
+
+          test(
+            '[Abnormal] T-WDV-SQA-08: メッセージは prefix の後ろに SQLite のメッセージが続く',
+            () {
+              expect(
+                () => access.guard('p: ', failingAction),
+                throwsA(
+                  isA<StorageException>().having(
+                    (StorageException e) => e.message,
+                    'message',
+                    allOf(startsWith('p: '), contains('no such table')),
+                  ),
+                ),
+              );
+            },
+          );
         });
       });
     });

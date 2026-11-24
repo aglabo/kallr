@@ -20,8 +20,14 @@ Issue #19 の PoC-W (W1〜W5、W7) を、未パッケージ + HKCU 登録の配�
 | `MID` | `SqliteStore` (`MachineIdProvider` 実装)                                            |
 | `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) |
 | `SQA` | `SqliteAccess` (`guard` / `transact` / `select` / `execute`)                        |
+| `SCH` | `openDatabase`                                                                      |
 | `DDP` | `defaultDbPath`                                                                     |
 | `MTK` | `mapToastKey`                                                                       |
 | `TAG` | `generateTag`                                                                       |
 | `TAL` | `allocateTag`                                                                       |
 | `SVA` | `SchedulingService.add` (新規・置換)                                                 |
+| `SVL` | `SchedulingService.list`                                                            |
+| `AVL` | `evaluateAvailability`                                                              |
+| `ERR` | `errors.dart` の例外型と `Hresult`                                                  |
+| `AVO` | `Availability`                                                                      |
+| `STO` | `ScheduledToast`                                                                    |

@@ -48,3 +48,15 @@ class StorageException implements Exception {
   @override
   String toString() => 'StorageException: $message';
 }
+
+/// Thrown when the OS rejects a toast operation; carries the OS error code.
+class ScheduleException implements Exception {
+  /// Creates the exception for the OS error [hresult].
+  const ScheduleException(this.hresult);
+
+  /// HRESULT returned by the OS.
+  final int hresult;
+
+  @override
+  String toString() => 'ScheduleException: 0x${hresult.toRadixString(16)}';
+}

@@ -1,0 +1,69 @@
+// src: lib/schedule/scheduling_service.dart
+// @(#) : SchedulingService: registers toast notifications and keeps the mapping table in step
+//
+// Copyright (c) 2026 atsushifx <http://github.com/atsushifx>
+//
+// Released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+import '../environment/notification_environment.dart';
+import '../models.dart';
+import '../store/mapping_table.dart';
+import '../tag/providers.dart';
+import '../tag/tag_allocator.dart';
+import 'clock_provider.dart';
+import 'toast_scheduler.dart';
+
+/// Registers toast notifications with the OS and records them in the mapping table.
+final class SchedulingService {
+  /// Creates the service from its collaborators.
+  SchedulingService({
+    required NotificationEnvironment env,
+    required ToastScheduler scheduler,
+    required MappingTable table,
+    required ClockProvider clock,
+    required RandomSourceProvider random,
+    required MachineIdProvider machineId,
+  }) : _env = env,
+       _scheduler = scheduler,
+       _table = table,
+       _clock = clock,
+       _random = random,
+       _machineId = machineId;
+
+  final NotificationEnvironment _env;
+  final ToastScheduler _scheduler;
+  final MappingTable _table;
+  final ClockProvider _clock;
+  final RandomSourceProvider _random;
+  final MachineIdProvider _machineId;
+
+  /// Registers a new notification for ([batchId], [alarmId]) at [at] and returns its record.
+  MappingRecord add({
+    required String batchId,
+    required String alarmId,
+    required DateTime at,
+    required String title,
+    required String aumid,
+  }) {
+    _env.check(aumid);
+    final registeredAt = _clock.now();
+    final tag = allocateTag(
+      random: _random,
+      machineId: _machineId,
+      existingTags: _table.tags(),
+      registeredAt: registeredAt,
+    );
+    final record = MappingRecord(
+      batchId: batchId,
+      alarmId: alarmId,
+      tag: tag,
+      at: at.toUtc(),
+      title: title,
+      registeredAt: registeredAt,
+    );
+    _scheduler.add(tag: tag, group: kGroup, at: at, title: title);
+    _table.put(record);
+    return record;
+  }
+}

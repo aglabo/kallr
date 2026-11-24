@@ -51,12 +51,6 @@ const Availability _unregistered = Availability(
   reason: 'AUMID が未登録',
 );
 
-/// HRESULT the OS returns for a past `at` (E_INVALIDARG).
-const int _invalidArgument = 0x80070057;
-
-/// HRESULT the OS returns when the toast limit is exceeded.
-const int _tooManyToasts = 0x80070718;
-
 /// Fixed registration time of the clock.
 final DateTime _now = DateTime(2026, 11, 22, 10);
 
@@ -350,14 +344,14 @@ void main() {
           '[Error] T-WDV-SVA-21: hresult 0x80070057 の ScheduleException を投げる',
           () {
             final f = _Fixture()
-              ..scheduler.failNext(ToastOp.add, _invalidArgument);
+              ..scheduler.failNext(ToastOp.add, Hresult.invalidArgument);
             expect(
               f.add,
               throwsA(
                 isA<ScheduleException>().having(
                   (e) => e.hresult,
                   'hresult',
-                  _invalidArgument,
+                  Hresult.invalidArgument,
                 ),
               ),
             );
@@ -366,7 +360,7 @@ void main() {
 
         test('[Error] T-WDV-SVA-22: 対応表を変えない', () {
           final f = _Fixture()
-            ..scheduler.failNext(ToastOp.add, _invalidArgument);
+            ..scheduler.failNext(ToastOp.add, Hresult.invalidArgument);
           expect(f.add, throwsA(isA<ScheduleException>()));
           expect(f.table.get('b1', 'a1'), isNull);
           expect(f.log, isNot(contains('table.put')));
@@ -379,14 +373,14 @@ void main() {
           '[Error] T-WDV-SVA-23: hresult 0x80070718 の ScheduleException を投げる',
           () {
             final f = _Fixture()
-              ..scheduler.failNext(ToastOp.add, _tooManyToasts);
+              ..scheduler.failNext(ToastOp.add, Hresult.tooManyToasts);
             expect(
               f.add,
               throwsA(
                 isA<ScheduleException>().having(
                   (e) => e.hresult,
                   'hresult',
-                  _tooManyToasts,
+                  Hresult.tooManyToasts,
                 ),
               ),
             );

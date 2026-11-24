@@ -6,6 +6,24 @@
 // Released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+/// OS notification setting of an AUMID.
+enum NotificationSetting {
+  /// Notifications are enabled.
+  enabled,
+
+  /// Disabled for the application.
+  disabledForApplication,
+
+  /// Disabled by the user.
+  disabledForUser,
+
+  /// Disabled by group policy.
+  disabledByGroupPolicy,
+
+  /// Disabled by the manifest.
+  disabledByManifest,
+}
+
 /// Result of checking whether toast notifications can be shown for an AUMID.
 final class Availability {
   /// Creates a result from its field values.
@@ -13,18 +31,27 @@ final class Availability {
     required this.registered,
     required this.displayNameSet,
     required this.ok,
+    this.setting,
     this.reason,
   });
 
   /// Creates the result for an environment that can show notifications.
   const Availability.ok()
-    : this(registered: true, displayNameSet: true, ok: true);
+    : this(
+        registered: true,
+        displayNameSet: true,
+        setting: NotificationSetting.enabled,
+        ok: true,
+      );
 
   /// Whether the AUMID is registered.
   final bool registered;
 
   /// Whether the registered DisplayName is set.
   final bool displayNameSet;
+
+  /// OS notification setting; null when the check stopped before reading it.
+  final NotificationSetting? setting;
 
   /// Whether notifications can be shown.
   final bool ok;

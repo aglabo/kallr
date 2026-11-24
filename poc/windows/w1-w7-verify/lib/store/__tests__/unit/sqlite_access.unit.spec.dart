@@ -106,6 +106,26 @@ void main() {
           });
         });
       });
+
+      group('Given: AUTOINCREMENT のテーブルに 1 行を INSERT した直後 (T-19-05)', () {
+        group('When: 正常系 (execute の後に lastInsertRowId を読む)', () {
+          test('[Normal] T-WDV-SQA-06: lastInsertRowId が追加した行の id である', () {
+            final Database db = sqlite3.openInMemory()
+              ..execute(
+                'CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT, v TEXT)',
+              );
+            final SqliteAccess a = SqliteAccess(db);
+            addTearDown(a.close);
+
+            a.execute("INSERT INTO t (v) VALUES ('x')");
+
+            final Object? id = a
+                .select('SELECT id FROM t', const <Object?>[])
+                .single['id'];
+            expect(a.lastInsertRowId, id);
+          });
+        });
+      });
     });
   });
 }

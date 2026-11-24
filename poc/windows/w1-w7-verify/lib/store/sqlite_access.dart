@@ -48,6 +48,9 @@ final class SqliteAccess {
   /// Number of rows changed by the most recent [execute].
   int get updatedRows => _db.updatedRows;
 
+  /// Row id of the most recent successful INSERT.
+  int get lastInsertRowId => _db.lastInsertRowId;
+
   /// Closes the underlying database.
   void close() => _db.close();
 }

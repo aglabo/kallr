@@ -93,8 +93,8 @@ final class W5Report {
 /// Checks the W5 record [input] against [env] and [probe].
 ///
 /// A recorded AUMID, permission or install method that is null, blank or
-/// `記載なし` is `unclear` and is not compared: the AUMID is not looked up and
-/// [probe] is not asked.
+/// `記載なし` (ignoring surrounding whitespace) is `unclear` and is not
+/// compared: the AUMID is not looked up and [probe] is not asked.
 /// A clear install method is never compared: it is reported as `notChecked`
 /// with the recorded value.
 /// A clear AUMID that [env] does not know as registered is a `mismatch`,
@@ -117,11 +117,11 @@ W5Report w5Check(
 );
 
 /// Returns [recorded] when it is clear enough to compare, or null when it is
-/// unclear: null, blank or exactly `記載なし`.
-String? _clearValue(String? recorded) =>
-    recorded == null || recorded.trim().isEmpty || recorded == '記載なし'
-    ? null
-    : recorded;
+/// unclear: null, blank, or `記載なし` with or without surrounding whitespace.
+String? _clearValue(String? recorded) => switch (recorded?.trim()) {
+  null || '' || '記載なし' => null,
+  _ => recorded,
+};
 
 /// Judges the [recorded] value of the field [field].
 ///

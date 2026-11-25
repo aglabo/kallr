@@ -22,6 +22,9 @@ import '../mock_notification_environment.dart';
 
 // internal helpers
 
+/// `記載なし` with surrounding whitespace, recorded in each field in turn.
+const _paddedUnclear = ' 記載なし ';
+
 /// Runs w5Check on a W5 record with the AUMID [aumid], the permission
 /// [recorded] and the install method [installMethod], by default a clear one,
 /// against [env] and [probe].
@@ -500,6 +503,44 @@ void main() {
               W5FieldStatus.unclear,
             ]);
             expect(report.exitCode, 2);
+          });
+        });
+      });
+
+      group('Given: 記録の欄が前後に空白のある 記載なし', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Edge] T-WDV-W5C-35: AUMID 欄は unclear とし、登録を照合しない', () {
+            final env = MockNotificationEnvironment.ok();
+
+            final report = _checkAumidRecord(_paddedUnclear, env: env);
+
+            expect(_resultsOf(report, 'aumid').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+            expect(env.isRegisteredCalls, isEmpty);
+          });
+
+          test(
+            '[Edge] T-WDV-W5C-36: 実行権限欄は unclear とし、UsageException を送出しない',
+            () {
+              late final W5Report report;
+
+              expect(
+                () => report = _checkRecordedPermission(_paddedUnclear),
+                returnsNormally,
+              );
+              expect(_resultsOf(report, 'permission').map((r) => r.status), [
+                W5FieldStatus.unclear,
+              ]);
+            },
+          );
+
+          test('[Edge] T-WDV-W5C-37: インストール方式欄は unclear とする', () {
+            final report = _checkInstallMethodRecord(_paddedUnclear);
+
+            expect(_resultsOf(report, 'install-method').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
           });
         });
       });

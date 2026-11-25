@@ -1,5 +1,6 @@
 // src: lib/environment/__tests__/fakes.dart
-// @(#) : Fakes shared by the evaluateAvailability and MockNotificationEnvironment tests
+// @(#) : Fakes shared by the evaluateAvailability, MockNotificationEnvironment and
+//          w5Check tests
 //
 // Copyright (c) 2026 atsushifx <http://github.com/atsushifx>
 //
@@ -9,6 +10,7 @@
 import 'package:w1_w7_verify/environment/aumid_registry.dart';
 import 'package:w1_w7_verify/environment/notification_environment.dart';
 import 'package:w1_w7_verify/environment/notification_setting_source.dart';
+import 'package:w1_w7_verify/environment/permission_probe.dart';
 
 /// In-memory [AumidRegistry] holding AUMID -> DisplayName.
 class FakeAumidRegistry implements AumidRegistry {
@@ -144,4 +146,16 @@ class FailingNotificationSettingSource implements NotificationSettingSource {
     calls++;
     throw StateError('NotificationSettingSource must not be called');
   }
+}
+
+/// [PermissionProbe] that always returns [permission].
+class FakePermissionProbe implements PermissionProbe {
+  /// Creates the fake observing [permission].
+  const FakePermissionProbe(this.permission);
+
+  /// Value returned by [current].
+  final String permission;
+
+  @override
+  String current() => permission;
 }

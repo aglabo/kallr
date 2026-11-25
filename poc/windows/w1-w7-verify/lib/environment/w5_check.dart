@@ -74,24 +74,37 @@ final class W5Report {
   /// Results per field.
   final List<W5FieldResult> fields;
 
-  /// Exit code of the check; currently always 0.
-  int get exitCode => 0;
+  /// Exit code of the check: 2 when any field is a `mismatch` or `unclear`,
+  /// otherwise 0.
+  int get exitCode =>
+      fields.any(
+        (result) =>
+            result.status == W5FieldStatus.mismatch ||
+            result.status == W5FieldStatus.unclear,
+      )
+      ? 2
+      : 0;
 }
 
 /// Checks the W5 record [input] against [env] and [probe].
 ///
 /// The install method is never compared: it is reported as `notChecked` with
 /// the recorded value.
-/// The AUMID and permission statuses are currently fixed to `match`; [env] and
-/// [probe] are not consulted.
+/// A recorded AUMID that is null, blank or `記載なし` is `unclear` and is not
+/// looked up.
+/// A clear AUMID that [env] does not know as registered is a `mismatch`,
+/// observed as `登録なし`; otherwise the AUMID is reported as `match`.
+/// A recorded permission that differs from the one [probe] observes is a
+/// `mismatch` with both values; otherwise the permission is reported as
+/// `match`.
 W5Report w5Check(
   W5Input input,
   NotificationEnvironment env,
   PermissionProbe probe,
 ) => W5Report(
   fields: [
-    const W5FieldResult(field: 'aumid', status: W5FieldStatus.match),
-    const W5FieldResult(field: 'permission', status: W5FieldStatus.match),
+    _checkAumid(input.recordedAumid, env),
+    _checkPermission(input.recordedPermission, probe),
     W5FieldResult(
       field: 'install-method',
       status: W5FieldStatus.notChecked,
@@ -99,3 +112,31 @@ W5Report w5Check(
     ),
   ],
 );
+
+/// Checks the [recorded] AUMID against the registrations of [env].
+W5FieldResult _checkAumid(String? recorded, NotificationEnvironment env) {
+  if (recorded == null || recorded.trim().isEmpty || recorded == '記載なし') {
+    return const W5FieldResult(field: 'aumid', status: W5FieldStatus.unclear);
+  }
+  return !env.isRegistered(recorded)
+      ? W5FieldResult(
+          field: 'aumid',
+          status: W5FieldStatus.mismatch,
+          recorded: recorded,
+          observed: '登録なし',
+        )
+      : const W5FieldResult(field: 'aumid', status: W5FieldStatus.match);
+}
+
+/// Checks the [recorded] permission against the one observed by [probe].
+W5FieldResult _checkPermission(String? recorded, PermissionProbe probe) {
+  final observed = probe.current();
+  return recorded != null && recorded != observed
+      ? W5FieldResult(
+          field: 'permission',
+          status: W5FieldStatus.mismatch,
+          recorded: recorded,
+          observed: observed,
+        )
+      : const W5FieldResult(field: 'permission', status: W5FieldStatus.match);
+}

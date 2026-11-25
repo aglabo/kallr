@@ -21,7 +21,7 @@ version: 1.0.0
 | Test Target                                | Scenarios | Cases | Status      |
 | ------------------------------------------ | --------- | ----- | ----------- |
 | T-08: evaluateAvailability (AVL)           | 15        | 43    | done        |
-| T-09: w5Check (W5C)                        | 14        | 40    | in progress |
+| T-09: w5Check (W5C)                        | 15        | 43    | in progress |
 | T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending     |
 | T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done        |
 | T-21: RegistryException (ERR)              | 2         | 2     | done        |
@@ -519,6 +519,23 @@ version: 1.0.0
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'Administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` が `administrator` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `UsageException` を投げ、W5Report を返さない
 
+#### T-09-15: Given 記録の欄が前後に空白のある `記載なし`, When w5Check を呼ぶ
+
+- [ ] **T-09-15-01**: 前後に空白のある `記載なし` の AUMID 欄は unclear とし、登録を照合しない (ENV-R-019, ENV-R-015, ENV-DD-13, ENV-E-29)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`' 記載なし '`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock (`isRegistered` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `field=aumid` が `status=unclear` で、`env.isRegistered` は 1 度も呼ばれない
+
+- [ ] **T-09-15-02**: 前後に空白のある `記載なし` の実行権限欄は unclear とし、UsageException にしない (ENV-R-019, ENV-DD-13, ENV-E-29)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`' 記載なし '`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `UsageException` を投げず、`field=permission` が `status=unclear`
+
+- [ ] **T-09-15-03**: 前後に空白のある `記載なし` のインストール方式欄は unclear とする (ENV-R-019, ENV-R-014, ENV-DD-13, ENV-E-29)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`' 記載なし '`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `field=install-method` が `status=unclear`
+
 ## T-13: DefaultNotificationEnvironment (NEV)
 
 > 共通の前提: `DefaultNotificationEnvironment` に、呼び出しを記録する Fake `AumidRegistry` と Fake `NotificationSettingSource` を渡す。
@@ -697,60 +714,60 @@ version: 1.0.0
 
 ## Coverage Check
 
-| Source item                                                          | Task ID(s)                                                                                                                         |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| ENV-R-001 (AUMID 空 → UsageException)                                | T-08-05-01, T-08-05-02, T-08-05-03                                                                                                 |
-| ENV-R-002 (未登録)                                                   | T-08-06-01, T-08-06-02, T-08-09-01, T-08-13-01                                                                                     |
-| ENV-R-003 (DisplayName 空)                                           | T-08-07-01, T-08-07-02, T-08-07-03, T-08-07-04, T-08-13-02                                                                         |
-| ENV-R-004 (無効 4 種)                                                | T-08-02-01 〜 T-08-02-04                                                                                                           |
-| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04, T-20-01-01 〜 T-20-03-02                                                                                               |
-| ENV-R-006 (ok=true)                                                  | T-08-01-01, T-08-10-01                                                                                                             |
-| ENV-R-007 (読み取り失敗 → 再スロー)                                  | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
-| ENV-R-011 (登録の確認。w5Check からの利用)                           | T-09-01-01, T-09-12-01                                                                                                             |
-| ENV-R-012 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                               |
-| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02, T-08-15-01 〜 T-08-15-04                                                         |
-| ENV-R-014 (3 欄の完備判定)                                           | T-09-05-01 〜 T-09-07-05, T-09-09-01                                                                                               |
-| ENV-R-015 (欄ごとの整合チェック)                                     | T-09-01-01, T-09-01-02, T-09-01-03, T-09-02-01, T-09-03-01, T-09-04-01, T-09-05-05, T-09-06-05, T-09-10-01, T-09-11-02, T-09-12-01 |
-| ENV-R-016 (不一致の報告)                                             | T-09-03-01, T-09-04-01, T-09-04-03                                                                                                 |
-| ENV-R-019 (w5Check の判定。exitCode と 3 欄の結果)                   | T-09-01-04, T-09-01-05, T-09-02-02, T-09-03-02, T-09-05-01〜06, T-09-06-01〜06, T-09-07-01〜05, T-09-10-02, T-09-11-01             |
-| 識別子の正規化 (specifications-index 3.1。implementation-index §3.3) | T-13-01-01〜T-13-10-01                                                                                                             |
-| ENV-E-01 (未登録で add) の確認部分                                   | T-08-06-01 (add の終了コード 3 は対象外。下表)                                                                                     |
-| ENV-E-02 (DisplayName の値なし)                                      | T-08-07-01                                                                                                                         |
-| ENV-E-03 (DisplayName 空文字・空白)                                  | T-08-07-02, T-08-07-03                                                                                                             |
-| ENV-E-04 (無効 4 種)                                                 | T-08-02-01 〜 T-08-02-04                                                                                                           |
-| ENV-E-05 (マニフェスト無効)                                          | T-08-02-04                                                                                                                         |
-| ENV-E-06 (未知の値)                                                  | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
-| ENV-E-07 (読み取り失敗)                                              | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
-| ENV-E-08 (AUMID 空)                                                  | T-08-05-01, T-08-05-03                                                                                                             |
-| ENV-E-11 (削除後も設定が有効)                                        | T-08-09-01                                                                                                                         |
-| ENV-E-12 (登録の直後)                                                | T-08-10-01                                                                                                                         |
-| ENV-E-14 (非 ASCII) の判定ロジック部分                               | T-08-12-01, T-08-12-02                                                                                                             |
-| ENV-E-15 (Mock の戻り値に従う) の Mock 部分                          | T-08-03-01 〜 T-08-03-07                                                                                                           |
-| ENV-E-16 (W5 の記録が空・記載なし)                                   | T-09-05-02, T-09-05-03, T-09-05-04, T-09-06-02, T-09-06-03, T-09-06-04, T-09-07-02, T-09-07-03, T-09-07-04                         |
-| ENV-E-17 (AUMID 欄が未登録)                                          | T-09-03-01, T-09-03-02                                                                                                             |
-| ENV-E-18 (権限の不一致)                                              | T-09-04-01, T-09-04-02, T-09-04-03                                                                                                 |
-| ENV-E-19 (インストール方式は対象外)                                  | T-09-01-03, T-09-09-01                                                                                                             |
-| ENV-E-25 (未評価の通知設定)                                          | T-08-06-01, T-08-07-02                                                                                                             |
-| ENV-E-27 (指定の無い `--recorded-*`)                                 | T-09-05-01, T-09-06-01, T-09-06-06, T-09-07-01, T-09-07-05, T-09-11-01                                                             |
-| ENV-E-28 (完備だが不一致)                                            | T-09-03-03                                                                                                                         |
-| ENV-E-29 (`記載なし`)                                                | T-09-05-04, T-09-05-06, T-09-06-04, T-09-07-04                                                                                     |
-| ENV-DD-01 (不可は値、失敗は例外)                                     | T-08-06-01, T-08-07-01, T-08-08-01                                                                                                 |
-| ENV-DD-02 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                               |
-| ENV-DD-03 (登録なし・DisplayName 空で打ち切り)                       | T-08-06-02, T-08-07-04, T-08-09-01, T-08-13-01                                                                                     |
-| ENV-DD-04 (インストール方式は照合しない)                             | T-09-01-03, T-09-03-03, T-09-09-01                                                                                                 |
-| ENV-DD-05 (不一致は exitCode 2、W5 の合否は変えない)                 | T-09-03-02, T-09-03-03, T-09-04-02                                                                                                 |
-| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
-| ENV-DD-10 (未評価は null)                                            | T-08-06-01, T-08-07-02, T-08-13-02                                                                                                 |
-| ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-13-01                                                                                                 |
-| ENV-DD-13 (`記載なし` の機械検査)                                    | T-09-05-01 〜 T-09-07-04                                                                                                           |
-| IDX-DD-04 (終了コード 0 / 2。w5Check の exitCode)                    | T-09-01-04, T-09-03-02                                                                                                             |
-| IDX-DD-05 (例外と値の使い分け)                                       | T-08-06-01, T-08-08-01, T-08-08-03                                                                                                 |
-| IDX §3.1, §4.3 (RegistryException の値と表示)                        | T-21-01-01, T-21-02-01                                                                                                             |
-| IDX-DD-10 (空の AUMID は使い方の誤り)                                | T-08-05-01, T-08-05-03                                                                                                             |
-| IDX-DD-12 (w5-check の exitCode 2。W5 の合否は変えない)              | T-09-03-02, T-09-03-03, T-09-05-06                                                                                                 |
-| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-08-15-01 〜 T-08-15-04, T-09-12-01, T-09-12-02                                                         |
-| DR-03 (W5 の合否は記録の完備だけ)                                    | T-09-03-03, T-09-05-01 〜 T-09-07-05                                                                                               |
-| DR-01 (HKCU 登録・管理者権限不要)                                    | 該当なし (観測できる振る舞いは `windows/` の FFI 実装にあり、手動検証で確かめる)                                                   |
+| Source item                                                          | Task ID(s)                                                                                                                                     |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| ENV-R-001 (AUMID 空 → UsageException)                                | T-08-05-01, T-08-05-02, T-08-05-03                                                                                                             |
+| ENV-R-002 (未登録)                                                   | T-08-06-01, T-08-06-02, T-08-09-01, T-08-13-01                                                                                                 |
+| ENV-R-003 (DisplayName 空)                                           | T-08-07-01, T-08-07-02, T-08-07-03, T-08-07-04, T-08-13-02                                                                                     |
+| ENV-R-004 (無効 4 種)                                                | T-08-02-01 〜 T-08-02-04                                                                                                                       |
+| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04, T-20-01-01 〜 T-20-03-02                                                                                                           |
+| ENV-R-006 (ok=true)                                                  | T-08-01-01, T-08-10-01                                                                                                                         |
+| ENV-R-007 (読み取り失敗 → 再スロー)                                  | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                             |
+| ENV-R-011 (登録の確認。w5Check からの利用)                           | T-09-01-01, T-09-12-01                                                                                                                         |
+| ENV-R-012 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                                           |
+| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02, T-08-15-01 〜 T-08-15-04                                                                     |
+| ENV-R-014 (3 欄の完備判定)                                           | T-09-05-01 〜 T-09-07-05, T-09-09-01, T-09-15-03                                                                                               |
+| ENV-R-015 (欄ごとの整合チェック)                                     | T-09-01-01, T-09-01-02, T-09-01-03, T-09-02-01, T-09-03-01, T-09-04-01, T-09-05-05, T-09-06-05, T-09-10-01, T-09-11-02, T-09-12-01, T-09-15-01 |
+| ENV-R-016 (不一致の報告)                                             | T-09-03-01, T-09-04-01, T-09-04-03                                                                                                             |
+| ENV-R-019 (w5Check の判定。exitCode と 3 欄の結果)                   | T-09-01-04, T-09-01-05, T-09-02-02, T-09-03-02, T-09-05-01〜06, T-09-06-01〜06, T-09-07-01〜05, T-09-10-02, T-09-11-01, T-09-15-01〜03         |
+| 識別子の正規化 (specifications-index 3.1。implementation-index §3.3) | T-13-01-01〜T-13-10-01                                                                                                                         |
+| ENV-E-01 (未登録で add) の確認部分                                   | T-08-06-01 (add の終了コード 3 は対象外。下表)                                                                                                 |
+| ENV-E-02 (DisplayName の値なし)                                      | T-08-07-01                                                                                                                                     |
+| ENV-E-03 (DisplayName 空文字・空白)                                  | T-08-07-02, T-08-07-03                                                                                                                         |
+| ENV-E-04 (無効 4 種)                                                 | T-08-02-01 〜 T-08-02-04                                                                                                                       |
+| ENV-E-05 (マニフェスト無効)                                          | T-08-02-04                                                                                                                                     |
+| ENV-E-06 (未知の値)                                                  | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                                 |
+| ENV-E-07 (読み取り失敗)                                              | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                             |
+| ENV-E-08 (AUMID 空)                                                  | T-08-05-01, T-08-05-03                                                                                                                         |
+| ENV-E-11 (削除後も設定が有効)                                        | T-08-09-01                                                                                                                                     |
+| ENV-E-12 (登録の直後)                                                | T-08-10-01                                                                                                                                     |
+| ENV-E-14 (非 ASCII) の判定ロジック部分                               | T-08-12-01, T-08-12-02                                                                                                                         |
+| ENV-E-15 (Mock の戻り値に従う) の Mock 部分                          | T-08-03-01 〜 T-08-03-07                                                                                                                       |
+| ENV-E-16 (W5 の記録が空・記載なし)                                   | T-09-05-02, T-09-05-03, T-09-05-04, T-09-06-02, T-09-06-03, T-09-06-04, T-09-07-02, T-09-07-03, T-09-07-04                                     |
+| ENV-E-17 (AUMID 欄が未登録)                                          | T-09-03-01, T-09-03-02                                                                                                                         |
+| ENV-E-18 (権限の不一致)                                              | T-09-04-01, T-09-04-02, T-09-04-03                                                                                                             |
+| ENV-E-19 (インストール方式は対象外)                                  | T-09-01-03, T-09-09-01                                                                                                                         |
+| ENV-E-25 (未評価の通知設定)                                          | T-08-06-01, T-08-07-02                                                                                                                         |
+| ENV-E-27 (指定の無い `--recorded-*`)                                 | T-09-05-01, T-09-06-01, T-09-06-06, T-09-07-01, T-09-07-05, T-09-11-01                                                                         |
+| ENV-E-28 (完備だが不一致)                                            | T-09-03-03                                                                                                                                     |
+| ENV-E-29 (`記載なし`)                                                | T-09-05-04, T-09-05-06, T-09-06-04, T-09-07-04, T-09-15-01〜03                                                                                 |
+| ENV-DD-01 (不可は値、失敗は例外)                                     | T-08-06-01, T-08-07-01, T-08-08-01                                                                                                             |
+| ENV-DD-02 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                                           |
+| ENV-DD-03 (登録なし・DisplayName 空で打ち切り)                       | T-08-06-02, T-08-07-04, T-08-09-01, T-08-13-01                                                                                                 |
+| ENV-DD-04 (インストール方式は照合しない)                             | T-09-01-03, T-09-03-03, T-09-09-01                                                                                                             |
+| ENV-DD-05 (不一致は exitCode 2、W5 の合否は変えない)                 | T-09-03-02, T-09-03-03, T-09-04-02                                                                                                             |
+| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                                 |
+| ENV-DD-10 (未評価は null)                                            | T-08-06-01, T-08-07-02, T-08-13-02                                                                                                             |
+| ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-13-01                                                                                                             |
+| ENV-DD-13 (`記載なし` の機械検査)                                    | T-09-05-01 〜 T-09-07-04, T-09-15-01〜03                                                                                                       |
+| IDX-DD-04 (終了コード 0 / 2。w5Check の exitCode)                    | T-09-01-04, T-09-03-02                                                                                                                         |
+| IDX-DD-05 (例外と値の使い分け)                                       | T-08-06-01, T-08-08-01, T-08-08-03                                                                                                             |
+| IDX §3.1, §4.3 (RegistryException の値と表示)                        | T-21-01-01, T-21-02-01                                                                                                                         |
+| IDX-DD-10 (空の AUMID は使い方の誤り)                                | T-08-05-01, T-08-05-03                                                                                                                         |
+| IDX-DD-12 (w5-check の exitCode 2。W5 の合否は変えない)              | T-09-03-02, T-09-03-03, T-09-05-06                                                                                                             |
+| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-08-15-01 〜 T-08-15-04, T-09-12-01, T-09-12-02                                                                     |
+| DR-03 (W5 の合否は記録の完備だけ)                                    | T-09-03-03, T-09-05-01 〜 T-09-07-05                                                                                                           |
+| DR-01 (HKCU 登録・管理者権限不要)                                    | 該当なし (観測できる振る舞いは `windows/` の FFI 実装にあり、手動検証で確かめる)                                                               |
 
 ### 対象外 (この文書では扱わない)
 
@@ -768,7 +785,7 @@ version: 1.0.0
 | Test Target                                | Normal / Error / Edge              | Result |
 | ------------------------------------------ | ---------------------------------- | ------ |
 | T-08: evaluateAvailability (AVL)           | Normal: 21 \| Error: 13 \| Edge: 9 | [OK]   |
-| T-09: w5Check (W5C)                        | Normal: 8 \| Error: 24 \| Edge: 8  | [OK]   |
+| T-09: w5Check (W5C)                        | Normal: 8 \| Error: 24 \| Edge: 11 | [OK]   |
 | T-13: DefaultNotificationEnvironment (NEV) | Normal: 4 \| Error: 8 \| Edge: 1   | [OK]   |
 | T-20: notificationSettingFromValue (NSV)   | Normal: 5 \| Error: 1 \| Edge: 2   | [OK]   |
 | T-21: RegistryException (ERR)              | Normal: 1 \| Error: 0 \| Edge: 1   | [OK]   |

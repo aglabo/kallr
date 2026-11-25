@@ -33,3 +33,4 @@ Issue #19 の PoC-W (W1〜W5、W7) を、未パッケージ + HKCU 登録の配�
 | `ERR` | `errors.dart` の例外型と `Hresult`                                                  |
 | `AVO` | `Availability`                                                                      |
 | `STO` | `ScheduledToast`                                                                    |
+| `W5C` | `w5Check`                                                                           |

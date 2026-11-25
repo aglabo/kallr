@@ -521,17 +521,17 @@ version: 1.0.0
 
 #### T-09-15: Given 記録の欄が前後に空白のある `記載なし`, When w5Check を呼ぶ
 
-- [ ] **T-09-15-01**: 前後に空白のある `記載なし` の AUMID 欄は unclear とし、登録を照合しない (ENV-R-019, ENV-R-015, ENV-DD-13, ENV-E-29)
+- [x] **T-09-15-01**: 前後に空白のある `記載なし` の AUMID 欄は unclear とし、登録を照合しない (ENV-R-019, ENV-R-015, ENV-DD-13, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`' 記載なし '`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock (`isRegistered` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear` で、`env.isRegistered` は 1 度も呼ばれない
 
-- [ ] **T-09-15-02**: 前後に空白のある `記載なし` の実行権限欄は unclear とし、UsageException にしない (ENV-R-019, ENV-DD-13, ENV-E-29)
+- [x] **T-09-15-02**: 前後に空白のある `記載なし` の実行権限欄は unclear とし、UsageException にしない (ENV-R-019, ENV-DD-13, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`' 記載なし '`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `UsageException` を投げず、`field=permission` が `status=unclear`
 
-- [ ] **T-09-15-03**: 前後に空白のある `記載なし` のインストール方式欄は unclear とする (ENV-R-019, ENV-R-014, ENV-DD-13, ENV-E-29)
+- [x] **T-09-15-03**: 前後に空白のある `記載なし` のインストール方式欄は unclear とする (ENV-R-019, ENV-R-014, ENV-DD-13, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`' 記載なし '`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`

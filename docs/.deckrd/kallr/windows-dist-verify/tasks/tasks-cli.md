@@ -1012,13 +1012,13 @@ version: 1.0.0
 
 | Test Target           | Normal | Error | Edge | Result |
 | --------------------- | -----: | ----: | ---: | ------ |
-| T-10: ARG parseArgs   |     15 |    22 |   10 | [OK]   |
+| T-10: ARG parseArgs   |     19 |    22 |   19 | [OK]   |
 | T-11: CLI run()       |     31 |    42 |   15 | [OK]   |
 | T-12: NID normalizeId |      2 |     1 |    3 | [OK]   |
 
 <!--
 Task ID Format: T-<TestTarget>-<Scenario>-<Case>
-- TestTarget: 2-digit (10 = ARG, 11 = CLI)
+- TestTarget: 2-digit (10 = ARG, 11 = CLI, 12 = NID)
 - Scenario: 2-digit, continues across Normal -> Error -> Edge within a target
 - Case: 2-digit
 

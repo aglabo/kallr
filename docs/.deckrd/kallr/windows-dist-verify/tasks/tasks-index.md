@@ -2,7 +2,7 @@
 title: "Implementation Tasks (Index): Windows Distribution Verify"
 module: kallr/windows-dist-verify
 status: Active
-version: 1.3.0
+version: 1.3.1
 created: "2026-11-22 00:00:00"
 source: specifications-index.md
 ---
@@ -107,13 +107,12 @@ source: specifications-index.md
 ## Open Items (人の判断が要る)
 
 1. 仕様が定めておらず、タスクを書かなかった事項は次のとおり。
-   - 日付だけの `--at`
    - 再登録の報告の区切り
    - 通知不可時の re-register-all の標準出力
 
 ## Task ID の指定
 
-タスク ID は、4 つのファイルを通して一意です。ID だけで指定できます。
+タスク ID は、5 つのファイルを通して一意です。ID だけで指定できます。
 ファイルも示す場合は、`/` で区切り、`<ファイル>/<タスク>` と書きます。
 
 - `<ファイル>`: タスクファイルの名前。`tasks-` と `.md` は省略できる (`tasks-schedule`、`schedule`)。
@@ -128,15 +127,16 @@ source: specifications-index.md
 - [tasks-tag.md](./tasks-tag.md): T-01〜T-03
 - [tasks-schedule.md](./tasks-schedule.md): T-04〜T-06、T-19
 - [tasks-service.md](./tasks-service.md): T-07、T-14〜T-18
-- [tasks-environment.md](./tasks-environment.md): T-08〜T-09
-- [tasks-cli.md](./tasks-cli.md): T-10〜T-11
+- [tasks-environment.md](./tasks-environment.md): T-08〜T-09、T-13
+- [tasks-cli.md](./tasks-cli.md): T-10〜T-12
 
 ## Change History
 
-| Date       | Version | Description                                                                                                   |
-| ---------- | ------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Initial tasks                                                                                                 |
-| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md                                  |
-| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore                                   |
-| 2026-11-25 | 1.2.1   | T-08 also covers the test target MNE (Mock cases T-08-03, T-08-04; follows implementation-index v1.4.1)       |
-| 2026-11-25 | 1.3.0   | Add T-08-14-02 and T-08-14-03: normalized AUMID reaches readDisplayName and settings.read; fix the case total |
+| Date       | Version | Description                                                                                                    |
+| ---------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Initial tasks                                                                                                  |
+| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md                                   |
+| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore                                    |
+| 2026-11-25 | 1.2.1   | T-08 also covers the test target MNE (Mock cases T-08-03, T-08-04; follows implementation-index v1.4.1)        |
+| 2026-11-25 | 1.3.0   | Add T-08-14-02 and T-08-14-03: normalized AUMID reaches readDisplayName and settings.read; fix the case total  |
+| 2026-11-25 | 1.3.1   | Fix the Files list, the resolved date-only open item and the file count; fix tables in tasks-cli and tasks-tag |

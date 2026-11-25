@@ -33,6 +33,12 @@ class FakeAumidRegistry implements AumidRegistry {
   /// AUMIDs passed to [readDisplayName], in call order.
   final List<String> readDisplayNameArgs = [];
 
+  /// AUMIDs passed to [write], in call order.
+  final List<String> writeArgs = [];
+
+  /// AUMIDs passed to [delete], in call order.
+  final List<String> deleteArgs = [];
+
   @override
   String? readDisplayName(String aumid) {
     readDisplayNameArgs.add(aumid);
@@ -48,10 +54,14 @@ class FakeAumidRegistry implements AumidRegistry {
   }
 
   @override
-  void write(String aumid, String displayName) => _entries[aumid] = displayName;
+  void write(String aumid, String displayName) {
+    writeArgs.add(aumid);
+    _entries[aumid] = displayName;
+  }
 
   @override
   bool delete(String aumid) {
+    deleteArgs.add(aumid);
     final existed = _entries.containsKey(aumid);
     _entries.remove(aumid);
     return existed;

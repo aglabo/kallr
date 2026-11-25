@@ -22,6 +22,12 @@ import '../fakes.dart';
 /// AUMID `com.kallr.app` with surrounding spaces, for the normalization cases.
 const _paddedAumid = ' com.kallr.app ';
 
+/// AUMID made of non-ASCII characters only (apart from the dot).
+const _nonAsciiAumid = 'かるる.通知';
+
+/// DisplayName made of non-ASCII characters only, which must not count as empty.
+const _nonAsciiDisplayName = 'かるる通知';
+
 /// Registry read failure with Win32 code 5 (access denied), thrown by the fakes.
 const _accessDenied = RegistryException('access denied', win32Code: 5);
 
@@ -39,10 +45,14 @@ void main() {
   group('evaluateAvailability', () {
     group('T-WDV-AVL: evaluateAvailability', () {
       group('Given: AUMID と DisplayName が登録済みで通知設定が enabled', () {
-        final registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+        late FakeAumidRegistry registry;
         const settings = FakeNotificationSettingSource(
           NotificationSetting.enabled,
         );
+
+        setUp(() {
+          registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+        });
 
         group('When: evaluateAvailability を呼ぶ', () {
           test('[Normal] T-WDV-AVL-01: 通知できる状態では ok=true の結果を返す', () {
@@ -57,6 +67,13 @@ void main() {
             expect(result.setting, NotificationSetting.enabled);
             expect(result.ok, isTrue);
             expect(result.reason, isNull);
+          });
+
+          test('[Edge] T-WDV-AVL-22: 通知できる状態の確認ではレジストリへの書き込みも削除もしない', () {
+            evaluateAvailability('com.kallr.app', registry, settings);
+
+            expect(registry.writeArgs, isEmpty);
+            expect(registry.deleteArgs, isEmpty);
           });
         });
       });
@@ -238,6 +255,31 @@ void main() {
 
             expect(settings.calls, 0);
           });
+
+          test('[Edge] T-WDV-AVL-23: 未登録の確認では登録を作らず削除もしない', () {
+            final registry = FakeAumidRegistry();
+
+            evaluateAvailability(
+              'com.kallr.app',
+              registry,
+              const FakeNotificationSettingSource(NotificationSetting.enabled),
+            );
+
+            expect(registry.writeArgs, isEmpty);
+            expect(registry.deleteArgs, isEmpty);
+          });
+
+          test('[Edge] T-WDV-AVL-26: 未登録の AUMID では DisplayName を一度も読まない', () {
+            final registry = FakeAumidRegistry();
+
+            evaluateAvailability(
+              'com.kallr.app',
+              registry,
+              const FakeNotificationSettingSource(NotificationSetting.enabled),
+            );
+
+            expect(registry.readDisplayNameArgs, isEmpty);
+          });
         });
       });
 
@@ -274,6 +316,37 @@ void main() {
               );
 
               expect(settings.calls, 0);
+            },
+          );
+
+          test('[Edge] T-WDV-AVL-27: DisplayName が空で通知設定が disabledForUser でも理由は DisplayName が空にする', () {
+            final result = evaluateAvailability(
+              'com.kallr.app',
+              FakeAumidRegistry({'com.kallr.app': ''}),
+              const FakeNotificationSettingSource(
+                NotificationSetting.disabledForUser,
+              ),
+            );
+
+            expect(result.reason, 'DisplayName が空');
+            expect(result.setting, isNull);
+          });
+
+          test(
+            '[Edge] T-WDV-AVL-28: DisplayName が空の確認では DisplayName を書き直さず削除もしない',
+            () {
+              final registry = FakeAumidRegistry({'com.kallr.app': ''});
+
+              evaluateAvailability(
+                'com.kallr.app',
+                registry,
+                const FakeNotificationSettingSource(
+                  NotificationSetting.enabled,
+                ),
+              );
+
+              expect(registry.writeArgs, isEmpty);
+              expect(registry.deleteArgs, isEmpty);
             },
           );
         });
@@ -369,6 +442,117 @@ void main() {
               throwsA(same(_unknownSetting)),
             );
           });
+        });
+      });
+
+      group('Given: 登録を削除した後も通知設定は enabled のまま', () {
+        late FakeAumidRegistry registry;
+        const settings = FakeNotificationSettingSource(
+          NotificationSetting.enabled,
+        );
+
+        setUp(() {
+          registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'})
+            ..delete('com.kallr.app');
+        });
+
+        group('When: evaluateAvailability を呼ぶ', () {
+          test(
+            '[Edge] T-WDV-AVL-20: 通知設定が enabled でも削除済みの AUMID は未登録の結果で返す',
+            () {
+              final result = evaluateAvailability(
+                'com.kallr.app',
+                registry,
+                settings,
+              );
+
+              expect(result.ok, isFalse);
+              expect(result.reason, '未登録');
+              expect(result.setting, isNull);
+            },
+          );
+        });
+      });
+
+      group('Given: 登録の直後で通知設定が enabled', () {
+        late FakeAumidRegistry registry;
+        late RecordingNotificationSettingSource settings;
+
+        setUp(() {
+          registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+          settings = RecordingNotificationSettingSource(
+            NotificationSetting.enabled,
+          );
+        });
+
+        group('When: evaluateAvailability を 1 回呼ぶ', () {
+          test(
+            '[Edge] T-WDV-AVL-21: 表示の遅延は観測せず、通知設定を 1 回だけ読んで ok=true を返す',
+            () {
+              final result = evaluateAvailability(
+                'com.kallr.app',
+                registry,
+                settings,
+              );
+
+              expect(result.ok, isTrue);
+              expect(settings.readArgs, ['com.kallr.app']);
+            },
+          );
+        });
+      });
+
+      group('Given: 非 ASCII の AUMID が登録済みで通知設定が enabled', () {
+        late FakeAumidRegistry registry;
+        late RecordingNotificationSettingSource settings;
+
+        setUp(() {
+          registry = FakeAumidRegistry({_nonAsciiAumid: 'Kallr'});
+          settings = RecordingNotificationSettingSource(
+            NotificationSetting.enabled,
+          );
+        });
+
+        group('When: evaluateAvailability を呼ぶ', () {
+          test('[Edge] T-WDV-AVL-24: 非 ASCII の AUMID を変えずに registry と設定へ渡し ok=true を返す', () {
+            final result = evaluateAvailability(
+              _nonAsciiAumid,
+              registry,
+              settings,
+            );
+
+            expect(registry.existsArgs, [_nonAsciiAumid]);
+            expect(registry.readDisplayNameArgs, [_nonAsciiAumid]);
+            expect(settings.readArgs, [_nonAsciiAumid]);
+            expect(result.ok, isTrue);
+          });
+        });
+      });
+
+      group('Given: DisplayName が非 ASCII の登録があり通知設定が enabled', () {
+        late FakeAumidRegistry registry;
+        const settings = FakeNotificationSettingSource(
+          NotificationSetting.enabled,
+        );
+
+        setUp(() {
+          registry = FakeAumidRegistry({'com.kallr.app': _nonAsciiDisplayName});
+        });
+
+        group('When: evaluateAvailability を呼ぶ', () {
+          test(
+            '[Edge] T-WDV-AVL-25: 非 ASCII の DisplayName を空とみなさず ok=true を返す',
+            () {
+              final result = evaluateAvailability(
+                'com.kallr.app',
+                registry,
+                settings,
+              );
+
+              expect(result.displayNameSet, isTrue);
+              expect(result.ok, isTrue);
+            },
+          );
         });
       });
     });

@@ -714,13 +714,10 @@ void main() {
           expect(record.title, title);
         });
 
-        test(
-          '[Normal] T-WDV-SVA-54-01: 保存された MappingRecord の title も同じである',
-          () {
-            final f = _Fixture()..add(title: title);
-            expect(f.table.get('b1', 'a1')?.title, title);
-          },
-        );
+        test('[Normal] T-WDV-SVA-63: 保存された MappingRecord の title も同じである', () {
+          final f = _Fixture()..add(title: title);
+          expect(f.table.get('b1', 'a1')?.title, title);
+        });
 
         test('[Normal] T-WDV-SVA-55: 置換でも OS の追加に title をそのまま渡す', () {
           final f = _Fixture(withOld: true)..add(title: title);

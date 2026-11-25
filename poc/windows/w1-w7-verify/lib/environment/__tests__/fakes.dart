@@ -13,22 +13,35 @@ import 'package:w1_w7_verify/environment/notification_setting_source.dart';
 /// In-memory [AumidRegistry] holding AUMID -> DisplayName.
 class FakeAumidRegistry implements AumidRegistry {
   /// Creates a registry holding [entries] (AUMID -> DisplayName).
-  FakeAumidRegistry([Map<String, String> entries = const {}])
+  ///
+  /// A null DisplayName is a registered AUMID for which [readDisplayName]
+  /// returns null.
+  FakeAumidRegistry([Map<String, String?> entries = const {}])
     : _entries = {...entries};
 
-  final Map<String, String> _entries;
+  final Map<String, String?> _entries;
+
+  /// AUMIDs passed to [exists], in call order.
+  final List<String> existsArgs = [];
 
   @override
   String? readDisplayName(String aumid) => _entries[aumid];
 
   @override
-  bool exists(String aumid) => _entries.containsKey(aumid);
+  bool exists(String aumid) {
+    existsArgs.add(aumid);
+    return _entries.containsKey(aumid);
+  }
 
   @override
   void write(String aumid, String displayName) => _entries[aumid] = displayName;
 
   @override
-  bool delete(String aumid) => _entries.remove(aumid) != null;
+  bool delete(String aumid) {
+    final existed = _entries.containsKey(aumid);
+    _entries.remove(aumid);
+    return existed;
+  }
 }
 
 /// [NotificationSettingSource] that always returns [setting].

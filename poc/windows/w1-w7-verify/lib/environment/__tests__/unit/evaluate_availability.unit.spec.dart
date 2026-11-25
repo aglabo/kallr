@@ -14,8 +14,17 @@ import 'package:w1_w7_verify/environment/evaluate_availability.dart';
 import 'package:w1_w7_verify/environment/notification_environment.dart';
 import 'package:w1_w7_verify/errors.dart';
 
-// internal helpers
+// helpers
 import '../fakes.dart';
+
+// internal helpers
+
+/// Registered DisplayName values that count as empty (ID branch, label, value).
+const _emptyDisplayNames = <(String, String, String?)>[
+  ('01', 'null', null),
+  ('02', '空文字', ''),
+  ('03', '空白だけ', '   '),
+];
 
 void main() {
   group('evaluateAvailability', () {
@@ -189,6 +198,91 @@ void main() {
               ),
               throwsA(isA<UsageException>()),
             );
+          });
+        });
+      });
+
+      group('Given: AUMID の登録が無い', () {
+        group('When: evaluateAvailability を呼ぶ', () {
+          test('[Error] T-WDV-AVL-09: 未登録は例外ではなく通知設定が未評価の結果で返す', () {
+            final result = evaluateAvailability(
+              'com.kallr.app',
+              FakeAumidRegistry(),
+              const FakeNotificationSettingSource(NotificationSetting.enabled),
+            );
+
+            expect(result.registered, isFalse);
+            expect(result.displayNameSet, isFalse);
+            expect(result.setting, isNull);
+            expect(result.ok, isFalse);
+            expect(result.reason, '未登録');
+          });
+
+          test('[Error] T-WDV-AVL-10: 未登録の AUMID では通知設定を一度も読まない', () {
+            final settings = FailingNotificationSettingSource();
+
+            evaluateAvailability(
+              'com.kallr.app',
+              FakeAumidRegistry(),
+              settings,
+            );
+
+            expect(settings.calls, 0);
+          });
+        });
+      });
+
+      group('Given: AUMID の登録はあるが DisplayName が空', () {
+        group('When: evaluateAvailability を呼ぶ', () {
+          for (final (branch, label, displayName) in _emptyDisplayNames) {
+            test('[Error] T-WDV-AVL-11-$branch: DisplayName が $label なら'
+                '例外ではなく通知設定が未評価の結果で返す', () {
+              final result = evaluateAvailability(
+                'com.kallr.app',
+                FakeAumidRegistry({'com.kallr.app': displayName}),
+                const FakeNotificationSettingSource(
+                  NotificationSetting.enabled,
+                ),
+              );
+
+              expect(result.registered, isTrue);
+              expect(result.displayNameSet, isFalse);
+              expect(result.setting, isNull);
+              expect(result.ok, isFalse);
+              expect(result.reason, 'DisplayName が空');
+            });
+          }
+
+          test(
+            '[Error] T-WDV-AVL-12: DisplayName が空の AUMID では通知設定を一度も読まない',
+            () {
+              final settings = FailingNotificationSettingSource();
+
+              evaluateAvailability(
+                'com.kallr.app',
+                FakeAumidRegistry({'com.kallr.app': ''}),
+                settings,
+              );
+
+              expect(settings.calls, 0);
+            },
+          );
+        });
+      });
+
+      group('Given: com.kallr.app が登録済みで渡す AUMID の前後に空白がある', () {
+        group('When: evaluateAvailability を呼ぶ', () {
+          test('[Normal] T-WDV-AVL-13: 前後の空白を削除した AUMID で登録を調べ registered=true を返す', () {
+            final registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+
+            final result = evaluateAvailability(
+              ' com.kallr.app ',
+              registry,
+              const FakeNotificationSettingSource(NotificationSetting.enabled),
+            );
+
+            expect(registry.existsArgs, ['com.kallr.app']);
+            expect(result.registered, isTrue);
           });
         });
       });

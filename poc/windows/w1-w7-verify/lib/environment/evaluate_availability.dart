@@ -15,6 +15,8 @@ import 'notification_setting_source.dart';
 /// Evaluates whether toast notifications can be shown for [aumid].
 ///
 /// [aumid] is normalized first. Reads only; never writes to [registry].
+/// An unregistered AUMID, or a missing or blank DisplayName, is reported as a
+/// result, without reading [settings].
 /// Throws [UsageException] when the normalized AUMID is empty, before any
 /// read of [registry] or [settings].
 Availability evaluateAvailability(
@@ -26,11 +28,27 @@ Availability evaluateAvailability(
   if (id.isEmpty) {
     throw const UsageException('AUMID must not be empty');
   }
+  if (!registry.exists(id)) {
+    return const Availability(
+      registered: false,
+      displayNameSet: false,
+      ok: false,
+      reason: '未登録',
+    );
+  }
+  if ((registry.readDisplayName(id) ?? '').trim().isEmpty) {
+    return const Availability(
+      registered: true,
+      displayNameSet: false,
+      ok: false,
+      reason: 'DisplayName が空',
+    );
+  }
   final setting = settings.read(id);
   final ok = setting == NotificationSetting.enabled;
   return Availability(
-    registered: registry.exists(id),
-    displayNameSet: (registry.readDisplayName(id) ?? '').trim().isNotEmpty,
+    registered: true,
+    displayNameSet: true,
     setting: setting,
     ok: ok,
     reason: ok ? null : setting.name,

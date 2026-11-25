@@ -99,8 +99,9 @@ final class W5Report {
 /// A clear install method is never compared: it is reported as `notChecked`
 /// with the recorded value.
 /// A clear AUMID is looked up with the value normalized by [normalizeId]. One
-/// that [env] does not know as registered is a `mismatch` with the value as
-/// recorded, observed as `登録なし`; otherwise the AUMID is reported as `match`.
+/// that [env] does not know as registered is a `mismatch` with that normalized
+/// value as the recorded value, observed as `登録なし`; otherwise the AUMID is
+/// reported as `match`.
 /// A clear permission other than exactly `user` or `administrator`
 /// (case-sensitive) throws a [UsageException], so no report is returned.
 /// An allowed permission that differs from the one [probe] observes is a
@@ -158,16 +159,15 @@ W5FieldResult _compared(
 
 /// Checks the [recorded] AUMID against the registrations of [env].
 W5FieldResult _checkAumid(String? recorded, NotificationEnvironment env) =>
-    _checkField(
-      'aumid',
-      recorded,
-      (value) => _compared(
+    _checkField('aumid', recorded, (value) {
+      final aumid = normalizeId(value);
+      return _compared(
         'aumid',
-        matches: env.isRegistered(normalizeId(value)),
-        recorded: value,
+        matches: env.isRegistered(aumid),
+        recorded: aumid,
         observed: '登録なし',
-      ),
-    );
+      );
+    });
 
 /// Checks the [recorded] permission against the one observed by [probe].
 ///

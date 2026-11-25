@@ -25,6 +25,10 @@ import '../mock_notification_environment.dart';
 /// `記載なし` with surrounding whitespace, recorded in each field in turn.
 const _paddedUnclear = ' 記載なし ';
 
+/// The AUMID `com.kallr.app` with surrounding whitespace, recorded both where it
+/// is registered and where it is not.
+const _paddedAumid = ' com.kallr.app ';
+
 /// Runs w5Check on a W5 record with the AUMID [aumid], the permission
 /// [recorded] and the install method [installMethod], by default a clear one,
 /// against [env] and [probe].
@@ -628,7 +632,7 @@ void main() {
             () {
               final env = MockNotificationEnvironment.ok();
 
-              final report = _checkAumidRecord(' com.kallr.app ', env: env);
+              final report = _checkAumidRecord(_paddedAumid, env: env);
 
               expect(env.isRegisteredCalls, ['com.kallr.app']);
               expect(_resultsOf(report, 'aumid').map((r) => r.status), [
@@ -636,6 +640,25 @@ void main() {
               ]);
             },
           );
+        });
+      });
+
+      group('Given: 前後に空白のある記録の AUMID が HKCU に登録されていない', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Error] T-WDV-W5C-44: 前後の空白を削除した aumid で登録を照合し、mismatch の記録値も削除後の値を報告する', () {
+            final env = MockNotificationEnvironment.unregistered();
+
+            final report = _checkAumidRecord(_paddedAumid, env: env);
+
+            expect(env.isRegisteredCalls, ['com.kallr.app']);
+            expect(
+              _resultsOf(
+                report,
+                'aumid',
+              ).map((r) => (r.status, r.recorded, r.observed)),
+              [(W5FieldStatus.mismatch, 'com.kallr.app', '登録なし')],
+            );
+          });
         });
       });
     });

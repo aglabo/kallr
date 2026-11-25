@@ -19,6 +19,9 @@ import '../fakes.dart';
 
 // internal helpers
 
+/// AUMID `com.kallr.app` with surrounding spaces, for the normalization cases.
+const _paddedAumid = ' com.kallr.app ';
+
 /// Registered DisplayName values that count as empty (ID branch, label, value).
 const _emptyDisplayNames = <(String, String, String?)>[
   ('01', 'null', null),
@@ -271,18 +274,41 @@ void main() {
       });
 
       group('Given: com.kallr.app が登録済みで渡す AUMID の前後に空白がある', () {
+        late FakeAumidRegistry registry;
+        const settings = FakeNotificationSettingSource(
+          NotificationSetting.enabled,
+        );
+
+        setUp(() {
+          registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
+        });
+
         group('When: evaluateAvailability を呼ぶ', () {
           test('[Normal] T-WDV-AVL-13: 前後の空白を削除した AUMID で登録を調べ registered=true を返す', () {
-            final registry = FakeAumidRegistry({'com.kallr.app': 'Kallr'});
-
             final result = evaluateAvailability(
-              ' com.kallr.app ',
+              _paddedAumid,
               registry,
-              const FakeNotificationSettingSource(NotificationSetting.enabled),
+              settings,
             );
 
             expect(registry.existsArgs, ['com.kallr.app']);
             expect(result.registered, isTrue);
+          });
+
+          test('[Normal] T-WDV-AVL-14: 前後の空白を削除した AUMID で DisplayName を読む', () {
+            evaluateAvailability(_paddedAumid, registry, settings);
+
+            expect(registry.readDisplayNameArgs, ['com.kallr.app']);
+          });
+
+          test('[Normal] T-WDV-AVL-15: 前後の空白を削除した AUMID で通知設定を読む', () {
+            final recordingSettings = RecordingNotificationSettingSource(
+              NotificationSetting.enabled,
+            );
+
+            evaluateAvailability(_paddedAumid, registry, recordingSettings);
+
+            expect(recordingSettings.readArgs, ['com.kallr.app']);
           });
         });
       });

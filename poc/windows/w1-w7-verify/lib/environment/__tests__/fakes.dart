@@ -24,8 +24,14 @@ class FakeAumidRegistry implements AumidRegistry {
   /// AUMIDs passed to [exists], in call order.
   final List<String> existsArgs = [];
 
+  /// AUMIDs passed to [readDisplayName], in call order.
+  final List<String> readDisplayNameArgs = [];
+
   @override
-  String? readDisplayName(String aumid) => _entries[aumid];
+  String? readDisplayName(String aumid) {
+    readDisplayNameArgs.add(aumid);
+    return _entries[aumid];
+  }
 
   @override
   bool exists(String aumid) {
@@ -54,6 +60,25 @@ class FakeNotificationSettingSource implements NotificationSettingSource {
 
   @override
   NotificationSetting read(String aumid) => setting;
+}
+
+/// [NotificationSettingSource] that records the arguments of [read] and always
+/// returns [setting].
+class RecordingNotificationSettingSource implements NotificationSettingSource {
+  /// Creates the fake returning [setting].
+  RecordingNotificationSettingSource(this.setting);
+
+  /// Value returned by [read].
+  final NotificationSetting setting;
+
+  /// AUMIDs passed to [read], in call order.
+  final List<String> readArgs = [];
+
+  @override
+  NotificationSetting read(String aumid) {
+    readArgs.add(aumid);
+    return setting;
+  }
 }
 
 /// [AumidRegistry] that fails on any call and counts the attempts in [calls].

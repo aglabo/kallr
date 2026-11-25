@@ -44,7 +44,11 @@ Availability evaluateAvailability(
       reason: 'DisplayName が空',
     );
   }
-  final setting = settings.read(id);
+  return _availabilityOfSetting(settings.read(id));
+}
+
+/// Result for a registered AUMID with a DisplayName, judged by [setting].
+Availability _availabilityOfSetting(NotificationSetting setting) {
   final ok = setting == NotificationSetting.enabled;
   return Availability(
     registered: true,

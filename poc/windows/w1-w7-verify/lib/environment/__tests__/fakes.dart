@@ -1,5 +1,5 @@
 // src: lib/environment/__tests__/fakes.dart
-// @(#) : Fakes shared by evaluateAvailability tests
+// @(#) : Fakes shared by the evaluateAvailability and MockNotificationEnvironment tests
 //
 // Copyright (c) 2026 atsushifx <http://github.com/atsushifx>
 //

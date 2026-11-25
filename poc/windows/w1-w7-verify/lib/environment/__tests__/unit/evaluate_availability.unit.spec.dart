@@ -12,6 +12,7 @@ import 'package:test/test.dart';
 // test target
 import 'package:w1_w7_verify/environment/evaluate_availability.dart';
 import 'package:w1_w7_verify/environment/notification_environment.dart';
+import 'package:w1_w7_verify/errors.dart';
 
 // internal helpers
 import '../fakes.dart';
@@ -143,6 +144,52 @@ void main() {
               expect(result.reason, contains('disabledByManifest'));
             },
           );
+        });
+      });
+
+      group('Given: AUMID が空文字', () {
+        group('When: evaluateAvailability を呼ぶ', () {
+          test('[Error] T-WDV-AVL-06: 空文字の AUMID は UsageException で拒否する', () {
+            expect(
+              () => evaluateAvailability(
+                '',
+                FakeAumidRegistry(),
+                const FakeNotificationSettingSource(
+                  NotificationSetting.enabled,
+                ),
+              ),
+              throwsA(isA<UsageException>()),
+            );
+          });
+
+          test('[Error] T-WDV-AVL-07: 空文字の AUMID では registry と設定を一度も読まない', () {
+            final registry = FailingAumidRegistry();
+            final settings = FailingNotificationSettingSource();
+
+            expect(
+              () => evaluateAvailability('', registry, settings),
+              throwsA(isA<UsageException>()),
+            );
+            expect(registry.calls, 0);
+            expect(settings.calls, 0);
+          });
+        });
+      });
+
+      group('Given: AUMID が空白だけ', () {
+        group('When: evaluateAvailability を呼ぶ', () {
+          test('[Error] T-WDV-AVL-08: 空白だけの AUMID は UsageException で拒否する', () {
+            expect(
+              () => evaluateAvailability(
+                '   ',
+                FakeAumidRegistry(),
+                const FakeNotificationSettingSource(
+                  NotificationSetting.enabled,
+                ),
+              ),
+              throwsA(isA<UsageException>()),
+            );
+          });
         });
       });
     });

@@ -6,6 +6,7 @@
 // Released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+import '../errors.dart';
 import '../ids.dart';
 import 'aumid_registry.dart';
 import 'notification_environment.dart';
@@ -14,12 +15,17 @@ import 'notification_setting_source.dart';
 /// Evaluates whether toast notifications can be shown for [aumid].
 ///
 /// [aumid] is normalized first. Reads only; never writes to [registry].
+/// Throws [UsageException] when the normalized AUMID is empty, before any
+/// read of [registry] or [settings].
 Availability evaluateAvailability(
   String aumid,
   AumidRegistry registry,
   NotificationSettingSource settings,
 ) {
   final id = normalizeId(aumid);
+  if (id.isEmpty) {
+    throw const UsageException('AUMID must not be empty');
+  }
   final setting = settings.read(id);
   final ok = setting == NotificationSetting.enabled;
   return Availability(

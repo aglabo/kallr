@@ -18,13 +18,13 @@ version: 1.0.0
 
 ## Task Summary
 
-| Test Target                                | Scenarios | Cases | Status      |
-| ------------------------------------------ | --------- | ----- | ----------- |
-| T-08: evaluateAvailability (AVL)           | 15        | 43    | done        |
-| T-09: w5Check (W5C)                        | 15        | 43    | in progress |
-| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending     |
-| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done        |
-| T-21: RegistryException (ERR)              | 2         | 2     | done        |
+| Test Target                                | Scenarios | Cases | Status  |
+| ------------------------------------------ | --------- | ----- | ------- |
+| T-08: evaluateAvailability (AVL)           | 15        | 43    | done    |
+| T-09: w5Check (W5C)                        | 15        | 43    | done    |
+| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
+| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done    |
+| T-21: RegistryException (ERR)              | 2         | 2     | done    |
 
 ---
 
@@ -328,7 +328,7 @@ version: 1.0.0
 
 #### T-09-14: Given: 記録した aumid の前後に空白がある (契約。specifications-index 3.1)
 
-- [ ] **T-09-14-01**: 前後の空白を削除した記録の aumid で登録を照合する
+- [x] **T-09-14-01**: 前後の空白を削除した記録の aumid で登録を照合する
   - Target: `w5Check`
   - Scenario: Given `recordedAumid` が `" com.kallr.app "`、`env.isRegistered('com.kallr.app')` は真, When `w5Check` を呼ぶ
   - Expected: Then `env.isRegistered` が `com.kallr.app` で呼ばれ、aumid 欄が `match` である
@@ -490,31 +490,31 @@ version: 1.0.0
 
 #### T-09-11: Given 3 欄すべてが指定なし, When w5Check を呼ぶ
 
-- [ ] **T-09-11-01**: 3 欄すべてが unclear で exitCode は 2 (ENV-R-019, ENV-E-27)
+- [x] **T-09-11-01**: 3 欄すべてが unclear で exitCode は 2 (ENV-R-019, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`null` (指定なし), recordedInstallMethod=`null` (指定なし)), When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then 3 欄すべてが `status=unclear` で、`exitCode` が 2
 
-- [ ] **T-09-11-02**: 3 欄すべてが未明確のとき、登録と権限を照合しない (ENV-R-015)
+- [x] **T-09-11-02**: 3 欄すべてが未明確のとき、登録と権限を照合しない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`null` (指定なし), recordedInstallMethod=`null` (指定なし))、呼び出しを記録する Mock と Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.isRegistered` と `probe.current` は 1 度も呼ばれない
 
 #### T-09-12: Given 整合チェックが読み取り専用でなければならない, When w5Check を呼ぶ
 
-- [ ] **T-09-12-01**: 記録した AUMID で isRegistered を 1 回だけ呼ぶ (ENV-R-011, ENV-R-015)
+- [x] **T-09-12-01**: 記録した AUMID で isRegistered を 1 回だけ呼ぶ (ENV-R-011, ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock (`isRegistered` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.isRegistered` が `com.kallr.app` で 1 回だけ呼ばれる
 
-- [ ] **T-09-12-02**: register と unregister を呼ばず、書き込まない (ENV-R-012, ENV-DD-02)
+- [x] **T-09-12-02**: register と unregister を呼ばず、書き込まない (ENV-R-012, ENV-DD-02)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.register` と `env.unregister` は 1 度も呼ばれない
 
 #### T-09-13: Given 実行権限の値が大文字を含む, When w5Check を呼ぶ
 
-- [ ] **T-09-13-01**: 権限の値 `Administrator` (大文字始まり) は UsageException で拒否する (ENV-DD-12。値は小文字の `user` / `administrator` のみ)
+- [x] **T-09-13-01**: 権限の値 `Administrator` (大文字始まり) は UsageException で拒否する (ENV-DD-12。値は小文字の `user` / `administrator` のみ)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'Administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` が `administrator` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `UsageException` を投げ、W5Report を返さない

@@ -20,9 +20,11 @@ version: 1.0.0
 
 | Test Target                                | Scenarios | Cases | Status  |
 | ------------------------------------------ | --------- | ----- | ------- |
-| T-08: evaluateAvailability (AVL)           | 14        | 36    | pending |
+| T-08: evaluateAvailability (AVL)           | 15        | 43    | done    |
 | T-09: w5Check (W5C)                        | 14        | 40    | pending |
 | T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
+| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done    |
+| T-21: RegistryException (ERR)              | 2         | 2     | done    |
 
 ---
 
@@ -32,160 +34,192 @@ version: 1.0.0
 
 #### T-08-01: Given 登録あり・DisplayName あり・通知設定が enabled, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-01-01**: 通知できる状態では ok=true の結果を返す (ENV-R-006)
+- [x] **T-08-01-01**: 通知できる状態では ok=true の結果を返す (ENV-R-006)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `enabled` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `registered=true`、`displayNameSet=true`、`setting=enabled`、`ok=true`、`reason=null` の Availability を返す
 
 #### T-08-02: Given 登録あり・DisplayName あり・通知設定が enabled 以外の既知の値, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-02-01**: 通知設定が `disabledForApplication` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
+- [x] **T-08-02-01**: 通知設定が `disabledForApplication` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledForApplication` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledForApplication`、`ok=false` を返し、`reason` に `disabledForApplication` を含める
 
-- [ ] **T-08-02-02**: 通知設定が `disabledForUser` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
+- [x] **T-08-02-02**: 通知設定が `disabledForUser` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledForUser` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledForUser`、`ok=false` を返し、`reason` に `disabledForUser` を含める
 
-- [ ] **T-08-02-03**: 通知設定が `disabledByGroupPolicy` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
+- [x] **T-08-02-03**: 通知設定が `disabledByGroupPolicy` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledByGroupPolicy` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledByGroupPolicy`、`ok=false` を返し、`reason` に `disabledByGroupPolicy` を含める
 
-- [ ] **T-08-02-04**: 通知設定が `disabledByManifest` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04, ENV-E-05)
+- [x] **T-08-02-04**: 通知設定が `disabledByManifest` のとき ok=false で理由に種別名を含める (ENV-R-004, ENV-E-04, ENV-E-05)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、Fake NotificationSettingSource が `disabledByManifest` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=true`、`setting=disabledByManifest`、`ok=false` を返し、`reason` に `disabledByManifest` を含める
 
 #### T-08-03: Given Mock が 7 つの状態の 1 つで構築されている, When check を呼ぶ
 
-- [ ] **T-08-03-01**: Mock の状態「OK (通知できる)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-01**: Mock の状態「OK (通知できる)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「OK (通知できる)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then ok=true の Availability (`registered=true`、`displayNameSet=true`、`setting=enabled`) を返す
 
-- [ ] **T-08-03-02**: Mock の状態「未登録」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-02**: Mock の状態「未登録」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「未登録」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `registered=false`、`ok=false`、`setting=null`、`reason=未登録` の Availability を返す
 
-- [ ] **T-08-03-03**: Mock の状態「DisplayName 空」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-03**: Mock の状態「DisplayName 空」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「DisplayName 空」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `registered=true`、`displayNameSet=false`、`ok=false`、`setting=null`、`reason=DisplayName が空` の Availability を返す
 
-- [ ] **T-08-03-04**: Mock の状態「無効 (disabledForApplication)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-04**: Mock の状態「無効 (disabledForApplication)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledForApplication)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledForApplication`、`ok=false` の Availability を返す
 
-- [ ] **T-08-03-05**: Mock の状態「無効 (disabledForUser)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-05**: Mock の状態「無効 (disabledForUser)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledForUser)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledForUser`、`ok=false` の Availability を返す
 
-- [ ] **T-08-03-06**: Mock の状態「無効 (disabledByGroupPolicy)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-06**: Mock の状態「無効 (disabledByGroupPolicy)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledByGroupPolicy)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledByGroupPolicy`、`ok=false` の Availability を返す
 
-- [ ] **T-08-03-07**: Mock の状態「無効 (disabledByManifest)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
+- [x] **T-08-03-07**: Mock の状態「無効 (disabledByManifest)」では、与えられた Availability をそのまま返す (ENV-R-013, ENV-E-15)
   - Target: `MockNotificationEnvironment.check`
   - Scenario: Given 状態「無効 (disabledByManifest)」の名前付きコンストラクタで構築した `MockNotificationEnvironment`, When `check('com.kallr.app')` を呼ぶ
   - Expected: Then `setting=disabledByManifest`、`ok=false` の Availability を返す
 
 #### T-08-04: Given Mock, When register / unregister を呼ぶ
 
-- [ ] **T-08-04-01**: register は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
+- [x] **T-08-04-01**: register は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
   - Target: `MockNotificationEnvironment.register`
   - Scenario: Given `MockNotificationEnvironment` と、呼ばれると失敗する Fake AumidRegistry / NotificationSettingSource, When `register('com.kallr.app', 'Kallr')` を呼ぶ
   - Expected: Then 記録に (`com.kallr.app`, `Kallr`) が 1 件残り、Fake の AumidRegistry と NotificationSettingSource は 1 度も呼ばれず、例外を投げない
 
-- [ ] **T-08-04-02**: unregister は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
+- [x] **T-08-04-02**: unregister は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, AC-013)
   - Target: `MockNotificationEnvironment.unregister`
   - Scenario: Given `MockNotificationEnvironment` と、呼ばれると失敗する Fake AumidRegistry / NotificationSettingSource, When `unregister('com.kallr.app')` を呼ぶ
   - Expected: Then 記録に `com.kallr.app` の削除が 1 件残り、Fake の AumidRegistry と NotificationSettingSource は 1 度も呼ばれず、例外を投げない
 
+#### T-08-15: Given Mock, When isRegistered を呼ぶ
+
+- [x] **T-08-15-01**: 登録がある状態の Mock は true を返す (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given 状態「OK (通知できる)」の名前付きコンストラクタで構築し、`NotificationEnvironment` 型として扱う `MockNotificationEnvironment`, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then `true` を返す
+
+- [x] **T-08-15-02**: DisplayName が空でも、登録があれば true を返す (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given 状態「DisplayName 空」の名前付きコンストラクタで構築し、`NotificationEnvironment` 型として扱う `MockNotificationEnvironment`, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then `true` を返す
+
+- [x] **T-08-15-03**: 未登録の状態の Mock は false を返す (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given 状態「未登録」の名前付きコンストラクタで構築し、`NotificationEnvironment` 型として扱う `MockNotificationEnvironment`, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then `false` を返す
+
+- [x] **T-08-15-04**: isRegistered は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given `MockNotificationEnvironment` と、呼ばれると失敗する Fake AumidRegistry / NotificationSettingSource, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then 記録に `com.kallr.app` が 1 件残り、Fake の AumidRegistry と NotificationSettingSource は 1 度も呼ばれず、例外を投げない
+
 #### T-08-14: Given: aumid の前後に空白がある (契約。specifications-index 3.1)
 
-- [ ] **T-08-14-01**: 前後の空白を削除した aumid で登録を調べる
+- [x] **T-08-14-01**: 前後の空白を削除した aumid で登録を調べる
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry は `com.kallr.app` を登録済みとして持つ, When `evaluateAvailability(' com.kallr.app ', registry, settings)` を呼ぶ
   - Expected: Then `registry.exists` が `com.kallr.app` で呼ばれ、`registered=true` を返す
+
+- [x] **T-08-14-02**: 前後の空白を削除した aumid で DisplayName を読む
+  - Target: `evaluateAvailability`
+  - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、`readDisplayName` の引数を記録する, When `evaluateAvailability(' com.kallr.app ', registry, settings)` を呼ぶ
+  - Expected: Then `registry.readDisplayName` が `com.kallr.app` で呼ばれる
+
+- [x] **T-08-14-03**: 前後の空白を削除した aumid で通知設定を読む
+  - Target: `evaluateAvailability`
+  - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、`read` の引数を記録し `enabled` を返す Fake NotificationSettingSource, When `evaluateAvailability(' com.kallr.app ', registry, settings)` を呼ぶ
+  - Expected: Then `settings.read` が `com.kallr.app` で呼ばれる
 
 ### [異常] Error Cases
 
 #### T-08-05: Given AUMID が空, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-05-01**: 空文字の AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
+- [x] **T-08-05-01**: 空文字の AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
   - Target: `evaluateAvailability`
   - Scenario: Given AUMID が空文字 `''`, When `evaluateAvailability('', registry, settings)` を呼ぶ
   - Expected: Then `UsageException` を投げ、Availability を返さない
 
-- [ ] **T-08-05-02**: 空文字の AUMID では確認を始めない (ENV-R-001)
+- [x] **T-08-05-02**: 空文字の AUMID では確認を始めない (ENV-R-001)
   - Target: `evaluateAvailability`
   - Scenario: Given AUMID が空文字 `''`、呼び出しを記録する Fake AumidRegistry と NotificationSettingSource, When `evaluateAvailability('', registry, settings)` を呼ぶ
   - Expected: Then `exists`、`readDisplayName`、`read` は 1 度も呼ばれない
 
-- [ ] **T-08-05-03**: 空白だけの AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
+- [x] **T-08-05-03**: 空白だけの AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
   - Target: `evaluateAvailability`
   - Scenario: Given AUMID が空白だけの `'   '`, When `evaluateAvailability('   ', registry, settings)` を呼ぶ
   - Expected: Then `UsageException` を投げ、Availability を返さない
 
 #### T-08-06: Given AUMID の登録が無い, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-06-01**: 未登録は例外ではなく値で返し、通知設定は未評価とする (ENV-R-002, ENV-DD-01, ENV-DD-10, ENV-E-01, ENV-E-25)
+- [x] **T-08-06-01**: 未登録は例外ではなく値で返し、通知設定は未評価とする (ENV-R-002, ENV-DD-01, ENV-DD-10, ENV-E-01, ENV-E-25)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry が `com.kallr.app` を登録なしとして返す (`exists` が false), When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=false`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=未登録` を返す
 
-- [ ] **T-08-06-02**: 未登録のときは通知設定を読まずに打ち切る (ENV-DD-03)
+- [x] **T-08-06-02**: 未登録のときは通知設定を読まずに打ち切る (ENV-DD-03)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry が `com.kallr.app` を登録なしとして返す (`exists` が false)、呼び出しを記録する Fake NotificationSettingSource, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `settings.read` は 1 度も呼ばれない
 
 #### T-08-07: Given 登録はあるが DisplayName が空, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-07-01**: DisplayName の値が無い (null) とき、DisplayName が空として返す (ENV-R-003, ENV-E-02)
+- [x] **T-08-07-01**: DisplayName の値が無い (null) とき、DisplayName が空として返す (ENV-R-003, ENV-E-02)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が `null` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=DisplayName が空` を返す
 
-- [ ] **T-08-07-02**: DisplayName が空文字のとき、DisplayName が空として返す (ENV-R-003, ENV-E-03, ENV-E-25, ENV-DD-10)
+- [x] **T-08-07-02**: DisplayName が空文字のとき、DisplayName が空として返す (ENV-R-003, ENV-E-03, ENV-E-25, ENV-DD-10)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が空文字 `''` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=DisplayName が空` を返す
 
-- [ ] **T-08-07-03**: DisplayName が空白だけのとき、DisplayName が空として返す (ENV-R-003, ENV-E-03)
+- [x] **T-08-07-03**: DisplayName が空白だけのとき、DisplayName が空として返す (ENV-R-003, ENV-E-03)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が空白だけの `'   '` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=DisplayName が空` を返す
 
-- [ ] **T-08-07-04**: DisplayName が空のときは通知設定を読まずに打ち切る (ENV-DD-03)
+- [x] **T-08-07-04**: DisplayName が空のときは通知設定を読まずに打ち切る (ENV-DD-03)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり `readDisplayName` が空文字 `''` を返す、呼び出しを記録する Fake NotificationSettingSource, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `settings.read` は 1 度も呼ばれない
 
 #### T-08-08: Given レジストリまたは OS の読み取りが失敗する, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-08-01**: `exists` が失敗したとき、RegistryException を再スローし Win32 コードを保つ (ENV-R-007, ENV-E-07)
+- [x] **T-08-08-01**: `exists` が失敗したとき、RegistryException を再スローし Win32 コードを保つ (ENV-R-007, ENV-E-07)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry の `exists` が `RegistryException(win32Code: 5)` (アクセス拒否) を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `win32Code=5` の `RegistryException` が投げられ、「通知できない」の Availability に変換されない
 
-- [ ] **T-08-08-02**: `readDisplayName` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
+- [x] **T-08-08-02**: `readDisplayName` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が `RegistryException(win32Code: 5)` を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `win32Code=5` の `RegistryException` が投げられ、Availability を返さない
 
-- [ ] **T-08-08-03**: `settings.read` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
+- [x] **T-08-08-03**: `settings.read` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録あり・DisplayName ありで、Fake NotificationSettingSource の `read` が `RegistryException(win32Code: 5)` を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `win32Code=5` の `RegistryException` が投げられ、`ok=false` の Availability に変換されない
 
-- [ ] **T-08-08-04**: 通知設定が未知の値のとき、可否のどちらにも倒さず失敗とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+- [x] **T-08-08-04**: 通知設定が未知の値のとき、可否のどちらにも倒さず失敗とする (ENV-R-005, ENV-DD-06, ENV-E-06)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録あり・DisplayName ありで、Fake NotificationSettingSource の `read` が未知の数値 `99` に対して `RegistryException` を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `RegistryException` が投げられ、`ok=true` も `ok=false` の Availability も返らない
@@ -194,50 +228,55 @@ version: 1.0.0
 
 #### T-08-09: Given 登録を削除した後も通知設定は enabled のまま, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-09-01**: 設定が enabled でも、登録が無ければ「通知できない (未登録)」とする (ENV-E-11, ENV-R-002, ENV-DD-03)
+- [x] **T-08-09-01**: 設定が enabled でも、登録が無ければ「通知できない (未登録)」とする (ENV-E-11, ENV-R-002, ENV-DD-03)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry が `com.kallr.app` を登録なしとして返す (`exists` が false)、Fake NotificationSettingSource が `enabled` を返す設定になっている, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `ok=false`、`reason=未登録`、`setting=null` を返し、`ok=true` にならない
 
 #### T-08-10: Given 登録の直後に確認を実行する, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-10-01**: 登録と設定が観測できれば ok=true とし、表示の遅延を観測しない (ENV-E-12)
+- [x] **T-08-10-01**: 登録と設定が観測できれば ok=true とし、表示の遅延を観測しない (ENV-E-12)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である (登録の直後を模す)、呼び出しを記録し `enabled` を返す Fake NotificationSettingSource, When `evaluateAvailability('com.kallr.app', registry, settings)` を 1 回呼ぶ
   - Expected: Then `ok=true` を返し、`settings.read` の呼び出しは 1 回で、再試行や待機をしない
 
 #### T-08-11: Given 確認が読み取り専用でなければならない, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-11-01**: 通知できる状態の確認で、レジストリに書き込まない (ENV-R-012, ENV-DD-02)
+- [x] **T-08-11-01**: 通知できる状態の確認で、レジストリに書き込まない (ENV-R-012, ENV-DD-02)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、`enabled` を返す Fake NotificationSettingSource、`write` と `delete` の呼び出しを記録する Fake AumidRegistry, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `write` と `delete` は 1 度も呼ばれない
 
-- [ ] **T-08-11-02**: 未登録の確認で、登録を作らず書き込まない (ENV-R-012, ENV-DD-02)
+- [x] **T-08-11-02**: 未登録の確認で、登録を作らず書き込まない (ENV-R-012, ENV-DD-02)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry が `com.kallr.app` を登録なしとして返す (`exists` が false)、`write` と `delete` の呼び出しを記録する Fake AumidRegistry, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `write` と `delete` は 1 度も呼ばれない
 
+- [x] **T-08-11-03**: DisplayName が空の確認で、DisplayName を書き直さず削除もしない (ENV-R-012, ENV-DD-02)
+  - Target: `evaluateAvailability`
+  - Scenario: Given 登録があり `readDisplayName` が空文字 `''`、`write` と `delete` の呼び出しを記録する Fake AumidRegistry, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
+  - Expected: Then `write` と `delete` は 1 度も呼ばれない
+
 #### T-08-12: Given AUMID または DisplayName に非 ASCII 文字を含む, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-12-01**: 非 ASCII の AUMID を変えずに registry と settings へ渡す (ENV-E-14)
+- [x] **T-08-12-01**: 非 ASCII の AUMID を変えずに registry と settings へ渡す (ENV-E-14)
   - Target: `evaluateAvailability`
   - Scenario: Given AUMID が `かるる.通知`、その AUMID の登録と DisplayName `Kallr` を持つ Fake AumidRegistry、`enabled` を返す Fake NotificationSettingSource, When `evaluateAvailability('かるる.通知', registry, settings)` を呼ぶ
   - Expected: Then `exists`、`readDisplayName`、`read` が `かるる.通知` を変更なしで受け取り、`ok=true` を返す
 
-- [ ] **T-08-12-02**: 非 ASCII の DisplayName を空と誤判定しない (ENV-E-14)
+- [x] **T-08-12-02**: 非 ASCII の DisplayName を空と誤判定しない (ENV-E-14)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が `かるる通知` を返し、`enabled` を返す Fake NotificationSettingSource, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `displayNameSet=true`、`ok=true` を返す
 
 #### T-08-13: Given 評価順の境界, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-13-01**: 登録が無いとき、DisplayName を読まずに打ち切る (ENV-R-002, ENV-DD-03)
+- [x] **T-08-13-01**: 登録が無いとき、DisplayName を読まずに打ち切る (ENV-R-002, ENV-DD-03)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry が `com.kallr.app` を登録なしとして返す (`exists` が false)、`readDisplayName` の呼び出しを記録する Fake AumidRegistry, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `readDisplayName` は 1 度も呼ばれない
 
-- [ ] **T-08-13-02**: DisplayName が空で設定も無効のとき、理由は DisplayName が空を優先する (ENV-R-003 が ENV-R-004 より先。ENV-DD-10)
+- [x] **T-08-13-02**: DisplayName が空で設定も無効のとき、理由は DisplayName が空を優先する (ENV-R-003 が ENV-R-004 より先。ENV-DD-10)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり `readDisplayName` が空文字 `''`、Fake NotificationSettingSource が `disabledForUser` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `reason=DisplayName が空`、`setting=null` を返し、無効の種別を理由に含めない
@@ -578,6 +617,84 @@ version: 1.0.0
 
 ---
 
+## T-20: notificationSettingFromValue (NSV)
+
+### [正常] Normal Cases
+
+#### T-20-01: Given OS が定める数値, When notificationSettingFromValue を呼ぶ
+
+- [x] **T-20-01-01**: 値 0 は `enabled` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `0`, When `notificationSettingFromValue(0)` を呼ぶ
+  - Expected: Then `NotificationSetting.enabled` を返す
+
+- [x] **T-20-01-02**: 値 1 は `disabledForApplication` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `1`, When `notificationSettingFromValue(1)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledForApplication` を返す
+
+- [x] **T-20-01-03**: 値 2 は `disabledForUser` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `2`, When `notificationSettingFromValue(2)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledForUser` を返す
+
+- [x] **T-20-01-04**: 値 3 は `disabledByGroupPolicy` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `3`, When `notificationSettingFromValue(3)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledByGroupPolicy` を返す
+
+- [x] **T-20-01-05**: 値 4 は `disabledByManifest` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `4`, When `notificationSettingFromValue(4)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledByManifest` を返す
+
+### [異常] Error Cases
+
+#### T-20-02: Given 未知の数値, When notificationSettingFromValue を呼ぶ
+
+- [x] **T-20-02-01**: 値 99 は `win32Code` が null の RegistryException とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `99`, When `notificationSettingFromValue(99)` を呼ぶ
+  - Expected: Then `RegistryException` を投げ、`win32Code` は null で、`message` に `99` を含める
+
+### [エッジケース] Edge Cases
+
+#### T-20-03: Given 定義の範囲のすぐ外の数値, When notificationSettingFromValue を呼ぶ
+
+- [x] **T-20-03-01**: 値 5 は `win32Code` が null の RegistryException とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `5`, When `notificationSettingFromValue(5)` を呼ぶ
+  - Expected: Then `RegistryException` を投げ、`win32Code` は null で、`message` に `5` を含める
+
+- [x] **T-20-03-02**: 値 -1 は `win32Code` が null の RegistryException とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `-1`, When `notificationSettingFromValue(-1)` を呼ぶ
+  - Expected: Then `RegistryException` を投げ、`win32Code` は null で、`message` に `-1` を含める
+
+---
+
+## T-21: RegistryException (ERR)
+
+### [正常] Normal Cases
+
+#### T-21-01: Given Win32 コードがある, When toString を呼ぶ
+
+- [x] **T-21-01-01**: 表示に理由と Win32 コードを含める (IDX §4.3)
+  - Target: `RegistryException.toString`
+  - Scenario: Given `RegistryException('access denied', win32Code: 5)`, When `toString()` を呼ぶ
+  - Expected: Then `access denied` と `Win32 code 5` を含む
+
+### [エッジケース] Edge Cases
+
+#### T-21-02: Given Win32 コードが無い, When toString を呼ぶ
+
+- [x] **T-21-02-01**: コードが無ければ Win32 コードを表示しない (IDX §4.3)
+  - Target: `RegistryException.toString`
+  - Scenario: Given `RegistryException('unknown notification setting: 99')`、`win32Code` は null, When `toString()` を呼ぶ
+  - Expected: Then 理由を含み、`Win32 code` を含まない
+
+---
+
 ## Coverage Check
 
 | Source item                                                          | Task ID(s)                                                                                                                         |
@@ -586,12 +703,12 @@ version: 1.0.0
 | ENV-R-002 (未登録)                                                   | T-08-06-01, T-08-06-02, T-08-09-01, T-08-13-01                                                                                     |
 | ENV-R-003 (DisplayName 空)                                           | T-08-07-01, T-08-07-02, T-08-07-03, T-08-07-04, T-08-13-02                                                                         |
 | ENV-R-004 (無効 4 種)                                                | T-08-02-01 〜 T-08-02-04                                                                                                           |
-| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04                                                                                                                         |
+| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04, T-20-01-01 〜 T-20-03-02                                                                                               |
 | ENV-R-006 (ok=true)                                                  | T-08-01-01, T-08-10-01                                                                                                             |
 | ENV-R-007 (読み取り失敗 → 再スロー)                                  | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
 | ENV-R-011 (登録の確認。w5Check からの利用)                           | T-09-01-01, T-09-12-01                                                                                                             |
-| ENV-R-012 (読み取り専用)                                             | T-08-11-01, T-08-11-02, T-09-12-02                                                                                                 |
-| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02                                                                                   |
+| ENV-R-012 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                               |
+| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02, T-08-15-01 〜 T-08-15-04                                                         |
 | ENV-R-014 (3 欄の完備判定)                                           | T-09-05-01 〜 T-09-07-05, T-09-09-01                                                                                               |
 | ENV-R-015 (欄ごとの整合チェック)                                     | T-09-01-01, T-09-01-02, T-09-01-03, T-09-02-01, T-09-03-01, T-09-04-01, T-09-05-05, T-09-06-05, T-09-10-01, T-09-11-02, T-09-12-01 |
 | ENV-R-016 (不一致の報告)                                             | T-09-03-01, T-09-04-01, T-09-04-03                                                                                                 |
@@ -602,7 +719,7 @@ version: 1.0.0
 | ENV-E-03 (DisplayName 空文字・空白)                                  | T-08-07-02, T-08-07-03                                                                                                             |
 | ENV-E-04 (無効 4 種)                                                 | T-08-02-01 〜 T-08-02-04                                                                                                           |
 | ENV-E-05 (マニフェスト無効)                                          | T-08-02-04                                                                                                                         |
-| ENV-E-06 (未知の値)                                                  | T-08-08-04                                                                                                                         |
+| ENV-E-06 (未知の値)                                                  | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
 | ENV-E-07 (読み取り失敗)                                              | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
 | ENV-E-08 (AUMID 空)                                                  | T-08-05-01, T-08-05-03                                                                                                             |
 | ENV-E-11 (削除後も設定が有効)                                        | T-08-09-01                                                                                                                         |
@@ -618,19 +735,20 @@ version: 1.0.0
 | ENV-E-28 (完備だが不一致)                                            | T-09-03-03                                                                                                                         |
 | ENV-E-29 (`記載なし`)                                                | T-09-05-04, T-09-05-06, T-09-06-04, T-09-07-04                                                                                     |
 | ENV-DD-01 (不可は値、失敗は例外)                                     | T-08-06-01, T-08-07-01, T-08-08-01                                                                                                 |
-| ENV-DD-02 (読み取り専用)                                             | T-08-11-01, T-08-11-02, T-09-12-02                                                                                                 |
+| ENV-DD-02 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                               |
 | ENV-DD-03 (登録なし・DisplayName 空で打ち切り)                       | T-08-06-02, T-08-07-04, T-08-09-01, T-08-13-01                                                                                     |
 | ENV-DD-04 (インストール方式は照合しない)                             | T-09-01-03, T-09-03-03, T-09-09-01                                                                                                 |
 | ENV-DD-05 (不一致は exitCode 2、W5 の合否は変えない)                 | T-09-03-02, T-09-03-03, T-09-04-02                                                                                                 |
-| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04                                                                                                                         |
+| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
 | ENV-DD-10 (未評価は null)                                            | T-08-06-01, T-08-07-02, T-08-13-02                                                                                                 |
 | ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-13-01                                                                                                 |
 | ENV-DD-13 (`記載なし` の機械検査)                                    | T-09-05-01 〜 T-09-07-04                                                                                                           |
 | IDX-DD-04 (終了コード 0 / 2。w5Check の exitCode)                    | T-09-01-04, T-09-03-02                                                                                                             |
 | IDX-DD-05 (例外と値の使い分け)                                       | T-08-06-01, T-08-08-01, T-08-08-03                                                                                                 |
+| IDX §3.1, §4.3 (RegistryException の値と表示)                        | T-21-01-01, T-21-02-01                                                                                                             |
 | IDX-DD-10 (空の AUMID は使い方の誤り)                                | T-08-05-01, T-08-05-03                                                                                                             |
 | IDX-DD-12 (w5-check の exitCode 2。W5 の合否は変えない)              | T-09-03-02, T-09-03-03, T-09-05-06                                                                                                 |
-| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-09-12-01, T-09-12-02                                                                                   |
+| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-08-15-01 〜 T-08-15-04, T-09-12-01, T-09-12-02                                                         |
 | DR-03 (W5 の合否は記録の完備だけ)                                    | T-09-03-03, T-09-05-01 〜 T-09-07-05                                                                                               |
 | DR-01 (HKCU 登録・管理者権限不要)                                    | 該当なし (観測できる振る舞いは `windows/` の FFI 実装にあり、手動検証で確かめる)                                                   |
 
@@ -649,6 +767,8 @@ version: 1.0.0
 
 | Test Target                                | Normal / Error / Edge              | Result |
 | ------------------------------------------ | ---------------------------------- | ------ |
-| T-08: evaluateAvailability (AVL)           | Normal: 15 \| Error: 13 \| Edge: 8 | [OK]   |
+| T-08: evaluateAvailability (AVL)           | Normal: 21 \| Error: 13 \| Edge: 9 | [OK]   |
 | T-09: w5Check (W5C)                        | Normal: 8 \| Error: 24 \| Edge: 8  | [OK]   |
 | T-13: DefaultNotificationEnvironment (NEV) | Normal: 4 \| Error: 8 \| Edge: 1   | [OK]   |
+| T-20: notificationSettingFromValue (NSV)   | Normal: 5 \| Error: 1 \| Edge: 2   | [OK]   |
+| T-21: RegistryException (ERR)              | Normal: 1 \| Error: 0 \| Edge: 1   | [OK]   |

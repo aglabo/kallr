@@ -18,6 +18,7 @@ import 'package:w1_w7_verify/tag/providers.dart';
 typedef CallLog = List<String>;
 
 /// Fake environment that reports a fixed [Availability] and logs `env.check`.
+/// Only `check`, the method the add path needs, is implemented.
 class FakeEnvironment implements NotificationEnvironment {
   /// Creates the fake; [log] receives one entry per call.
   ///
@@ -39,6 +40,10 @@ class FakeEnvironment implements NotificationEnvironment {
     log.add('env.check');
     return availability;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
 }
 
 /// Operation of [ToastScheduler] that [MockToastScheduler.failNext] can make fail.

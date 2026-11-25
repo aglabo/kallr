@@ -49,7 +49,7 @@ abstract interface class MappingTable {
   /// Removes the record for ([batchId], [alarmId]); does nothing when none exists.
   void remove(String batchId, String alarmId);
 
-  /// Returns every current record.
+  /// Returns every current record, in ascending id order (insertion order).
   List<MappingRecord> all();
 
   /// Returns the Tag of every row, including superseded ones that the OS may still hold.

@@ -470,6 +470,7 @@ void main() {
           expect(f.table.get('b1', 'a1'), isNull);
         });
 
+        /// orphan 判定そのものは T-WDV-SVL-03 が検証する。ここは add 失敗後のシナリオを確かめる。
         test('[Error] T-WDV-SVA-27: 続く list は残った予約を orphan として検出する', () {
           final f = failingPut();
           expect(f.add, throwsA(isA<StorageException>()));
@@ -713,13 +714,10 @@ void main() {
           expect(record.title, title);
         });
 
-        test(
-          '[Normal] T-WDV-SVA-54-01: 保存された MappingRecord の title も同じである',
-          () {
-            final f = _Fixture()..add(title: title);
-            expect(f.table.get('b1', 'a1')?.title, title);
-          },
-        );
+        test('[Normal] T-WDV-SVA-63: 保存された MappingRecord の title も同じである', () {
+          final f = _Fixture()..add(title: title);
+          expect(f.table.get('b1', 'a1')?.title, title);
+        });
 
         test('[Normal] T-WDV-SVA-55: 置換でも OS の追加に title をそのまま渡す', () {
           final f = _Fixture(withOld: true)..add(title: title);

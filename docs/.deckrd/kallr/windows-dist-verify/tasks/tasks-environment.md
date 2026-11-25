@@ -20,7 +20,7 @@ version: 1.0.0
 
 | Test Target                                | Scenarios | Cases | Status  |
 | ------------------------------------------ | --------- | ----- | ------- |
-| T-08: evaluateAvailability (AVL)           | 14        | 39    | done    |
+| T-08: evaluateAvailability (AVL)           | 15        | 43    | done    |
 | T-09: w5Check (W5C)                        | 14        | 40    | pending |
 | T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
 | T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done    |
@@ -109,6 +109,28 @@ version: 1.0.0
   - Target: `MockNotificationEnvironment.unregister`
   - Scenario: Given `MockNotificationEnvironment` と、呼ばれると失敗する Fake AumidRegistry / NotificationSettingSource, When `unregister('com.kallr.app')` を呼ぶ
   - Expected: Then 記録に `com.kallr.app` の削除が 1 件残り、Fake の AumidRegistry と NotificationSettingSource は 1 度も呼ばれず、例外を投げない
+
+#### T-08-15: Given Mock, When isRegistered を呼ぶ
+
+- [x] **T-08-15-01**: 登録がある状態の Mock は true を返す (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given 状態「OK (通知できる)」の名前付きコンストラクタで構築し、`NotificationEnvironment` 型として扱う `MockNotificationEnvironment`, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then `true` を返す
+
+- [x] **T-08-15-02**: DisplayName が空でも、登録があれば true を返す (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given 状態「DisplayName 空」の名前付きコンストラクタで構築し、`NotificationEnvironment` 型として扱う `MockNotificationEnvironment`, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then `true` を返す
+
+- [x] **T-08-15-03**: 未登録の状態の Mock は false を返す (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given 状態「未登録」の名前付きコンストラクタで構築し、`NotificationEnvironment` 型として扱う `MockNotificationEnvironment`, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then `false` を返す
+
+- [x] **T-08-15-04**: isRegistered は呼び出しを記録するだけで、レジストリと OS を呼ばない (ENV-R-013, DR-06)
+  - Target: `MockNotificationEnvironment.isRegistered`
+  - Scenario: Given `MockNotificationEnvironment` と、呼ばれると失敗する Fake AumidRegistry / NotificationSettingSource, When `isRegistered('com.kallr.app')` を呼ぶ
+  - Expected: Then 記録に `com.kallr.app` が 1 件残り、Fake の AumidRegistry と NotificationSettingSource は 1 度も呼ばれず、例外を投げない
 
 #### T-08-14: Given: aumid の前後に空白がある (契約。specifications-index 3.1)
 
@@ -686,7 +708,7 @@ version: 1.0.0
 | ENV-R-007 (読み取り失敗 → 再スロー)                                  | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
 | ENV-R-011 (登録の確認。w5Check からの利用)                           | T-09-01-01, T-09-12-01                                                                                                             |
 | ENV-R-012 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                               |
-| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02                                                                                   |
+| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02, T-08-15-01 〜 T-08-15-04                                                         |
 | ENV-R-014 (3 欄の完備判定)                                           | T-09-05-01 〜 T-09-07-05, T-09-09-01                                                                                               |
 | ENV-R-015 (欄ごとの整合チェック)                                     | T-09-01-01, T-09-01-02, T-09-01-03, T-09-02-01, T-09-03-01, T-09-04-01, T-09-05-05, T-09-06-05, T-09-10-01, T-09-11-02, T-09-12-01 |
 | ENV-R-016 (不一致の報告)                                             | T-09-03-01, T-09-04-01, T-09-04-03                                                                                                 |
@@ -726,7 +748,7 @@ version: 1.0.0
 | IDX §3.1, §4.3 (RegistryException の値と表示)                        | T-21-01-01, T-21-02-01                                                                                                             |
 | IDX-DD-10 (空の AUMID は使い方の誤り)                                | T-08-05-01, T-08-05-03                                                                                                             |
 | IDX-DD-12 (w5-check の exitCode 2。W5 の合否は変えない)              | T-09-03-02, T-09-03-03, T-09-05-06                                                                                                 |
-| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-09-12-01, T-09-12-02                                                                                   |
+| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-08-15-01 〜 T-08-15-04, T-09-12-01, T-09-12-02                                                         |
 | DR-03 (W5 の合否は記録の完備だけ)                                    | T-09-03-03, T-09-05-01 〜 T-09-07-05                                                                                               |
 | DR-01 (HKCU 登録・管理者権限不要)                                    | 該当なし (観測できる振る舞いは `windows/` の FFI 実装にあり、手動検証で確かめる)                                                   |
 
@@ -745,7 +767,7 @@ version: 1.0.0
 
 | Test Target                                | Normal / Error / Edge              | Result |
 | ------------------------------------------ | ---------------------------------- | ------ |
-| T-08: evaluateAvailability (AVL)           | Normal: 17 \| Error: 13 \| Edge: 9 | [OK]   |
+| T-08: evaluateAvailability (AVL)           | Normal: 21 \| Error: 13 \| Edge: 9 | [OK]   |
 | T-09: w5Check (W5C)                        | Normal: 8 \| Error: 24 \| Edge: 8  | [OK]   |
 | T-13: DefaultNotificationEnvironment (NEV) | Normal: 4 \| Error: 8 \| Edge: 1   | [OK]   |
 | T-20: notificationSettingFromValue (NSV)   | Normal: 5 \| Error: 1 \| Edge: 2   | [OK]   |

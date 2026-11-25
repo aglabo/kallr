@@ -2,7 +2,7 @@
 title: "Implementation Tasks (Index): Windows Distribution Verify"
 module: kallr/windows-dist-verify
 status: Active
-version: 1.5.0
+version: 1.6.0
 created: "2026-11-22 00:00:00"
 source: specifications-index.md
 ---
@@ -21,7 +21,7 @@ source: specifications-index.md
 | T-05        | MAP      | tasks-schedule.md    |        22 |    44 |
 | T-06        | RPQ      | tasks-schedule.md    |        14 |    34 |
 | T-07        | SVA      | tasks-service.md     |        17 |    54 |
-| T-08        | AVL, MNE | tasks-environment.md |        14 |    39 |
+| T-08        | AVL, MNE | tasks-environment.md |        15 |    43 |
 | T-09        | W5C      | tasks-environment.md |        14 |    40 |
 | T-10        | ARG      | tasks-cli.md         |        31 |    60 |
 | T-11        | CLI      | tasks-cli.md         |        24 |    88 |
@@ -35,7 +35,7 @@ source: specifications-index.md
 | T-19        | SQA      | tasks-schedule.md    |        12 |    17 |
 | T-20        | NSV      | tasks-environment.md |         3 |     8 |
 | T-21        | ERR      | tasks-environment.md |         2 |     2 |
-| 合計        |          |                      |           |   623 |
+| 合計        |          |                      |           |   627 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 
@@ -148,3 +148,4 @@ source: specifications-index.md
 | 2026-11-25 | 1.3.1   | Fix the Files list, the resolved date-only open item and the file count; fix tables in tasks-cli and tasks-tag                                                               |
 | 2026-11-25 | 1.4.0   | Add T-20 (NSV, `notificationSettingFromValue`) and T-21 (ERR, `RegistryException`) to tasks-environment.md; record the missing `win_notification_setting.dart` in Open Items |
 | 2026-11-25 | 1.5.0   | Add T-08-11-03: no write and no delete on the blank DisplayName path                                                                                                         |
+| 2026-11-25 | 1.6.0   | Add T-08-15 (`MockNotificationEnvironment.isRegistered`, 4 cases; follows implementation-environment v1.2.0)                                                                 |

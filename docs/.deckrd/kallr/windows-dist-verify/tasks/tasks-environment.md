@@ -23,6 +23,8 @@ version: 1.0.0
 | T-08: evaluateAvailability (AVL)           | 14        | 38    | in progress |
 | T-09: w5Check (W5C)                        | 14        | 40    | pending     |
 | T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending     |
+| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done        |
+| T-21: RegistryException (ERR)              | 2         | 2     | done        |
 
 ---
 
@@ -180,22 +182,22 @@ version: 1.0.0
 
 #### T-08-08: Given レジストリまたは OS の読み取りが失敗する, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-08-01**: `exists` が失敗したとき、RegistryException を再スローし Win32 コードを保つ (ENV-R-007, ENV-E-07)
+- [x] **T-08-08-01**: `exists` が失敗したとき、RegistryException を再スローし Win32 コードを保つ (ENV-R-007, ENV-E-07)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry の `exists` が `RegistryException(win32Code: 5)` (アクセス拒否) を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `win32Code=5` の `RegistryException` が投げられ、「通知できない」の Availability に変換されない
 
-- [ ] **T-08-08-02**: `readDisplayName` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
+- [x] **T-08-08-02**: `readDisplayName` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が `RegistryException(win32Code: 5)` を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `win32Code=5` の `RegistryException` が投げられ、Availability を返さない
 
-- [ ] **T-08-08-03**: `settings.read` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
+- [x] **T-08-08-03**: `settings.read` が失敗したとき、RegistryException を再スローする (ENV-R-007, ENV-E-07)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録あり・DisplayName ありで、Fake NotificationSettingSource の `read` が `RegistryException(win32Code: 5)` を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `win32Code=5` の `RegistryException` が投げられ、`ok=false` の Availability に変換されない
 
-- [ ] **T-08-08-04**: 通知設定が未知の値のとき、可否のどちらにも倒さず失敗とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+- [x] **T-08-08-04**: 通知設定が未知の値のとき、可否のどちらにも倒さず失敗とする (ENV-R-005, ENV-DD-06, ENV-E-06)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録あり・DisplayName ありで、Fake NotificationSettingSource の `read` が未知の数値 `99` に対して `RegistryException` を投げる, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `RegistryException` が投げられ、`ok=true` も `ok=false` の Availability も返らない
@@ -588,6 +590,84 @@ version: 1.0.0
 
 ---
 
+## T-20: notificationSettingFromValue (NSV)
+
+### [正常] Normal Cases
+
+#### T-20-01: Given OS が定める数値, When notificationSettingFromValue を呼ぶ
+
+- [x] **T-20-01-01**: 値 0 は `enabled` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `0`, When `notificationSettingFromValue(0)` を呼ぶ
+  - Expected: Then `NotificationSetting.enabled` を返す
+
+- [x] **T-20-01-02**: 値 1 は `disabledForApplication` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `1`, When `notificationSettingFromValue(1)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledForApplication` を返す
+
+- [x] **T-20-01-03**: 値 2 は `disabledForUser` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `2`, When `notificationSettingFromValue(2)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledForUser` を返す
+
+- [x] **T-20-01-04**: 値 3 は `disabledByGroupPolicy` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `3`, When `notificationSettingFromValue(3)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledByGroupPolicy` を返す
+
+- [x] **T-20-01-05**: 値 4 は `disabledByManifest` になる (ENV-R-005)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `4`, When `notificationSettingFromValue(4)` を呼ぶ
+  - Expected: Then `NotificationSetting.disabledByManifest` を返す
+
+### [異常] Error Cases
+
+#### T-20-02: Given 未知の数値, When notificationSettingFromValue を呼ぶ
+
+- [x] **T-20-02-01**: 値 99 は `win32Code` が null の RegistryException とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `99`, When `notificationSettingFromValue(99)` を呼ぶ
+  - Expected: Then `RegistryException` を投げ、`win32Code` は null で、`message` に `99` を含める
+
+### [エッジケース] Edge Cases
+
+#### T-20-03: Given 定義の範囲のすぐ外の数値, When notificationSettingFromValue を呼ぶ
+
+- [x] **T-20-03-01**: 値 5 は `win32Code` が null の RegistryException とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `5`, When `notificationSettingFromValue(5)` を呼ぶ
+  - Expected: Then `RegistryException` を投げ、`win32Code` は null で、`message` に `5` を含める
+
+- [x] **T-20-03-02**: 値 -1 は `win32Code` が null の RegistryException とする (ENV-R-005, ENV-DD-06, ENV-E-06)
+  - Target: `notificationSettingFromValue`
+  - Scenario: Given 通知設定の数値 `-1`, When `notificationSettingFromValue(-1)` を呼ぶ
+  - Expected: Then `RegistryException` を投げ、`win32Code` は null で、`message` に `-1` を含める
+
+---
+
+## T-21: RegistryException (ERR)
+
+### [正常] Normal Cases
+
+#### T-21-01: Given Win32 コードがある, When toString を呼ぶ
+
+- [x] **T-21-01-01**: 表示に理由と Win32 コードを含める (IDX §4.3)
+  - Target: `RegistryException.toString`
+  - Scenario: Given `RegistryException('access denied', win32Code: 5)`, When `toString()` を呼ぶ
+  - Expected: Then `access denied` と `Win32 code 5` を含む
+
+### [エッジケース] Edge Cases
+
+#### T-21-02: Given Win32 コードが無い, When toString を呼ぶ
+
+- [x] **T-21-02-01**: コードが無ければ Win32 コードを表示しない (IDX §4.3)
+  - Target: `RegistryException.toString`
+  - Scenario: Given `RegistryException('unknown notification setting: 99')`、`win32Code` は null, When `toString()` を呼ぶ
+  - Expected: Then 理由を含み、`Win32 code` を含まない
+
+---
+
 ## Coverage Check
 
 | Source item                                                          | Task ID(s)                                                                                                                         |
@@ -596,7 +676,7 @@ version: 1.0.0
 | ENV-R-002 (未登録)                                                   | T-08-06-01, T-08-06-02, T-08-09-01, T-08-13-01                                                                                     |
 | ENV-R-003 (DisplayName 空)                                           | T-08-07-01, T-08-07-02, T-08-07-03, T-08-07-04, T-08-13-02                                                                         |
 | ENV-R-004 (無効 4 種)                                                | T-08-02-01 〜 T-08-02-04                                                                                                           |
-| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04                                                                                                                         |
+| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04, T-20-01-01 〜 T-20-03-02                                                                                               |
 | ENV-R-006 (ok=true)                                                  | T-08-01-01, T-08-10-01                                                                                                             |
 | ENV-R-007 (読み取り失敗 → 再スロー)                                  | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
 | ENV-R-011 (登録の確認。w5Check からの利用)                           | T-09-01-01, T-09-12-01                                                                                                             |
@@ -612,7 +692,7 @@ version: 1.0.0
 | ENV-E-03 (DisplayName 空文字・空白)                                  | T-08-07-02, T-08-07-03                                                                                                             |
 | ENV-E-04 (無効 4 種)                                                 | T-08-02-01 〜 T-08-02-04                                                                                                           |
 | ENV-E-05 (マニフェスト無効)                                          | T-08-02-04                                                                                                                         |
-| ENV-E-06 (未知の値)                                                  | T-08-08-04                                                                                                                         |
+| ENV-E-06 (未知の値)                                                  | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
 | ENV-E-07 (読み取り失敗)                                              | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
 | ENV-E-08 (AUMID 空)                                                  | T-08-05-01, T-08-05-03                                                                                                             |
 | ENV-E-11 (削除後も設定が有効)                                        | T-08-09-01                                                                                                                         |
@@ -632,12 +712,13 @@ version: 1.0.0
 | ENV-DD-03 (登録なし・DisplayName 空で打ち切り)                       | T-08-06-02, T-08-07-04, T-08-09-01, T-08-13-01                                                                                     |
 | ENV-DD-04 (インストール方式は照合しない)                             | T-09-01-03, T-09-03-03, T-09-09-01                                                                                                 |
 | ENV-DD-05 (不一致は exitCode 2、W5 の合否は変えない)                 | T-09-03-02, T-09-03-03, T-09-04-02                                                                                                 |
-| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04                                                                                                                         |
+| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
 | ENV-DD-10 (未評価は null)                                            | T-08-06-01, T-08-07-02, T-08-13-02                                                                                                 |
 | ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-13-01                                                                                                 |
 | ENV-DD-13 (`記載なし` の機械検査)                                    | T-09-05-01 〜 T-09-07-04                                                                                                           |
 | IDX-DD-04 (終了コード 0 / 2。w5Check の exitCode)                    | T-09-01-04, T-09-03-02                                                                                                             |
 | IDX-DD-05 (例外と値の使い分け)                                       | T-08-06-01, T-08-08-01, T-08-08-03                                                                                                 |
+| IDX §3.1, §4.3 (RegistryException の値と表示)                        | T-21-01-01, T-21-02-01                                                                                                             |
 | IDX-DD-10 (空の AUMID は使い方の誤り)                                | T-08-05-01, T-08-05-03                                                                                                             |
 | IDX-DD-12 (w5-check の exitCode 2。W5 の合否は変えない)              | T-09-03-02, T-09-03-03, T-09-05-06                                                                                                 |
 | DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-09-12-01, T-09-12-02                                                                                   |
@@ -662,3 +743,5 @@ version: 1.0.0
 | T-08: evaluateAvailability (AVL)           | Normal: 17 \| Error: 13 \| Edge: 8 | [OK]   |
 | T-09: w5Check (W5C)                        | Normal: 8 \| Error: 24 \| Edge: 8  | [OK]   |
 | T-13: DefaultNotificationEnvironment (NEV) | Normal: 4 \| Error: 8 \| Edge: 1   | [OK]   |
+| T-20: notificationSettingFromValue (NSV)   | Normal: 5 \| Error: 1 \| Edge: 2   | [OK]   |
+| T-21: RegistryException (ERR)              | Normal: 1 \| Error: 0 \| Edge: 1   | [OK]   |

@@ -2,7 +2,7 @@
 title: "Implementation Tasks (Index): Windows Distribution Verify"
 module: kallr/windows-dist-verify
 status: Active
-version: 1.3.1
+version: 1.4.0
 created: "2026-11-22 00:00:00"
 source: specifications-index.md
 ---
@@ -33,7 +33,9 @@ source: specifications-index.md
 | T-17        | SVG      | tasks-service.md     |         9 |    23 |
 | T-18        | SVN      | tasks-service.md     |        17 |    21 |
 | T-19        | SQA      | tasks-schedule.md    |        12 |    17 |
-| 合計        |          |                      |           |   612 |
+| T-20        | NSV      | tasks-environment.md |         3 |     8 |
+| T-21        | ERR      | tasks-environment.md |         2 |     2 |
+| 合計        |          |                      |           |   622 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 
@@ -109,6 +111,10 @@ source: specifications-index.md
 1. 仕様が定めておらず、タスクを書かなかった事項は次のとおり。
    - 再登録の報告の区切り
    - 通知不可時の re-register-all の標準出力
+2. `windows/win_notification_setting.dart` (`NotificationSettingSource` の実装) は未作成とする。
+   - 前提は、`ffi` 依存の追加と、`windows/winrt.dart` (`w03.dart` からの抜き出し。未作成) である。
+   - 数値の変換は、実装済みの `notificationSettingFromValue` (T-20) を呼ぶ。
+   - 動作は実機の手動検証で確かめるため、タスクは書いていない (implementation-environment.md §4.2)。
 
 ## Task ID の指定
 
@@ -127,16 +133,17 @@ source: specifications-index.md
 - [tasks-tag.md](./tasks-tag.md): T-01〜T-03
 - [tasks-schedule.md](./tasks-schedule.md): T-04〜T-06、T-19
 - [tasks-service.md](./tasks-service.md): T-07、T-14〜T-18
-- [tasks-environment.md](./tasks-environment.md): T-08〜T-09、T-13
+- [tasks-environment.md](./tasks-environment.md): T-08〜T-09、T-13、T-20〜T-21
 - [tasks-cli.md](./tasks-cli.md): T-10〜T-12
 
 ## Change History
 
-| Date       | Version | Description                                                                                                    |
-| ---------- | ------- | -------------------------------------------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Initial tasks                                                                                                  |
-| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md                                   |
-| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore                                    |
-| 2026-11-25 | 1.2.1   | T-08 also covers the test target MNE (Mock cases T-08-03, T-08-04; follows implementation-index v1.4.1)        |
-| 2026-11-25 | 1.3.0   | Add T-08-14-02 and T-08-14-03: normalized AUMID reaches readDisplayName and settings.read; fix the case total  |
-| 2026-11-25 | 1.3.1   | Fix the Files list, the resolved date-only open item and the file count; fix tables in tasks-cli and tasks-tag |
+| Date       | Version | Description                                                                                                                                                                  |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Initial tasks                                                                                                                                                                |
+| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md                                                                                                 |
+| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore                                                                                                  |
+| 2026-11-25 | 1.2.1   | T-08 also covers the test target MNE (Mock cases T-08-03, T-08-04; follows implementation-index v1.4.1)                                                                      |
+| 2026-11-25 | 1.3.0   | Add T-08-14-02 and T-08-14-03: normalized AUMID reaches readDisplayName and settings.read; fix the case total                                                                |
+| 2026-11-25 | 1.3.1   | Fix the Files list, the resolved date-only open item and the file count; fix tables in tasks-cli and tasks-tag                                                               |
+| 2026-11-25 | 1.4.0   | Add T-20 (NSV, `notificationSettingFromValue`) and T-21 (ERR, `RegistryException`) to tasks-environment.md; record the missing `win_notification_setting.dart` in Open Items |

@@ -7,6 +7,7 @@
 // https://opensource.org/licenses/MIT
 
 import '../errors.dart';
+import '../ids.dart';
 import 'notification_environment.dart';
 import 'permission_probe.dart';
 
@@ -63,10 +64,10 @@ final class W5FieldResult {
   /// Verdict on the field.
   final W5FieldStatus status;
 
-  /// Recorded value.
+  /// Recorded value: set for a `mismatch` and a `notChecked` field.
   final String? recorded;
 
-  /// Observed value.
+  /// Observed value: set for a `mismatch` field only.
   final String? observed;
 }
 
@@ -97,8 +98,9 @@ final class W5Report {
 /// compared: the AUMID is not looked up and [probe] is not asked.
 /// A clear install method is never compared: it is reported as `notChecked`
 /// with the recorded value.
-/// A clear AUMID that [env] does not know as registered is a `mismatch`,
-/// observed as `登録なし`; otherwise the AUMID is reported as `match`.
+/// A clear AUMID is looked up with the value normalized by [normalizeId]. One
+/// that [env] does not know as registered is a `mismatch` with the value as
+/// recorded, observed as `登録なし`; otherwise the AUMID is reported as `match`.
 /// A clear permission other than exactly `user` or `administrator`
 /// (case-sensitive) throws a [UsageException], so no report is returned.
 /// An allowed permission that differs from the one [probe] observes is a
@@ -138,19 +140,33 @@ W5FieldResult _checkField(
       : judge(value);
 }
 
+/// Reports the comparison of the field [field]: a `match` without values when
+/// [matches] is true, otherwise a `mismatch` with [recorded] and [observed].
+W5FieldResult _compared(
+  String field, {
+  required bool matches,
+  required String recorded,
+  required String observed,
+}) => matches
+    ? W5FieldResult(field: field, status: W5FieldStatus.match)
+    : W5FieldResult(
+        field: field,
+        status: W5FieldStatus.mismatch,
+        recorded: recorded,
+        observed: observed,
+      );
+
 /// Checks the [recorded] AUMID against the registrations of [env].
 W5FieldResult _checkAumid(String? recorded, NotificationEnvironment env) =>
     _checkField(
       'aumid',
       recorded,
-      (value) => !env.isRegistered(value)
-          ? W5FieldResult(
-              field: 'aumid',
-              status: W5FieldStatus.mismatch,
-              recorded: value,
-              observed: '登録なし',
-            )
-          : const W5FieldResult(field: 'aumid', status: W5FieldStatus.match),
+      (value) => _compared(
+        'aumid',
+        matches: env.isRegistered(normalizeId(value)),
+        recorded: value,
+        observed: '登録なし',
+      ),
     );
 
 /// Checks the [recorded] permission against the one observed by [probe].
@@ -165,17 +181,12 @@ W5FieldResult _checkPermission(String? recorded, PermissionProbe probe) =>
         );
       }
       final observed = probe.current();
-      return value != observed
-          ? W5FieldResult(
-              field: 'permission',
-              status: W5FieldStatus.mismatch,
-              recorded: value,
-              observed: observed,
-            )
-          : const W5FieldResult(
-              field: 'permission',
-              status: W5FieldStatus.match,
-            );
+      return _compared(
+        'permission',
+        matches: value == observed,
+        recorded: value,
+        observed: observed,
+      );
     });
 
 /// Reports the [recorded] install method without comparing it.

@@ -127,6 +127,22 @@ W5Report _checkInstallMethodRecord(String? installMethod) => _checkRecord(
   installMethod: installMethod,
 );
 
+/// Runs [_checkRecord] with none of the three fields recorded, against [env] and
+/// [probe], by default ones where `com.kallr.app` is registered and `user` is
+/// observed.
+///
+/// Returns the report of that run.
+W5Report _checkAllUnspecified({
+  NotificationEnvironment? env,
+  PermissionProbe probe = const FakePermissionProbe('user'),
+}) => _checkRecord(
+  recorded: null,
+  probe: probe,
+  env: env ?? MockNotificationEnvironment.ok(),
+  aumid: null,
+  installMethod: null,
+);
+
 /// Selects the results of [report] whose field name is [field].
 ///
 /// Returns every match, so a missing field shows up as an empty list.
@@ -542,6 +558,84 @@ void main() {
               W5FieldStatus.unclear,
             ]);
           });
+        });
+      });
+
+      group('Given: 3 欄すべてが指定なし', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Edge] T-WDV-W5C-38: 3 欄すべてを unclear とし、exitCode は 2 とする', () {
+            final report = _checkAllUnspecified();
+
+            expect(report.fields.map((r) => (r.field, r.status)), [
+              ('aumid', W5FieldStatus.unclear),
+              ('permission', W5FieldStatus.unclear),
+              ('install-method', W5FieldStatus.unclear),
+            ]);
+            expect(report.exitCode, 2);
+          });
+
+          test('[Edge] T-WDV-W5C-39: 登録も権限も照合しない', () {
+            final env = MockNotificationEnvironment.ok();
+            final probe = RecordingPermissionProbe('user');
+
+            _checkAllUnspecified(env: env, probe: probe);
+
+            expect(env.isRegisteredCalls, isEmpty);
+            expect(probe.calls, 0);
+          });
+        });
+      });
+
+      group('Given: 整合チェックは読み取り専用', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Edge] T-WDV-W5C-40: 記録した AUMID で登録を 1 回だけ照合する', () {
+            final env = MockNotificationEnvironment.ok();
+
+            _checkAumidRecord('com.kallr.app', env: env);
+
+            expect(env.isRegisteredCalls, ['com.kallr.app']);
+          });
+
+          test('[Edge] T-WDV-W5C-41: register も unregister も呼ばない', () {
+            final env = MockNotificationEnvironment.ok();
+
+            _checkAumidRecord('com.kallr.app', env: env);
+
+            expect(env.registerCalls, isEmpty);
+            expect(env.unregisterCalls, isEmpty);
+          });
+        });
+      });
+
+      group('Given: 実行権限の値が大文字を含む', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Edge] T-WDV-W5C-42: 実行権限欄の値が Administrator なら観測が administrator でも UsageException を送出する', () {
+            expect(
+              () => _checkRecordedPermission(
+                'Administrator',
+                probe: const FakePermissionProbe('administrator'),
+              ),
+              throwsA(isA<UsageException>()),
+            );
+          });
+        });
+      });
+
+      group('Given: 記録した aumid の前後に空白がある', () {
+        group('When: w5Check を呼ぶ', () {
+          test(
+            '[Edge] T-WDV-W5C-43: 前後の空白を削除した aumid で登録を照合し、AUMID 欄は match とする',
+            () {
+              final env = MockNotificationEnvironment.ok();
+
+              final report = _checkAumidRecord(' com.kallr.app ', env: env);
+
+              expect(env.isRegisteredCalls, ['com.kallr.app']);
+              expect(_resultsOf(report, 'aumid').map((r) => r.status), [
+                W5FieldStatus.match,
+              ]);
+            },
+          );
         });
       });
     });

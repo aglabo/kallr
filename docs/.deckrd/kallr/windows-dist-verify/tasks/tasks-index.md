@@ -2,7 +2,7 @@
 title: "Implementation Tasks (Index): Windows Distribution Verify"
 module: kallr/windows-dist-verify
 status: Active
-version: 1.2.1
+version: 1.3.0
 created: "2026-11-22 00:00:00"
 source: specifications-index.md
 ---
@@ -21,7 +21,7 @@ source: specifications-index.md
 | T-05        | MAP      | tasks-schedule.md    |        22 |    44 |
 | T-06        | RPQ      | tasks-schedule.md    |        14 |    34 |
 | T-07        | SVA      | tasks-service.md     |        17 |    54 |
-| T-08        | AVL, MNE | tasks-environment.md |        14 |    36 |
+| T-08        | AVL, MNE | tasks-environment.md |        14 |    38 |
 | T-09        | W5C      | tasks-environment.md |        14 |    40 |
 | T-10        | ARG      | tasks-cli.md         |        31 |    60 |
 | T-11        | CLI      | tasks-cli.md         |        24 |    88 |
@@ -33,7 +33,7 @@ source: specifications-index.md
 | T-17        | SVG      | tasks-service.md     |         9 |    23 |
 | T-18        | SVN      | tasks-service.md     |        17 |    21 |
 | T-19        | SQA      | tasks-schedule.md    |        12 |    17 |
-| 合計        |          |                      |           |   604 |
+| 合計        |          |                      |           |   612 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 
@@ -133,9 +133,10 @@ source: specifications-index.md
 
 ## Change History
 
-| Date       | Version | Description                                                                                             |
-| ---------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Initial tasks                                                                                           |
-| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md                            |
-| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore                             |
-| 2026-11-25 | 1.2.1   | T-08 also covers the test target MNE (Mock cases T-08-03, T-08-04; follows implementation-index v1.4.1) |
+| Date       | Version | Description                                                                                                   |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Initial tasks                                                                                                 |
+| 2026-11-24 | 1.1.0   | Split T-07 (SVC) into T-07 and T-14 to T-18 by purpose; add tasks-service.md                                  |
+| 2026-11-24 | 1.2.0   | Add T-19 (SQA, SqliteAccess) to tasks-schedule.md for splitting SqliteStore                                   |
+| 2026-11-25 | 1.2.1   | T-08 also covers the test target MNE (Mock cases T-08-03, T-08-04; follows implementation-index v1.4.1)       |
+| 2026-11-25 | 1.3.0   | Add T-08-14-02 and T-08-14-03: normalized AUMID reaches readDisplayName and settings.read; fix the case total |

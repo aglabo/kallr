@@ -20,7 +20,7 @@ version: 1.0.0
 
 | Test Target                                | Scenarios | Cases | Status      |
 | ------------------------------------------ | --------- | ----- | ----------- |
-| T-08: evaluateAvailability (AVL)           | 14        | 36    | in progress |
+| T-08: evaluateAvailability (AVL)           | 14        | 38    | in progress |
 | T-09: w5Check (W5C)                        | 14        | 40    | pending     |
 | T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending     |
 
@@ -110,60 +110,70 @@ version: 1.0.0
 
 #### T-08-14: Given: aumid の前後に空白がある (契約。specifications-index 3.1)
 
-- [ ] **T-08-14-01**: 前後の空白を削除した aumid で登録を調べる
+- [x] **T-08-14-01**: 前後の空白を削除した aumid で登録を調べる
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry は `com.kallr.app` を登録済みとして持つ, When `evaluateAvailability(' com.kallr.app ', registry, settings)` を呼ぶ
   - Expected: Then `registry.exists` が `com.kallr.app` で呼ばれ、`registered=true` を返す
+
+- [x] **T-08-14-02**: 前後の空白を削除した aumid で DisplayName を読む
+  - Target: `evaluateAvailability`
+  - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、`readDisplayName` の引数を記録する, When `evaluateAvailability(' com.kallr.app ', registry, settings)` を呼ぶ
+  - Expected: Then `registry.readDisplayName` が `com.kallr.app` で呼ばれる
+
+- [x] **T-08-14-03**: 前後の空白を削除した aumid で通知設定を読む
+  - Target: `evaluateAvailability`
+  - Scenario: Given Fake AumidRegistry に AUMID `com.kallr.app` の登録があり DisplayName が `Kallr` である、`read` の引数を記録し `enabled` を返す Fake NotificationSettingSource, When `evaluateAvailability(' com.kallr.app ', registry, settings)` を呼ぶ
+  - Expected: Then `settings.read` が `com.kallr.app` で呼ばれる
 
 ### [異常] Error Cases
 
 #### T-08-05: Given AUMID が空, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-05-01**: 空文字の AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
+- [x] **T-08-05-01**: 空文字の AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
   - Target: `evaluateAvailability`
   - Scenario: Given AUMID が空文字 `''`, When `evaluateAvailability('', registry, settings)` を呼ぶ
   - Expected: Then `UsageException` を投げ、Availability を返さない
 
-- [ ] **T-08-05-02**: 空文字の AUMID では確認を始めない (ENV-R-001)
+- [x] **T-08-05-02**: 空文字の AUMID では確認を始めない (ENV-R-001)
   - Target: `evaluateAvailability`
   - Scenario: Given AUMID が空文字 `''`、呼び出しを記録する Fake AumidRegistry と NotificationSettingSource, When `evaluateAvailability('', registry, settings)` を呼ぶ
   - Expected: Then `exists`、`readDisplayName`、`read` は 1 度も呼ばれない
 
-- [ ] **T-08-05-03**: 空白だけの AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
+- [x] **T-08-05-03**: 空白だけの AUMID は UsageException で拒否する (ENV-R-001, ENV-E-08)
   - Target: `evaluateAvailability`
   - Scenario: Given AUMID が空白だけの `'   '`, When `evaluateAvailability('   ', registry, settings)` を呼ぶ
   - Expected: Then `UsageException` を投げ、Availability を返さない
 
 #### T-08-06: Given AUMID の登録が無い, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-06-01**: 未登録は例外ではなく値で返し、通知設定は未評価とする (ENV-R-002, ENV-DD-01, ENV-DD-10, ENV-E-01, ENV-E-25)
+- [x] **T-08-06-01**: 未登録は例外ではなく値で返し、通知設定は未評価とする (ENV-R-002, ENV-DD-01, ENV-DD-10, ENV-E-01, ENV-E-25)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry が `com.kallr.app` を登録なしとして返す (`exists` が false), When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=false`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=未登録` を返す
 
-- [ ] **T-08-06-02**: 未登録のときは通知設定を読まずに打ち切る (ENV-DD-03)
+- [x] **T-08-06-02**: 未登録のときは通知設定を読まずに打ち切る (ENV-DD-03)
   - Target: `evaluateAvailability`
   - Scenario: Given Fake AumidRegistry が `com.kallr.app` を登録なしとして返す (`exists` が false)、呼び出しを記録する Fake NotificationSettingSource, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `settings.read` は 1 度も呼ばれない
 
 #### T-08-07: Given 登録はあるが DisplayName が空, When evaluateAvailability を呼ぶ
 
-- [ ] **T-08-07-01**: DisplayName の値が無い (null) とき、DisplayName が空として返す (ENV-R-003, ENV-E-02)
+- [x] **T-08-07-01**: DisplayName の値が無い (null) とき、DisplayName が空として返す (ENV-R-003, ENV-E-02)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が `null` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=DisplayName が空` を返す
 
-- [ ] **T-08-07-02**: DisplayName が空文字のとき、DisplayName が空として返す (ENV-R-003, ENV-E-03, ENV-E-25, ENV-DD-10)
+- [x] **T-08-07-02**: DisplayName が空文字のとき、DisplayName が空として返す (ENV-R-003, ENV-E-03, ENV-E-25, ENV-DD-10)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が空文字 `''` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=DisplayName が空` を返す
 
-- [ ] **T-08-07-03**: DisplayName が空白だけのとき、DisplayName が空として返す (ENV-R-003, ENV-E-03)
+- [x] **T-08-07-03**: DisplayName が空白だけのとき、DisplayName が空として返す (ENV-R-003, ENV-E-03)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり、Fake AumidRegistry の `readDisplayName` が空白だけの `'   '` を返す, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then 例外を投げず、`registered=true`、`displayNameSet=false`、`setting=null`、`ok=false`、`reason=DisplayName が空` を返す
 
-- [ ] **T-08-07-04**: DisplayName が空のときは通知設定を読まずに打ち切る (ENV-DD-03)
+- [x] **T-08-07-04**: DisplayName が空のときは通知設定を読まずに打ち切る (ENV-DD-03)
   - Target: `evaluateAvailability`
   - Scenario: Given 登録があり `readDisplayName` が空文字 `''` を返す、呼び出しを記録する Fake NotificationSettingSource, When `evaluateAvailability('com.kallr.app', registry, settings)` を呼ぶ
   - Expected: Then `settings.read` は 1 度も呼ばれない
@@ -649,6 +659,6 @@ version: 1.0.0
 
 | Test Target                                | Normal / Error / Edge              | Result |
 | ------------------------------------------ | ---------------------------------- | ------ |
-| T-08: evaluateAvailability (AVL)           | Normal: 15 \| Error: 13 \| Edge: 8 | [OK]   |
+| T-08: evaluateAvailability (AVL)           | Normal: 17 \| Error: 13 \| Edge: 8 | [OK]   |
 | T-09: w5Check (W5C)                        | Normal: 8 \| Error: 24 \| Edge: 8  | [OK]   |
 | T-13: DefaultNotificationEnvironment (NEV) | Normal: 4 \| Error: 8 \| Edge: 1   | [OK]   |

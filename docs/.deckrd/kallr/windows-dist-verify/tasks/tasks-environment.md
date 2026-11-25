@@ -18,13 +18,13 @@ version: 1.0.0
 
 ## Task Summary
 
-| Test Target                                | Scenarios | Cases | Status  |
-| ------------------------------------------ | --------- | ----- | ------- |
-| T-08: evaluateAvailability (AVL)           | 15        | 43    | done    |
-| T-09: w5Check (W5C)                        | 14        | 40    | pending |
-| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
-| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done    |
-| T-21: RegistryException (ERR)              | 2         | 2     | done    |
+| Test Target                                | Scenarios | Cases | Status      |
+| ------------------------------------------ | --------- | ----- | ----------- |
+| T-08: evaluateAvailability (AVL)           | 15        | 43    | done        |
+| T-09: w5Check (W5C)                        | 14        | 40    | in progress |
+| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending     |
+| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done        |
+| T-21: RegistryException (ERR)              | 2         | 2     | done        |
 
 ---
 
@@ -289,27 +289,27 @@ version: 1.0.0
 
 #### T-09-01: Given 3 欄が明確で記録が実態と一致 (user), When w5Check を呼ぶ
 
-- [ ] **T-09-01-01**: AUMID 欄は登録があれば match とする (ENV-R-015, ENV-R-011)
+- [x] **T-09-01-01**: AUMID 欄は登録があれば match とする (ENV-R-015, ENV-R-011)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` の結果が `status=match`
 
-- [ ] **T-09-01-02**: 実行権限欄は記録と観測が同じなら match とする (ENV-R-015)
+- [x] **T-09-01-02**: 実行権限欄は記録と観測が同じなら match とする (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` の結果が `status=match`
 
-- [ ] **T-09-01-03**: インストール方式欄は照合せず notChecked とし、記録した値を表示する (ENV-DD-04, ENV-R-015, ENV-E-19)
+- [x] **T-09-01-03**: インストール方式欄は照合せず notChecked とし、記録した値を表示する (ENV-DD-04, ENV-R-015, ENV-E-19)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` の結果が `status=notChecked`、`recorded=unpackaged`、`observed=null`
 
-- [ ] **T-09-01-04**: 全欄が match / notChecked のとき exitCode は 0 (ENV-R-019)
+- [x] **T-09-01-04**: 全欄が match / notChecked のとき exitCode は 0 (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 0
 
-- [ ] **T-09-01-05**: 結果は aumid、permission、install-method の 3 欄を、この順で返す (ENV-R-019)
+- [x] **T-09-01-05**: 結果は aumid、permission、install-method の 3 欄を、この順で返す (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `fields` が 3 件で、`field` が順に `aumid`、`permission`、`install-method`

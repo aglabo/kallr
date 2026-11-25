@@ -15,7 +15,8 @@ import 'package:w1_w7_verify/environment/notification_setting_source.dart';
 /// [Availability.registered] and records the call; [register] / [unregister]
 /// only record their calls.
 class MockNotificationEnvironment implements NotificationEnvironment {
-  /// Creates a mock answering [check] and [isRegistered] from [_availability].
+  /// Creates a mock answering [check] and [isRegistered] from the given
+  /// [Availability].
   ///
   /// [registry] and [settings] are held only so tests can inject fakes and
   /// verify they are never called; this mock never calls them.
@@ -95,6 +96,9 @@ class MockNotificationEnvironment implements NotificationEnvironment {
   /// AUMID of every [isRegistered] call, in call order.
   final List<String> isRegisteredCalls = [];
 
+  @override
+  Availability check(String aumid) => _availability;
+
   /// Records the call only; never touches the registry or the OS.
   @override
   void register(String aumid, String displayName) =>
@@ -103,9 +107,6 @@ class MockNotificationEnvironment implements NotificationEnvironment {
   /// Records the call only; never touches the registry or the OS.
   @override
   void unregister(String aumid) => unregisterCalls.add(aumid);
-
-  @override
-  Availability check(String aumid) => _availability;
 
   @override
   bool isRegistered(String aumid) {

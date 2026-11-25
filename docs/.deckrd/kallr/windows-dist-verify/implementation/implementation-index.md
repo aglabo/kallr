@@ -408,4 +408,4 @@ Future<int> run(
 | 2026-11-23 | 1.3.3   | The default DB path uses `/` after `LOCALAPPDATA` (clarification; follows implementation-schedule v1.2.3)                                               |
 | 2026-11-24 | 1.3.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (5.2; follows tasks-index v1.1.0)                                           |
 | 2026-11-24 | 1.4.0   | Split `SqliteStore`: add `sqlite_access.dart` (`SqliteAccess`, the base layer) and the test target SQA (2, 5.2; follows implementation-schedule v1.5.0) |
-| 2026-11-25 | 1.4.1   | Split the test target MNE (`MockNotificationEnvironment`) out of AVL (5.2; follows implementation-environment v1.0.7)                                  |
+| 2026-11-25 | 1.4.1   | Split the test target MNE (`MockNotificationEnvironment`) out of AVL (5.2; follows implementation-environment v1.0.7)                                   |

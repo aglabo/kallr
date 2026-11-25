@@ -11,10 +11,11 @@ import 'package:w1_w7_verify/environment/notification_environment.dart';
 import 'package:w1_w7_verify/environment/notification_setting_source.dart';
 
 /// [NotificationEnvironment] that never touches the OS: [check] returns the
-/// [Availability] given at construction; [register] / [unregister] only record
-/// their calls.
+/// [Availability] given at construction; [isRegistered] returns its
+/// [Availability.registered] and records the call; [register] / [unregister]
+/// only record their calls.
 class MockNotificationEnvironment implements NotificationEnvironment {
-  /// Creates a mock whose [check] returns [_availability].
+  /// Creates a mock answering [check] and [isRegistered] from [_availability].
   ///
   /// [registry] and [settings] are held only so tests can inject fakes and
   /// verify they are never called; this mock never calls them.
@@ -51,49 +52,29 @@ class MockNotificationEnvironment implements NotificationEnvironment {
 
   /// State: the OS setting is disabledForApplication.
   MockNotificationEnvironment.disabledForApplication()
-    : this(
-        const Availability(
-          registered: true,
-          displayNameSet: true,
-          setting: NotificationSetting.disabledForApplication,
-          ok: false,
-          reason: 'disabledForApplication',
-        ),
-      );
+    : this._disabled(NotificationSetting.disabledForApplication);
 
   /// State: the OS setting is disabledForUser.
   MockNotificationEnvironment.disabledForUser()
-    : this(
-        const Availability(
-          registered: true,
-          displayNameSet: true,
-          setting: NotificationSetting.disabledForUser,
-          ok: false,
-          reason: 'disabledForUser',
-        ),
-      );
+    : this._disabled(NotificationSetting.disabledForUser);
 
   /// State: the OS setting is disabledByGroupPolicy.
   MockNotificationEnvironment.disabledByGroupPolicy()
-    : this(
-        const Availability(
-          registered: true,
-          displayNameSet: true,
-          setting: NotificationSetting.disabledByGroupPolicy,
-          ok: false,
-          reason: 'disabledByGroupPolicy',
-        ),
-      );
+    : this._disabled(NotificationSetting.disabledByGroupPolicy);
 
   /// State: the OS setting is disabledByManifest.
   MockNotificationEnvironment.disabledByManifest()
+    : this._disabled(NotificationSetting.disabledByManifest);
+
+  /// Registered with a DisplayName, disabled by [setting].
+  MockNotificationEnvironment._disabled(NotificationSetting setting)
     : this(
-        const Availability(
+        Availability(
           registered: true,
           displayNameSet: true,
-          setting: NotificationSetting.disabledByManifest,
+          setting: setting,
           ok: false,
-          reason: 'disabledByManifest',
+          reason: setting.name,
         ),
       );
 
@@ -111,13 +92,24 @@ class MockNotificationEnvironment implements NotificationEnvironment {
   /// AUMID of every [unregister] call, in call order.
   final List<String> unregisterCalls = [];
 
+  /// AUMID of every [isRegistered] call, in call order.
+  final List<String> isRegisteredCalls = [];
+
   /// Records the call only; never touches the registry or the OS.
+  @override
   void register(String aumid, String displayName) =>
       registerCalls.add((aumid: aumid, displayName: displayName));
 
   /// Records the call only; never touches the registry or the OS.
+  @override
   void unregister(String aumid) => unregisterCalls.add(aumid);
 
   @override
   Availability check(String aumid) => _availability;
+
+  @override
+  bool isRegistered(String aumid) {
+    isRegisteredCalls.add(aumid);
+    return _availability.registered;
+  }
 }

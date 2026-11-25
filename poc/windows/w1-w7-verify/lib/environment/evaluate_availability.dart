@@ -50,13 +50,13 @@ Availability evaluateAvailability(
 }
 
 /// Result for a registered AUMID with a DisplayName, judged by [setting].
-Availability _availabilityOfSetting(NotificationSetting setting) {
-  final ok = setting == NotificationSetting.enabled;
-  return Availability(
-    registered: true,
-    displayNameSet: true,
-    setting: setting,
-    ok: ok,
-    reason: ok ? null : setting.name,
-  );
-}
+Availability _availabilityOfSetting(NotificationSetting setting) =>
+    setting == NotificationSetting.enabled
+    ? const Availability.ok()
+    : Availability(
+        registered: true,
+        displayNameSet: true,
+        setting: setting,
+        ok: false,
+        reason: setting.name,
+      );

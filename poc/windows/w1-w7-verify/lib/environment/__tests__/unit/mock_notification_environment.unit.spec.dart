@@ -34,6 +34,15 @@ void main() {
               expect(result.ok, isTrue);
             });
           });
+
+          group('When: isRegistered を呼ぶ', () {
+            final NotificationEnvironment env =
+                MockNotificationEnvironment.ok();
+
+            test('[Normal] T-WDV-MNE-10: true を返す', () {
+              expect(env.isRegistered('com.kallr.app'), isTrue);
+            });
+          });
         },
       );
 
@@ -48,6 +57,15 @@ void main() {
             expect(result.ok, isFalse);
             expect(result.setting, isNull);
             expect(result.reason, '未登録');
+          });
+        });
+
+        group('When: isRegistered を呼ぶ', () {
+          final NotificationEnvironment env =
+              MockNotificationEnvironment.unregistered();
+
+          test('[Normal] T-WDV-MNE-12: false を返す', () {
+            expect(env.isRegistered('com.kallr.app'), isFalse);
           });
         });
       });
@@ -66,6 +84,15 @@ void main() {
               expect(result.ok, isFalse);
               expect(result.setting, isNull);
               expect(result.reason, 'DisplayName が空');
+            });
+          });
+
+          group('When: isRegistered を呼ぶ', () {
+            final NotificationEnvironment env =
+                MockNotificationEnvironment.displayNameEmpty();
+
+            test('[Normal] T-WDV-MNE-11: DisplayName が空でも true を返す', () {
+              expect(env.isRegistered('com.kallr.app'), isTrue);
             });
           });
         },
@@ -155,6 +182,16 @@ void main() {
             env.unregister('com.kallr.app');
 
             expect(env.unregisterCalls, ['com.kallr.app']);
+            expect(registry.calls, 0);
+            expect(settings.calls, 0);
+          });
+        });
+
+        group('When: isRegistered を呼ぶ', () {
+          test('[Normal] T-WDV-MNE-13: 呼び出しを記録するだけで、レジストリと OS を呼ばない', () {
+            env.isRegistered('com.kallr.app');
+
+            expect(env.isRegisteredCalls, ['com.kallr.app']);
             expect(registry.calls, 0);
             expect(settings.calls, 0);
           });

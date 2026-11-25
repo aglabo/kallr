@@ -60,8 +60,17 @@ final class Availability {
   final String? reason;
 }
 
-/// Observes the notification environment of the OS.
+/// Observes and registers the notification environment of the OS.
 abstract interface class NotificationEnvironment {
   /// Checks whether notifications can be shown for [aumid].
   Availability check(String aumid);
+
+  /// Registers [aumid] with [displayName].
+  void register(String aumid, String displayName);
+
+  /// Deletes the registration of [aumid].
+  void unregister(String aumid);
+
+  /// Whether [aumid] is registered.
+  bool isRegistered(String aumid);
 }

@@ -19,6 +19,8 @@ import 'notification_setting_source.dart';
 /// result, without reading [settings].
 /// Throws [UsageException] when the normalized AUMID is empty, before any
 /// read of [registry] or [settings].
+/// A read failure of [registry] or [settings] propagates unchanged; it is never
+/// turned into an unavailable result.
 Availability evaluateAvailability(
   String aumid,
   AumidRegistry registry,

@@ -51,6 +51,26 @@ class StorageException implements Exception {
   String toString() => 'StorageException: $message';
 }
 
+/// Thrown when a registry read or write fails, or the notification setting is
+/// an unknown value.
+class RegistryException implements Exception {
+  /// Creates the exception with the failure [message] and, for an OS error,
+  /// its [win32Code].
+  const RegistryException(this.message, {this.win32Code});
+
+  /// Reason of the registry failure.
+  final String message;
+
+  /// Win32 error code of the failure, or null when the failure is not an OS
+  /// error.
+  final int? win32Code;
+
+  @override
+  String toString() => win32Code == null
+      ? 'RegistryException: $message'
+      : 'RegistryException: $message (Win32 code $win32Code)';
+}
+
 /// HRESULT codes the OS returns for toast scheduling failures.
 abstract final class Hresult {
   /// E_INVALIDARG: the OS rejects a past `at`.

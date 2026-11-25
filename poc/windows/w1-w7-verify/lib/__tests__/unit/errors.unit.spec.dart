@@ -21,6 +21,15 @@ const int _attempts = 5;
 /// Message passed to UsageException and StorageException.
 const String _message = 'bad input';
 
+/// Reason of a registry failure that has a Win32 error (RegistryException normal case).
+const String _accessDeniedReason = 'access denied';
+
+/// Win32 error code ERROR_ACCESS_DENIED (RegistryException normal case).
+const int _accessDeniedCode = 5;
+
+/// Reason of a registry failure that is not an OS error (RegistryException edge case).
+const String _unknownSettingReason = 'unknown notification setting: 99';
+
 /// Reason carried by the failed availability in the toString case.
 const String _reason = 'not registered';
 
@@ -88,6 +97,26 @@ void main() {
         const error = StorageException(_message);
         expect(error, isA<Exception>());
         expect(error.message, _message);
+      });
+    });
+
+    /// RegistryException: toString with and without a Win32 code.
+    group('RegistryException', () {
+      test('[Normal] T-WDV-ERR-14: toString は理由と Win32 コードを含む', () {
+        expect(
+          const RegistryException(
+            _accessDeniedReason,
+            win32Code: _accessDeniedCode,
+          ).toString(),
+          allOf(contains(_accessDeniedReason), contains('Win32 code 5')),
+        );
+      });
+
+      test('[Edge] T-WDV-ERR-15: コードが無ければ toString は Win32 コードを含まない', () {
+        expect(
+          const RegistryException(_unknownSettingReason).toString(),
+          allOf(contains(_unknownSettingReason), isNot(contains('Win32 code'))),
+        );
       });
     });
 

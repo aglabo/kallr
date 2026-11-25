@@ -22,6 +22,12 @@ import '../fakes.dart';
 /// AUMID `com.kallr.app` with surrounding spaces, for the normalization cases.
 const _paddedAumid = ' com.kallr.app ';
 
+/// Registry read failure with Win32 code 5 (access denied), thrown by the fakes.
+const _accessDenied = RegistryException('access denied', win32Code: 5);
+
+/// Failure a setting source raises for the unknown setting value 99.
+const _unknownSetting = RegistryException('unknown notification setting: 99');
+
 /// Registered DisplayName values that count as empty (ID branch, label, value).
 const _emptyDisplayNames = <(String, String, String?)>[
   ('01', 'null', null),
@@ -309,6 +315,59 @@ void main() {
             evaluateAvailability(_paddedAumid, registry, recordingSettings);
 
             expect(recordingSettings.readArgs, ['com.kallr.app']);
+          });
+        });
+      });
+
+      group('Given: レジストリまたは OS の読み取りが失敗する', () {
+        group('When: evaluateAvailability を呼ぶ', () {
+          test('[Error] T-WDV-AVL-16: exists の失敗は Win32 コードを保って再スローする', () {
+            expect(
+              () => evaluateAvailability(
+                'com.kallr.app',
+                FakeAumidRegistry()..existsError = _accessDenied,
+                const FakeNotificationSettingSource(
+                  NotificationSetting.enabled,
+                ),
+              ),
+              throwsA(same(_accessDenied)),
+            );
+          });
+
+          test('[Error] T-WDV-AVL-17: DisplayName の読み取り失敗は再スローする', () {
+            expect(
+              () => evaluateAvailability(
+                'com.kallr.app',
+                FakeAumidRegistry({'com.kallr.app': 'Kallr'})
+                  ..readDisplayNameError = _accessDenied,
+                const FakeNotificationSettingSource(
+                  NotificationSetting.enabled,
+                ),
+              ),
+              throwsA(same(_accessDenied)),
+            );
+          });
+
+          test('[Error] T-WDV-AVL-18: 通知設定の読み取り失敗は再スローする', () {
+            expect(
+              () => evaluateAvailability(
+                'com.kallr.app',
+                FakeAumidRegistry({'com.kallr.app': 'Kallr'}),
+                const ThrowingNotificationSettingSource(_accessDenied),
+              ),
+              throwsA(same(_accessDenied)),
+            );
+          });
+
+          test('[Error] T-WDV-AVL-19: 通知設定が未知の値 99 の失敗は可否の結果にせず送出する', () {
+            expect(
+              () => evaluateAvailability(
+                'com.kallr.app',
+                FakeAumidRegistry({'com.kallr.app': 'Kallr'}),
+                const ThrowingNotificationSettingSource(_unknownSetting),
+              ),
+              throwsA(same(_unknownSetting)),
+            );
           });
         });
       });

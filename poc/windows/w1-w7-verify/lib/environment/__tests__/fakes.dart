@@ -21,6 +21,12 @@ class FakeAumidRegistry implements AumidRegistry {
 
   final Map<String, String?> _entries;
 
+  /// Failure thrown by [exists]; null to answer from the entries.
+  Exception? existsError;
+
+  /// Failure thrown by [readDisplayName]; null to answer from the entries.
+  Exception? readDisplayNameError;
+
   /// AUMIDs passed to [exists], in call order.
   final List<String> existsArgs = [];
 
@@ -30,12 +36,14 @@ class FakeAumidRegistry implements AumidRegistry {
   @override
   String? readDisplayName(String aumid) {
     readDisplayNameArgs.add(aumid);
+    if (readDisplayNameError case final error?) throw error;
     return _entries[aumid];
   }
 
   @override
   bool exists(String aumid) {
     existsArgs.add(aumid);
+    if (existsError case final error?) throw error;
     return _entries.containsKey(aumid);
   }
 
@@ -79,6 +87,18 @@ class RecordingNotificationSettingSource implements NotificationSettingSource {
     readArgs.add(aumid);
     return setting;
   }
+}
+
+/// [NotificationSettingSource] whose [read] always throws [error].
+class ThrowingNotificationSettingSource implements NotificationSettingSource {
+  /// Creates the fake throwing [error].
+  const ThrowingNotificationSettingSource(this.error);
+
+  /// Failure thrown by [read].
+  final Exception error;
+
+  @override
+  NotificationSetting read(String aumid) => throw error;
 }
 
 /// [AumidRegistry] that fails on any call and counts the attempts in [calls].

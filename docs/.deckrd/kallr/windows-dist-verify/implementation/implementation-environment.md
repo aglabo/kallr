@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Environment)"
 based-on: specifications-environment.md v1.0.0
 status: Draft
-version: 1.1.0
+version: 1.2.0
 created: "2026-11-22"
 ---
 
@@ -107,6 +107,7 @@ ENV-R-001〜007 を次の順に実装する。
 - `MockNotificationEnvironment` (`lib/environment/__tests__/`) は、OS を呼ばない Mock とする。
   - `check`: 事前に与えられた `Availability` を返す。
   - `register` / `unregister`: 呼び出しを記録するだけで、レジストリと OS のどちらも呼ばない (ENV-R-013, AC-013)。
+  - `isRegistered`: 事前に与えられた `Availability` の `registered` を返し、呼び出しを記録する。レジストリと OS は呼ばない (ENV-R-013)。
   - 7 つの状態を作る名前付きコンストラクタを持つ。状態は OK、未登録、DisplayName 空、無効 4 種。
 - `kallr_verify` の本体 (`SchedulingService`、`run()`) は `NotificationEnvironment` だけを型として知る。
   `DefaultNotificationEnvironment` を直接 import しない (REQ-NF-001)。組み立ては `bin/kallr_verify.dart` だけが行う。
@@ -227,21 +228,21 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 
 テスト ID の略語と採番は implementation-index.md §5 に従う。このファイルは、担当する対象の略語と、確認する値だけを示す。
 
-| 略語  | 対象                                                                | 主な spec の規則          |
-| ----- | ------------------------------------------------------------------- | ------------------------- |
-| `AVL` | `evaluateAvailability`                                              | ENV-R-001〜007, ENV-R-012 |
-| `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister`) | ENV-R-013, DR-06          |
-| `W5C` | `w5Check`                                                           | ENV-R-014〜016, ENV-R-019 |
-| `NEV` | `DefaultNotificationEnvironment`                                    | specifications-index 3.1  |
-| `NSV` | `notificationSettingFromValue`                                      | ENV-R-005                 |
+| 略語  | 対象                                                                                 | 主な spec の規則          |
+| ----- | ------------------------------------------------------------------------------------ | ------------------------- |
+| `AVL` | `evaluateAvailability`                                                               | ENV-R-001〜007, ENV-R-012 |
+| `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister` / `isRegistered`) | ENV-R-013, DR-06          |
+| `W5C` | `w5Check`                                                                            | ENV-R-014〜016, ENV-R-019 |
+| `NEV` | `DefaultNotificationEnvironment`                                                     | specifications-index 3.1  |
+| `NSV` | `notificationSettingFromValue`                                                       | ENV-R-005                 |
 
-| 対象 | 確認する値                                                                                                                                                       |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AVL  | 未登録、DisplayName なし/空/空白、無効 4 種、有効、未知の値で `RegistryException`、打ち切り時に `settings.read` が呼ばれない、`setting == null`、書き込みなし    |
-| MNE  | `check` が与えた `Availability` を返す、`register` / `unregister` は呼び出しを記録するだけで、注入した `AumidRegistry` と `NotificationSettingSource` を呼ばない |
-| NEV  | 4 メソッドが aumid を正規化して下層に渡す、空・空白だけで `UsageException` を投げて下層を呼ばない                                                                |
-| NSV  | 0〜4 が 5 つの値に対応する、範囲外の値で `win32Code` が null の `RegistryException`                                                                              |
-| W5C  | 3 欄完備で一致、AUMID 不一致、権限不一致、install-method の `notChecked`、`記載なし`/空白/未指定で `unclear` と exitCode 2、権限の値が不正で `UsageException`    |
+| 対象 | 確認する値                                                                                                                                                                                                                  |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AVL  | 未登録、DisplayName なし/空/空白、無効 4 種、有効、未知の値で `RegistryException`、打ち切り時に `settings.read` が呼ばれない、`setting == null`、書き込みなし                                                               |
+| MNE  | `check` が与えた `Availability` を返す、`register` / `unregister` は呼び出しを記録するだけで、注入した `AumidRegistry` と `NotificationSettingSource` を呼ばない、`isRegistered` が `registered` を返して呼び出しを記録する |
+| NEV  | 4 メソッドが aumid を正規化して下層に渡す、空・空白だけで `UsageException` を投げて下層を呼ばない                                                                                                                           |
+| NSV  | 0〜4 が 5 つの値に対応する、範囲外の値で `win32Code` が null の `RegistryException`                                                                                                                                         |
+| W5C  | 3 欄完備で一致、AUMID 不一致、権限不一致、install-method の `notChecked`、`記載なし`/空白/未指定で `unclear` と exitCode 2、権限の値が不正で `UsageException`                                                               |
 
 ---
 
@@ -263,3 +264,4 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 | 2026-11-22 | 1.0.6   | Mock location follows the new test layout: `lib/env/__tests__/` (implementation-index v1.3.0)                                                                                                                                         |
 | 2026-11-25 | 1.0.7   | Split the Mock out of AVL as the test target MNE (`check` / `register` / `unregister`; follows implementation-index v1.4.1)                                                                                                           |
 | 2026-11-25 | 1.1.0   | Put the value conversion in `notificationSettingFromValue` (test target NSV); an unknown value has a null `win32Code` (2.1, 4.2, 5); use the actual directory `environment/` and the full `RegistryException` constructor form (2, 4) |
+| 2026-11-25 | 1.2.0   | The Mock also implements `isRegistered`: it returns `Availability.registered` and records the call (2.3, MNE)                                                                                                                         |

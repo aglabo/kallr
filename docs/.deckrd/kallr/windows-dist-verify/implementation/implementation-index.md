@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Index)"
 based-on: specifications-index.md v1.3.0
 status: Draft
-version: 1.5.0
+version: 1.6.0
 created: "2026-11-22"
 ---
 
@@ -300,29 +300,29 @@ Future<int> run(
 
 ### 5.2 テスト対象の略語 (module.md の略語表を、`MTK` の行を削除して、次に置き換える)
 
-| 略語  | 対象                                                                                | 主な spec の規則                                      |
-| ----- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `TAG` | `generateTag`                                                                       | TAG-R-001〜004                                        |
-| `TAL` | `allocateTag` (重複回避)                                                            | TAG-R-005〜007, SCH-E-32                              |
-| `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                          | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26               |
-| `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`) | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5       |
-| `SQA` | `SqliteAccess` (`guard` / `transact` / `select` / `execute`)                        | SCH-R-026, implementation-schedule 2.5                |
-| `MID` | `MachineIdProvider` の実装 (`settings`)                                             | TAG-R-008〜010                                        |
-| `AVL` | `evaluateAvailability`                                                              | ENV-R-001〜007, ENV-R-012                             |
-| `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister`)                 | ENV-R-013, DR-06                                      |
-| `W5C` | `w5Check`                                                                           | ENV-R-014〜016, ENV-R-019                             |
-| `NEV` | `DefaultNotificationEnvironment` (4 メソッドの正規化と検査)                         | specifications-index 3.1                              |
-| `NSV` | `notificationSettingFromValue`                                                      | ENV-R-005                                             |
-| `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                                  |
-| `SVA` | `SchedulingService.add` (新規・置換・発火後と、その失敗)                            | SCH-R-003〜011, 3.5                                   |
-| `SVP` | `SchedulingService` の保留の再開 (add / cancel / reRegisterAll)                     | SCH-R-010, 030, 036, 3.5                              |
-| `SVX` | `SchedulingService.cancel`                                                          | SCH-R-013〜015, 030                                   |
-| `SVL` | `SchedulingService.list`                                                            | SCH-R-016〜020, 033                                   |
-| `SVG` | `SchedulingService.reRegisterAll`                                                   | SCH-R-021〜024, 034, 035                              |
-| `SVN` | `SchedulingService` の入力の正規化と検査                                            | specifications-schedule 3.3, specifications-index 3.1 |
-| `ARG` | `parseArgs`                                                                         | SCH-R-001, 012, 028, ENV-R-017                        |
-| `CLI` | `run()` (終了コードの変換と出力書式)                                                | IDX-DD-04, 05, 12, 13, ENV-R-018                      |
-| `NID` | `normalizeId`                                                                       | specifications-index 3.1                              |
+| 略語  | 対象                                                                                 | 主な spec の規則                                      |
+| ----- | ------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| `TAG` | `generateTag`                                                                        | TAG-R-001〜004                                        |
+| `TAL` | `allocateTag` (重複回避)                                                             | TAG-R-005〜007, SCH-E-32                              |
+| `MAP` | `MappingTable` (通知の行) と `SqliteStore`                                           | SCH-R-025〜027, SCH-R-029, SCH-E-20, 26               |
+| `RPQ` | 置換キュー (`replace` / `pendingRemovals` / `completeRemoval` / `abortReplacement`)  | SCH-R-009, SCH-R-010, SCH-R-030, SCH-R-036, 3.5       |
+| `SQA` | `SqliteAccess` (`guard` / `transact` / `select` / `execute`)                         | SCH-R-026, implementation-schedule 2.5                |
+| `MID` | `MachineIdProvider` の実装 (`settings`)                                              | TAG-R-008〜010                                        |
+| `AVL` | `evaluateAvailability`                                                               | ENV-R-001〜007, ENV-R-012                             |
+| `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister` / `isRegistered`) | ENV-R-013, DR-06                                      |
+| `W5C` | `w5Check`                                                                            | ENV-R-014〜016, ENV-R-019                             |
+| `NEV` | `DefaultNotificationEnvironment` (4 メソッドの正規化と検査)                          | specifications-index 3.1                              |
+| `NSV` | `notificationSettingFromValue`                                                       | ENV-R-005                                             |
+| `ATP` | `parseAt`                                                                            | SCH-R-002, SCH-R-031                                  |
+| `SVA` | `SchedulingService.add` (新規・置換・発火後と、その失敗)                             | SCH-R-003〜011, 3.5                                   |
+| `SVP` | `SchedulingService` の保留の再開 (add / cancel / reRegisterAll)                      | SCH-R-010, 030, 036, 3.5                              |
+| `SVX` | `SchedulingService.cancel`                                                           | SCH-R-013〜015, 030                                   |
+| `SVL` | `SchedulingService.list`                                                             | SCH-R-016〜020, 033                                   |
+| `SVG` | `SchedulingService.reRegisterAll`                                                    | SCH-R-021〜024, 034, 035                              |
+| `SVN` | `SchedulingService` の入力の正規化と検査                                             | specifications-schedule 3.3, specifications-index 3.1 |
+| `ARG` | `parseArgs`                                                                          | SCH-R-001, 012, 028, ENV-R-017                        |
+| `CLI` | `run()` (終了コードの変換と出力書式)                                                 | IDX-DD-04, 05, 12, 13, ENV-R-018                      |
+| `NID` | `normalizeId`                                                                        | specifications-index 3.1                              |
 
 機能別の担当は次のとおり。
 
@@ -415,3 +415,4 @@ Future<int> run(
 | 2026-11-24 | 1.4.0   | Split `SqliteStore`: add `sqlite_access.dart` (`SqliteAccess`, the base layer) and the test target SQA (2, 5.2; follows implementation-schedule v1.5.0)                                                 |
 | 2026-11-25 | 1.4.1   | Split the test target MNE (`MockNotificationEnvironment`) out of AVL (5.2; follows implementation-environment v1.0.7)                                                                                   |
 | 2026-11-25 | 1.5.0   | `RegistryException.win32Code` is `int?` and `run()` prints its `toString()` (3.1, 4.3); add the test target NSV (5.2); rename `env/` to the actual `environment/` and list its interface files (1.4, 2) |
+| 2026-11-25 | 1.6.0   | MNE also covers `isRegistered` (5.2; follows implementation-environment v1.2.0)                                                                                                                         |

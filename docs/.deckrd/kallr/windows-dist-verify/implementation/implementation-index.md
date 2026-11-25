@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Index)"
 based-on: specifications-index.md v1.3.0
 status: Draft
-version: 1.4.1
+version: 1.5.0
 created: "2026-11-22"
 ---
 
@@ -51,13 +51,13 @@ created: "2026-11-22"
 
 ### 1.4 分割ファイル
 
-| ファイル                                                           | 対応する REQ                                                     | 概要                                                                   |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [implementation-tag.md](./implementation-tag.md)                   | REQ-F-007, REQ-F-016, REQ-F-017, REQ-F-019                       | `tag/` の生成と重複回避、`MachineIdProvider` の実装                    |
-| [implementation-schedule.md](./implementation-schedule.md)         | REQ-F-001, REQ-F-004, REQ-F-005, REQ-F-006, REQ-F-020            | `store/`、`schedule/`、予約系の CLI、`WinToastScheduler`               |
-| [implementation-environment.md](./implementation-environment.md)   | REQ-F-002, REQ-F-010, REQ-F-011, REQ-F-021                       | `env/`、通知可否と W5 の CLI、HKCU 登録・通知設定・権限の Windows 実装 |
-| [implementation-verification.md](./implementation-verification.md) | REQ-F-003, REQ-F-008, REQ-F-009, REQ-F-012〜REQ-F-015, REQ-F-018 | `winrt.dart`、エントリポイント、手動検証、実機で測定する事項           |
-| [db-migration.md](./db-migration.md)                               | REQ-F-020                                                        | 対応表 (SQLite) のテーブル、版、移行の規則                             |
+| ファイル                                                           | 対応する REQ                                                     | 概要                                                                           |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [implementation-tag.md](./implementation-tag.md)                   | REQ-F-007, REQ-F-016, REQ-F-017, REQ-F-019                       | `tag/` の生成と重複回避、`MachineIdProvider` の実装                            |
+| [implementation-schedule.md](./implementation-schedule.md)         | REQ-F-001, REQ-F-004, REQ-F-005, REQ-F-006, REQ-F-020            | `store/`、`schedule/`、予約系の CLI、`WinToastScheduler`                       |
+| [implementation-environment.md](./implementation-environment.md)   | REQ-F-002, REQ-F-010, REQ-F-011, REQ-F-021                       | `environment/`、通知可否と W5 の CLI、HKCU 登録・通知設定・権限の Windows 実装 |
+| [implementation-verification.md](./implementation-verification.md) | REQ-F-003, REQ-F-008, REQ-F-009, REQ-F-012〜REQ-F-015, REQ-F-018 | `winrt.dart`、エントリポイント、手動検証、実機で測定する事項                   |
+| [db-migration.md](./db-migration.md)                               | REQ-F-020                                                        | 対応表 (SQLite) のテーブル、版、移行の規則                                     |
 
 ---
 
@@ -83,10 +83,13 @@ poc/windows/w1-w7-verify/
       transaction.dart            runInTransaction (BEGIN … COMMIT。SqliteAccess が使う)
       schema.dart                 DDL と openDatabase (スキーマの作成、quick_check、user_version)
       default_db_path.dart        既定の保存先
-    env/
+    environment/
       notification_environment.dart  NotificationEnvironment (IF)、Availability、NotificationSetting
       evaluate_availability.dart  ENV-R-001〜007 の評価 (純粋)
-      probes.dart                 AumidRegistry (IF)、NotificationSettingSource (IF)、PermissionProbe (IF)
+      notification_setting_value.dart  notificationSettingFromValue: 数値から NotificationSetting への変換 (純粋)
+      aumid_registry.dart         AumidRegistry (IF)
+      notification_setting_source.dart  NotificationSettingSource (IF)
+      permission_probe.dart       PermissionProbe (IF)
       w5_check.dart               W5 の完備判定と整合チェック (純粋)
       default_notification_environment.dart  NotificationEnvironment の実装 (AumidRegistry と NotificationSettingSource を束ねる。純粋)
     schedule/
@@ -113,8 +116,8 @@ poc/windows/w1-w7-verify/
 テスト種別 (unit / functional / integration / e2e) は、`deckrd-rule-testing-guidelines.md` の 9 節に従う。
 種別ごとにサブディレクトリを作り、ファイル名の種別と一致させる。使う種別のサブディレクトリだけを作ればよい。
 
-依存の向きは `cli → schedule/env/store/tag → models/errors` の一方向とする。
-`windows/` は `env/` と `schedule/` の IF を実装するだけで、他の層から import されない。
+依存の向きは `cli → schedule/environment/store/tag → models/errors` の一方向とする。
+`windows/` は `environment/` と `schedule/` の IF を実装するだけで、他の層から import されない。
 `bin/kallr_verify.dart` だけが `windows/` を組み立てて `run()` に渡す。
 
 公開範囲は、上層と下層で分ける。
@@ -139,7 +142,7 @@ poc/windows/w1-w7-verify/
 | `NotFoundException`     | `message`                   | cancel / unregister-reg で対象が無い           |          2 |
 | `DuplicateTagException` | `attempts`                  | Tag の再生成が上限を超えた                     |          2 |
 | `ScheduleException`     | `message`, `int? hresult`   | OS の予約の追加・削除・一覧の失敗              |          2 |
-| `RegistryException`     | `message`, `int win32Code`  | レジストリの読み書きの失敗、通知設定が未知の値 |          2 |
+| `RegistryException`     | `message`, `int? win32Code` | レジストリの読み書きの失敗、通知設定が未知の値 |          2 |
 | `StorageException`      | `message`                   | SQLite を開けない、壊れている、書き込みの失敗  |          2 |
 
 - `ArgumentError` (Dart 標準) も `run()` は使い方の誤り (1) として扱う (schedule の impl-note に従う)。`generateTag` の不正入力はこれで投げる。
@@ -260,15 +263,16 @@ Future<int> run(
 - すべての依存は引数で受け取る。これにより Mock だけでコマンドの全体を自動テストできる。
 - 本体は 1 つの `try` で `_dispatch(...)` を呼び、例外を終了コードに変える。変換の表は次のとおり (唯一の変換点。IDX-DD-05)。
 
-| 例外 / 結果                              | 終了コード | 標準エラーへ出す内容               |
-| ---------------------------------------- | ---------: | ---------------------------------- |
-| 正常終了                                 |          0 | -                                  |
-| `UsageException`, `ArgumentError`        |          1 | `message`                          |
-| `UnavailableException`                   |          3 | `availability.reason`              |
-| `NotFoundException`, `ScheduleException` |          2 | `message` (HRESULT を含める)       |
-| `DuplicateTagException`                  |          2 | `toString()` (`attempts` を含める) |
-| `RegistryException`, `StorageException`  |          2 | `message` (Win32 コードを含める)   |
-| 上記以外の例外                           |          2 | `toString()`                       |
+| 例外 / 結果                              | 終了コード | 標準エラーへ出す内容                                     |
+| ---------------------------------------- | ---------: | -------------------------------------------------------- |
+| 正常終了                                 |          0 | -                                                        |
+| `UsageException`, `ArgumentError`        |          1 | `message`                                                |
+| `UnavailableException`                   |          3 | `availability.reason`                                    |
+| `NotFoundException`, `ScheduleException` |          2 | `message` (HRESULT を含める)                             |
+| `DuplicateTagException`                  |          2 | `toString()` (`attempts` を含める)                       |
+| `RegistryException`                      |          2 | `toString()` (`win32Code` があれば Win32 コードを含める) |
+| `StorageException`                       |          2 | `message`                                                |
+| 上記以外の例外                           |          2 | `toString()`                                             |
 
 - `show` は `Availability` を表示した後、`ok` が偽なら 3 を返す。これは例外ではなく値による分岐で、`UnavailableException` は使わない (ENV-R-018)。
 - `re-register-all` と `w5-check` は報告を表示した後、`report.exitCode` を返す。
@@ -308,6 +312,7 @@ Future<int> run(
 | `MNE` | `MockNotificationEnvironment` (`check` / `register` / `unregister`)                 | ENV-R-013, DR-06                                      |
 | `W5C` | `w5Check`                                                                           | ENV-R-014〜016, ENV-R-019                             |
 | `NEV` | `DefaultNotificationEnvironment` (4 メソッドの正規化と検査)                         | specifications-index 3.1                              |
+| `NSV` | `notificationSettingFromValue`                                                      | ENV-R-005                                             |
 | `ATP` | `parseAt`                                                                           | SCH-R-002, SCH-R-031                                  |
 | `SVA` | `SchedulingService.add` (新規・置換・発火後と、その失敗)                            | SCH-R-003〜011, 3.5                                   |
 | `SVP` | `SchedulingService` の保留の再開 (add / cancel / reRegisterAll)                     | SCH-R-010, 030, 036, 3.5                              |
@@ -323,7 +328,7 @@ Future<int> run(
 
 - TAG / TAL / MID: implementation-tag.md
 - MAP / RPQ / SQA / ATP / SVA / SVP / SVX / SVL / SVG / SVN: implementation-schedule.md
-- AVL / MNE / W5C / NEV: implementation-environment.md
+- AVL / MNE / W5C / NEV / NSV: implementation-environment.md
 - ARG / CLI: 本書 §4
 - NID: 本書 §3.3
 
@@ -387,25 +392,26 @@ Future<int> run(
      `based-on` must cite a three-part version that exists in the specifications.
      See docs/.deckrd/rules/deckrd-rule-document-versioning.md -->
 
-| Date       | Version | Description                                                                                                                                             |
-| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                                                          |
-| 2026-11-22 | 1.0.1   | Follow specifications v1.1.1 / v1.3.1 / v1.0.3 (DR-08 citations)                                                                                        |
-| 2026-11-22 | 1.0.2   | stderr of DuplicateTagException is its `toString()` with `attempts`; fix the register of 1.1 (clarification)                                            |
-| 2026-11-22 | 1.0.3   | Follow specifications-schedule v1.4.0                                                                                                                   |
-| 2026-11-22 | 1.0.4   | Follow specifications-schedule v1.5.0; parseArgs stores the trimmed `--batch` and `--alarm`                                                             |
-| 2026-11-22 | 1.0.5   | Follow specifications-index v1.1.2; parseArgs stores the trimmed `--aumid`                                                                              |
-| 2026-11-22 | 1.0.6   | Follow specifications-index v1.1.3                                                                                                                      |
-| 2026-11-22 | 1.0.7   | Add `ids.dart` (normalizeId, requireId) and the target NID; follow specifications-index v1.1.4                                                          |
-| 2026-11-22 | 1.0.8   | Only `normalizeId`; each upper method checks; the lower layer is not public; follow specifications-index v1.1.5                                         |
-| 2026-11-22 | 1.0.9   | Move the NotificationEnvironment implementation to env/ (DefaultNotificationEnvironment) and add the target NEV                                         |
-| 2026-11-22 | 1.1.0   | parseArgs takes the word after `--name` as the value even if it starts with `--`; `=` splits at the first one (4.2); follow specifications-index v1.2.0 |
-| 2026-11-22 | 1.2.0   | Options not listed for the command (including those of other commands) are unknown (4.2); follow specifications-index v1.3.0                            |
-| 2026-11-22 | 1.2.1   | Follow specifications-schedule v1.6.0 (a date-only `--at` is 00:00:00 local time; parseAt in implementation-schedule 3.2)                               |
-| 2026-11-22 | 1.3.0   | Tests move next to the implementation: `lib/**/__tests__/<type>/<target>.<type>.spec.dart`; helpers and mocks go directly under `__tests__/` (2, 5.1)   |
-| 2026-11-22 | 1.3.1   | Add dependencies when first used (`ffi` is deferred); record how the `sqlite3` 3.x native binary is obtained (clarification)                            |
-| 2026-11-22 | 1.3.2   | `models.dart` also holds constants shared by several modules (`kGroup`, `kMachineIdPattern`) (clarification)                                            |
-| 2026-11-23 | 1.3.3   | The default DB path uses `/` after `LOCALAPPDATA` (clarification; follows implementation-schedule v1.2.3)                                               |
-| 2026-11-24 | 1.3.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (5.2; follows tasks-index v1.1.0)                                           |
-| 2026-11-24 | 1.4.0   | Split `SqliteStore`: add `sqlite_access.dart` (`SqliteAccess`, the base layer) and the test target SQA (2, 5.2; follows implementation-schedule v1.5.0) |
-| 2026-11-25 | 1.4.1   | Split the test target MNE (`MockNotificationEnvironment`) out of AVL (5.2; follows implementation-environment v1.0.7)                                   |
+| Date       | Version | Description                                                                                                                                                                                             |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22 | 1.0.0   | Split from implementation.md v1.0.0 (content moved, unchanged)                                                                                                                                          |
+| 2026-11-22 | 1.0.1   | Follow specifications v1.1.1 / v1.3.1 / v1.0.3 (DR-08 citations)                                                                                                                                        |
+| 2026-11-22 | 1.0.2   | stderr of DuplicateTagException is its `toString()` with `attempts`; fix the register of 1.1 (clarification)                                                                                            |
+| 2026-11-22 | 1.0.3   | Follow specifications-schedule v1.4.0                                                                                                                                                                   |
+| 2026-11-22 | 1.0.4   | Follow specifications-schedule v1.5.0; parseArgs stores the trimmed `--batch` and `--alarm`                                                                                                             |
+| 2026-11-22 | 1.0.5   | Follow specifications-index v1.1.2; parseArgs stores the trimmed `--aumid`                                                                                                                              |
+| 2026-11-22 | 1.0.6   | Follow specifications-index v1.1.3                                                                                                                                                                      |
+| 2026-11-22 | 1.0.7   | Add `ids.dart` (normalizeId, requireId) and the target NID; follow specifications-index v1.1.4                                                                                                          |
+| 2026-11-22 | 1.0.8   | Only `normalizeId`; each upper method checks; the lower layer is not public; follow specifications-index v1.1.5                                                                                         |
+| 2026-11-22 | 1.0.9   | Move the NotificationEnvironment implementation to env/ (DefaultNotificationEnvironment) and add the target NEV                                                                                         |
+| 2026-11-22 | 1.1.0   | parseArgs takes the word after `--name` as the value even if it starts with `--`; `=` splits at the first one (4.2); follow specifications-index v1.2.0                                                 |
+| 2026-11-22 | 1.2.0   | Options not listed for the command (including those of other commands) are unknown (4.2); follow specifications-index v1.3.0                                                                            |
+| 2026-11-22 | 1.2.1   | Follow specifications-schedule v1.6.0 (a date-only `--at` is 00:00:00 local time; parseAt in implementation-schedule 3.2)                                                                               |
+| 2026-11-22 | 1.3.0   | Tests move next to the implementation: `lib/**/__tests__/<type>/<target>.<type>.spec.dart`; helpers and mocks go directly under `__tests__/` (2, 5.1)                                                   |
+| 2026-11-22 | 1.3.1   | Add dependencies when first used (`ffi` is deferred); record how the `sqlite3` 3.x native binary is obtained (clarification)                                                                            |
+| 2026-11-22 | 1.3.2   | `models.dart` also holds constants shared by several modules (`kGroup`, `kMachineIdPattern`) (clarification)                                                                                            |
+| 2026-11-23 | 1.3.3   | The default DB path uses `/` after `LOCALAPPDATA` (clarification; follows implementation-schedule v1.2.3)                                                                                               |
+| 2026-11-24 | 1.3.4   | Split the test target `SVC` into SVA, SVP, SVX, SVL, SVG and SVN by purpose (5.2; follows tasks-index v1.1.0)                                                                                           |
+| 2026-11-24 | 1.4.0   | Split `SqliteStore`: add `sqlite_access.dart` (`SqliteAccess`, the base layer) and the test target SQA (2, 5.2; follows implementation-schedule v1.5.0)                                                 |
+| 2026-11-25 | 1.4.1   | Split the test target MNE (`MockNotificationEnvironment`) out of AVL (5.2; follows implementation-environment v1.0.7)                                                                                   |
+| 2026-11-25 | 1.5.0   | `RegistryException.win32Code` is `int?` and `run()` prints its `toString()` (3.1, 4.3); add the test target NSV (5.2); rename `env/` to the actual `environment/` and list its interface files (1.4, 2) |

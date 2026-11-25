@@ -14,6 +14,8 @@ import 'package:w1_w7_verify/environment/w5_check.dart';
 
 // helpers
 import 'package:w1_w7_verify/environment/notification_environment.dart';
+import 'package:w1_w7_verify/environment/permission_probe.dart';
+import 'package:w1_w7_verify/errors.dart';
 
 import '../fakes.dart';
 import '../mock_notification_environment.dart';
@@ -21,23 +23,24 @@ import '../mock_notification_environment.dart';
 // internal helpers
 
 /// Runs w5Check on a W5 record with the AUMID [aumid], the permission
-/// [recorded] and a clear install method, against [env] and a probe observing
-/// [observed].
+/// [recorded] and the install method [installMethod], by default a clear one,
+/// against [env] and [probe].
 ///
 /// Returns the report of that run.
 W5Report _checkRecord({
-  required String recorded,
-  required String observed,
+  required String? recorded,
+  required PermissionProbe probe,
   required NotificationEnvironment env,
   String? aumid = 'com.kallr.app',
+  String? installMethod = 'unpackaged',
 }) => w5Check(
   W5Input(
     recordedAumid: aumid,
     recordedPermission: recorded,
-    recordedInstallMethod: 'unpackaged',
+    recordedInstallMethod: installMethod,
   ),
   env,
-  FakePermissionProbe(observed),
+  probe,
 );
 
 /// Runs [_checkRecord] against [env] with [permission] both recorded and
@@ -45,7 +48,11 @@ W5Report _checkRecord({
 ///
 /// Returns the report of that run.
 W5Report _checkClearRecord(String permission, NotificationEnvironment env) =>
-    _checkRecord(recorded: permission, observed: permission, env: env);
+    _checkRecord(
+      recorded: permission,
+      probe: FakePermissionProbe(permission),
+      env: env,
+    );
 
 /// Runs [_checkClearRecord] for [permission] in an environment where the AUMID
 /// is registered.
@@ -61,18 +68,24 @@ W5Report _checkMatching(String permission) =>
 W5Report _checkUnregistered() =>
     _checkClearRecord('user', MockNotificationEnvironment.unregistered());
 
-/// Runs [_checkRecord] with differing permissions [recorded] and [observed] in
-/// an environment where the AUMID is registered.
+/// Runs [_checkRecord] with no permission recorded, in an environment where the
+/// AUMID is not registered, so a mismatch and an unclear field occur together.
+///
+/// Returns the report of that run.
+W5Report _checkUnregisteredWithoutPermission() => _checkRecord(
+  recorded: null,
+  probe: const FakePermissionProbe('user'),
+  env: MockNotificationEnvironment.unregistered(),
+);
+
+/// Runs [_checkRecordedPermission] with differing permissions [recorded] and
+/// [observed].
 ///
 /// Returns the report of that run.
 W5Report _checkPermissionMismatch({
   required String recorded,
   required String observed,
-}) => _checkRecord(
-  recorded: recorded,
-  observed: observed,
-  env: MockNotificationEnvironment.ok(),
-);
+}) => _checkRecordedPermission(recorded, probe: FakePermissionProbe(observed));
 
 /// Runs [_checkRecord] with the AUMID [aumid] and `user` both recorded and
 /// observed, against [env], by default one where `com.kallr.app` is
@@ -82,10 +95,34 @@ W5Report _checkPermissionMismatch({
 W5Report _checkAumidRecord(String? aumid, {NotificationEnvironment? env}) =>
     _checkRecord(
       recorded: 'user',
-      observed: 'user',
+      probe: const FakePermissionProbe('user'),
       env: env ?? MockNotificationEnvironment.ok(),
       aumid: aumid,
     );
+
+/// Runs [_checkRecord] with the permission [recorded] against [probe], by default
+/// one observing `user`, in an environment where the AUMID is registered.
+///
+/// Returns the report of that run.
+W5Report _checkRecordedPermission(
+  String? recorded, {
+  PermissionProbe probe = const FakePermissionProbe('user'),
+}) => _checkRecord(
+  recorded: recorded,
+  probe: probe,
+  env: MockNotificationEnvironment.ok(),
+);
+
+/// Runs [_checkRecord] with the install method [installMethod] and `user` both
+/// recorded and observed, in an environment where the AUMID is registered.
+///
+/// Returns the report of that run.
+W5Report _checkInstallMethodRecord(String? installMethod) => _checkRecord(
+  recorded: 'user',
+  probe: const FakePermissionProbe('user'),
+  env: MockNotificationEnvironment.ok(),
+  installMethod: installMethod,
+);
 
 /// Selects the results of [report] whose field name is [field].
 ///
@@ -302,6 +339,166 @@ void main() {
           test('[Error] T-WDV-W5C-19: AUMID 欄が「記載なし」なら exitCode は 2 とする', () {
             final report = _checkAumidRecord('記載なし');
 
+            expect(report.exitCode, 2);
+          });
+        });
+      });
+
+      group('Given: 実行権限欄が未明確', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Error] T-WDV-W5C-20: 実行権限欄が指定なし (null) なら unclear とする', () {
+            final report = _checkRecordedPermission(null);
+
+            expect(_resultsOf(report, 'permission').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+          });
+
+          test('[Error] T-WDV-W5C-21: 実行権限欄が空文字なら unclear とする', () {
+            final report = _checkRecordedPermission('');
+
+            expect(_resultsOf(report, 'permission').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+          });
+
+          test('[Error] T-WDV-W5C-22: 実行権限欄が空白だけなら unclear とする', () {
+            final report = _checkRecordedPermission('   ');
+
+            expect(_resultsOf(report, 'permission').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+          });
+
+          test('[Error] T-WDV-W5C-23: 実行権限欄の値が「記載なし」なら unclear とする', () {
+            final report = _checkRecordedPermission('記載なし');
+
+            expect(_resultsOf(report, 'permission').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+          });
+
+          test(
+            '[Error] T-WDV-W5C-24: 実行権限欄が未明確なら権限を観測せず、observed は null とする',
+            () {
+              final probe = RecordingPermissionProbe('user');
+
+              final report = _checkRecordedPermission(null, probe: probe);
+
+              expect(probe.calls, 0);
+              expect(_resultsOf(report, 'permission').map((r) => r.observed), [
+                null,
+              ]);
+            },
+          );
+
+          test(
+            '[Error] T-WDV-W5C-25: 実行権限欄が指定なし (null) なら exitCode は 2 とする',
+            () {
+              final report = _checkRecordedPermission(null);
+
+              expect(report.exitCode, 2);
+            },
+          );
+        });
+      });
+
+      group('Given: インストール方式欄が未明確', () {
+        group('When: w5Check を呼ぶ', () {
+          test(
+            '[Error] T-WDV-W5C-26: インストール方式欄が指定なし (null) なら unclear とする',
+            () {
+              final report = _checkInstallMethodRecord(null);
+
+              expect(
+                _resultsOf(report, 'install-method').map((r) => r.status),
+                [W5FieldStatus.unclear],
+              );
+            },
+          );
+
+          test('[Error] T-WDV-W5C-27: インストール方式欄が空文字なら unclear とする', () {
+            final report = _checkInstallMethodRecord('');
+
+            expect(_resultsOf(report, 'install-method').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+          });
+
+          test('[Error] T-WDV-W5C-28: インストール方式欄が空白だけなら unclear とする', () {
+            final report = _checkInstallMethodRecord('   ');
+
+            expect(_resultsOf(report, 'install-method').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+          });
+
+          test('[Error] T-WDV-W5C-29: インストール方式欄の値が「記載なし」なら unclear とする', () {
+            final report = _checkInstallMethodRecord('記載なし');
+
+            expect(_resultsOf(report, 'install-method').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
+          });
+
+          test(
+            '[Error] T-WDV-W5C-30: インストール方式欄が指定なし (null) なら exitCode は 2 とする',
+            () {
+              final report = _checkInstallMethodRecord(null);
+
+              expect(report.exitCode, 2);
+            },
+          );
+        });
+      });
+
+      group('Given: 実行権限の値が user / administrator 以外', () {
+        group('When: w5Check を呼ぶ', () {
+          test(
+            '[Error] T-WDV-W5C-31: 実行権限欄の値が root なら UsageException を送出する',
+            () {
+              expect(
+                () => _checkRecordedPermission('root'),
+                throwsA(isA<UsageException>()),
+              );
+            },
+          );
+        });
+      });
+
+      group('Given: インストール方式欄に任意の値を記録した', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Edge] T-WDV-W5C-32: インストール方式欄の値が msix でも notChecked で記録値を表示し、exitCode は 0 とする', () {
+            final report = _checkInstallMethodRecord('msix');
+
+            expect(
+              _resultsOf(
+                report,
+                'install-method',
+              ).map((r) => (r.status, r.recorded)),
+              [(W5FieldStatus.notChecked, 'msix')],
+            );
+            expect(report.exitCode, 0);
+          });
+        });
+      });
+
+      group('Given: 不一致と未明確が別の欄に同時にある', () {
+        group('When: w5Check を呼ぶ', () {
+          test('[Edge] T-WDV-W5C-33: 実行権限欄が未明確でも AUMID 欄は mismatch とする', () {
+            final report = _checkUnregisteredWithoutPermission();
+
+            expect(_resultsOf(report, 'aumid').map((r) => r.status), [
+              W5FieldStatus.mismatch,
+            ]);
+          });
+
+          test('[Edge] T-WDV-W5C-34: AUMID の不一致があっても実行権限欄は unclear とし、exitCode は 2 とする', () {
+            final report = _checkUnregisteredWithoutPermission();
+
+            expect(_resultsOf(report, 'permission').map((r) => r.status), [
+              W5FieldStatus.unclear,
+            ]);
             expect(report.exitCode, 2);
           });
         });

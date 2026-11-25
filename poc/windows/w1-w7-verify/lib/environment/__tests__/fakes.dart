@@ -159,3 +159,22 @@ class FakePermissionProbe implements PermissionProbe {
   @override
   String current() => permission;
 }
+
+/// [PermissionProbe] that counts the calls of [current] in [calls] and always
+/// returns [permission].
+class RecordingPermissionProbe implements PermissionProbe {
+  /// Creates the fake observing [permission].
+  RecordingPermissionProbe(this.permission);
+
+  /// Value returned by [current].
+  final String permission;
+
+  /// Number of [current] calls received.
+  int calls = 0;
+
+  @override
+  String current() {
+    calls++;
+    return permission;
+  }
+}

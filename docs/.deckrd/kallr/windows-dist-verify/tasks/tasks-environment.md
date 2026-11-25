@@ -316,12 +316,12 @@ version: 1.0.0
 
 #### T-09-02: Given 実行権限が administrator で記録と一致, When w5Check を呼ぶ
 
-- [ ] **T-09-02-01**: administrator の記録と観測が同じなら permission は match とする (ENV-DD-12)
+- [x] **T-09-02-01**: administrator の記録と観測が同じなら permission は match とする (ENV-DD-12)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `administrator` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` の結果が `status=match`
 
-- [ ] **T-09-02-02**: administrator で全欄が一致するとき exitCode は 0 (ENV-R-019)
+- [x] **T-09-02-02**: administrator で全欄が一致するとき exitCode は 0 (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `administrator` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 0
@@ -337,132 +337,132 @@ version: 1.0.0
 
 #### T-09-03: Given 記録した AUMID が HKCU に登録されていない, When w5Check を呼ぶ
 
-- [ ] **T-09-03-01**: AUMID が未登録なら mismatch とし、記録した値と観測した値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
+- [x] **T-09-03-01**: AUMID が未登録なら mismatch とし、記録した値と観測した値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered('com.kallr.app')` が false を返す Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=mismatch`、`recorded=com.kallr.app`、`observed=登録なし`
 
-- [ ] **T-09-03-02**: AUMID の不一致があれば exitCode は 2 (ENV-R-019, ENV-DD-05, ENV-E-17)
+- [x] **T-09-03-02**: AUMID の不一致があれば exitCode は 2 (ENV-R-019, ENV-DD-05, ENV-E-17)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered('com.kallr.app')` が false を返す Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
-- [ ] **T-09-03-03**: AUMID の不一致があっても記録の完備は変わらず、unclear の欄が 0 件 (ENV-E-28, ENV-DD-04)
+- [x] **T-09-03-03**: AUMID の不一致があっても記録の完備は変わらず、unclear の欄が 0 件 (ENV-E-28, ENV-DD-04)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered('com.kallr.app')` が false を返す Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then どの欄も `status=unclear` でなく、`permission` は `match`、`install-method` は `notChecked` のまま
 
 #### T-09-04: Given 記録した実行権限が観測した権限と異なる, When w5Check を呼ぶ
 
-- [ ] **T-09-04-01**: 記録 administrator・観測 user のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
+- [x] **T-09-04-01**: 記録 administrator・観測 user のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=mismatch`、`recorded=administrator`、`observed=user`
 
-- [ ] **T-09-04-02**: 実行権限の不一致があれば exitCode は 2 (ENV-R-019, ENV-E-18)
+- [x] **T-09-04-02**: 実行権限の不一致があれば exitCode は 2 (ENV-R-019, ENV-E-18)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
-- [ ] **T-09-04-03**: 記録 user・観測 administrator のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
+- [x] **T-09-04-03**: 記録 user・観測 administrator のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `administrator` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=mismatch`、`recorded=user`、`observed=administrator`
 
 #### T-09-05: Given AUMID 欄が未明確, When w5Check を呼ぶ
 
-- [ ] **T-09-05-01**: AUMID 欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
+- [x] **T-09-05-01**: AUMID 欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-02**: AUMID 欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-05-02**: AUMID 欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`''`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-03**: AUMID 欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-05-03**: AUMID 欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'   '`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-04**: AUMID 欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
+- [x] **T-09-05-04**: AUMID 欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'記載なし'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-05**: AUMID 欄が未明確のとき、登録の照合をしない (ENV-R-015)
+- [x] **T-09-05-05**: AUMID 欄が未明確のとき、登録の照合をしない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered` の呼び出しを記録する Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.isRegistered` は 1 度も呼ばれない
 
-- [ ] **T-09-05-06**: AUMID 欄が `記載なし` のとき exitCode は 2 (ENV-R-019, ENV-E-29)
+- [x] **T-09-05-06**: AUMID 欄が `記載なし` のとき exitCode は 2 (ENV-R-019, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'記載なし'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
 #### T-09-06: Given 実行権限欄が未明確, When w5Check を呼ぶ
 
-- [ ] **T-09-06-01**: 実行権限欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
+- [x] **T-09-06-01**: 実行権限欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-02**: 実行権限欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-06-02**: 実行権限欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`''`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-03**: 実行権限欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-06-03**: 実行権限欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'   '`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-04**: 実行権限欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
+- [x] **T-09-06-04**: 実行権限欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'記載なし'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-05**: 実行権限欄が未明確のとき、観測した権限と比べない (ENV-R-015)
+- [x] **T-09-06-05**: 実行権限欄が未明確のとき、観測した権限と比べない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` の呼び出しを記録する Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `probe.current` は 1 度も呼ばれず、`field=permission` の `observed` は `null`
 
-- [ ] **T-09-06-06**: 実行権限欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
+- [x] **T-09-06-06**: 実行権限欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
 #### T-09-07: Given インストール方式欄が未明確, When w5Check を呼ぶ
 
-- [ ] **T-09-07-01**: インストール方式欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
+- [x] **T-09-07-01**: インストール方式欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`null` (指定なし))、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-02**: インストール方式欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-07-02**: インストール方式欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`''`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-03**: インストール方式欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-07-03**: インストール方式欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'   '`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-04**: インストール方式欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
+- [x] **T-09-07-04**: インストール方式欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'記載なし'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-05**: インストール方式欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
+- [x] **T-09-07-05**: インストール方式欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`null` (指定なし))、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
 #### T-09-08: Given 実行権限の値が `user` / `administrator` 以外, When w5Check を呼ぶ
 
-- [ ] **T-09-08-01**: 権限の値が `root` のとき UsageException で拒否する (ENV-DD-12)
+- [x] **T-09-08-01**: 権限の値が `root` のとき UsageException で拒否する (ENV-DD-12)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'root'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `UsageException` を投げ、W5Report を返さない
@@ -471,19 +471,19 @@ version: 1.0.0
 
 #### T-09-09: Given インストール方式欄に任意の値を記録した, When w5Check を呼ぶ
 
-- [ ] **T-09-09-01**: インストール方式の値の良し悪しは問わず、mismatch にしない (ENV-R-014, ENV-E-19)
+- [x] **T-09-09-01**: インストール方式の値の良し悪しは問わず、mismatch にしない (ENV-R-014, ENV-E-19)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'msix'`)、AUMID と権限が一致する Mock と Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=notChecked`、`recorded=msix`、`mismatch` でなく、`exitCode` が 0
 
 #### T-09-10: Given 不一致と未明確が別の欄に同時にある, When w5Check を呼ぶ
 
-- [ ] **T-09-10-01**: AUMID の mismatch が、他の欄の判定に影響されない (ENV-R-015)
+- [x] **T-09-10-01**: AUMID の mismatch が、他の欄の判定に影響されない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`isRegistered` が false の Mock, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=mismatch`
 
-- [ ] **T-09-10-02**: 実行権限の unclear が、他の欄の不一致で上書きされず exitCode は 2 (ENV-R-019)
+- [x] **T-09-10-02**: 実行権限の unclear が、他の欄の不一致で上書きされず exitCode は 2 (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`isRegistered` が false の Mock, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`、`exitCode` が 2

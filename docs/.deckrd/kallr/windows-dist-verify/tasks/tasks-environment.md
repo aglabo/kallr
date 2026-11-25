@@ -18,13 +18,13 @@ version: 1.0.0
 
 ## Task Summary
 
-| Test Target                                | Scenarios | Cases | Status      |
-| ------------------------------------------ | --------- | ----- | ----------- |
-| T-08: evaluateAvailability (AVL)           | 15        | 43    | done        |
-| T-09: w5Check (W5C)                        | 16        | 44    | in progress |
-| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending     |
-| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done        |
-| T-21: RegistryException (ERR)              | 2         | 2     | done        |
+| Test Target                                | Scenarios | Cases | Status  |
+| ------------------------------------------ | --------- | ----- | ------- |
+| T-08: evaluateAvailability (AVL)           | 15        | 43    | done    |
+| T-09: w5Check (W5C)                        | 16        | 44    | done    |
+| T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
+| T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done    |
+| T-21: RegistryException (ERR)              | 2         | 2     | done    |
 
 ---
 
@@ -469,7 +469,7 @@ version: 1.0.0
 
 #### T-09-16: Given 前後に空白のある記録の AUMID が HKCU に登録されていない, When w5Check を呼ぶ
 
-- [ ] **T-09-16-01**: 前後の空白を削除した AUMID で登録を照合し、mismatch の記録した値も削除後の値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
+- [x] **T-09-16-01**: 前後の空白を削除した AUMID で登録を照合し、mismatch の記録した値も削除後の値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`' com.kallr.app '`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock (`isRegistered` が false)、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.isRegistered` が `com.kallr.app` で呼ばれ、`field=aumid` が `status=mismatch`、`recorded=com.kallr.app`、`observed=登録なし`

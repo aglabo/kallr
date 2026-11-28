@@ -21,7 +21,7 @@ version: 1.0.0
 | Test Target                                | Scenarios | Cases | Status  |
 | ------------------------------------------ | --------- | ----- | ------- |
 | T-08: evaluateAvailability (AVL)           | 15        | 43    | done    |
-| T-09: w5Check (W5C)                        | 16        | 44    | done    |
+| T-09: w5Check (W5C)                        | 16        | 45    | done    |
 | T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
 | T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done    |
 | T-21: RegistryException (ERR)              | 2         | 2     | done    |
@@ -467,6 +467,11 @@ version: 1.0.0
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'root'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `UsageException` を投げ、W5Report を返さない
 
+- [x] **T-09-08-02**: 権限の値が `root` のとき、観測した権限を取得せずに拒否する (ENV-DD-12)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'root'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` の呼び出しを記録する Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `UsageException` を投げ、`probe.current` は 1 度も呼ばれない
+
 #### T-09-16: Given 前後に空白のある記録の AUMID が HKCU に登録されていない, When w5Check を呼ぶ
 
 - [x] **T-09-16-01**: 前後の空白を削除した AUMID で登録を照合し、mismatch の記録した値も削除後の値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
@@ -765,7 +770,7 @@ version: 1.0.0
 | ENV-DD-05 (不一致は exitCode 2、W5 の合否は変えない)                 | T-09-03-02, T-09-03-03, T-09-04-02                                                                                                                         |
 | ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                                             |
 | ENV-DD-10 (未評価は null)                                            | T-08-06-01, T-08-07-02, T-08-13-02                                                                                                                         |
-| ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-13-01                                                                                                                         |
+| ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-08-02, T-09-13-01                                                                                                             |
 | ENV-DD-13 (`記載なし` の機械検査)                                    | T-09-05-01 〜 T-09-07-04, T-09-15-01〜03                                                                                                                   |
 | IDX-DD-04 (終了コード 0 / 2。w5Check の exitCode)                    | T-09-01-04, T-09-03-02                                                                                                                                     |
 | IDX-DD-05 (例外と値の使い分け)                                       | T-08-06-01, T-08-08-01, T-08-08-03                                                                                                                         |
@@ -792,7 +797,7 @@ version: 1.0.0
 | Test Target                                | Normal / Error / Edge              | Result |
 | ------------------------------------------ | ---------------------------------- | ------ |
 | T-08: evaluateAvailability (AVL)           | Normal: 21 \| Error: 13 \| Edge: 9 | [OK]   |
-| T-09: w5Check (W5C)                        | Normal: 8 \| Error: 25 \| Edge: 11 | [OK]   |
+| T-09: w5Check (W5C)                        | Normal: 8 \| Error: 26 \| Edge: 11 | [OK]   |
 | T-13: DefaultNotificationEnvironment (NEV) | Normal: 4 \| Error: 8 \| Edge: 1   | [OK]   |
 | T-20: notificationSettingFromValue (NSV)   | Normal: 5 \| Error: 1 \| Edge: 2   | [OK]   |
 | T-21: RegistryException (ERR)              | Normal: 1 \| Error: 0 \| Edge: 1   | [OK]   |

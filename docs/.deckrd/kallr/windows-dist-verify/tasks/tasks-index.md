@@ -2,7 +2,7 @@
 title: "Implementation Tasks (Index): Windows Distribution Verify"
 module: kallr/windows-dist-verify
 status: Active
-version: 1.8.0
+version: 1.9.0
 created: "2026-11-22 00:00:00"
 source: specifications-index.md
 ---
@@ -22,7 +22,7 @@ source: specifications-index.md
 | T-06        | RPQ      | tasks-schedule.md    |        14 |    34 |
 | T-07        | SVA      | tasks-service.md     |        17 |    54 |
 | T-08        | AVL, MNE | tasks-environment.md |        15 |    43 |
-| T-09        | W5C      | tasks-environment.md |        16 |    44 |
+| T-09        | W5C      | tasks-environment.md |        16 |    45 |
 | T-10        | ARG      | tasks-cli.md         |        31 |    60 |
 | T-11        | CLI      | tasks-cli.md         |        24 |    88 |
 | T-12        | NID      | tasks-cli.md         |         6 |     6 |
@@ -35,7 +35,7 @@ source: specifications-index.md
 | T-19        | SQA      | tasks-schedule.md    |        12 |    17 |
 | T-20        | NSV      | tasks-environment.md |         3 |     8 |
 | T-21        | ERR      | tasks-environment.md |         2 |     2 |
-| 合計        |          |                      |           |   631 |
+| 合計        |          |                      |           |   632 |
 
 テスト ID (`T-WDV-<略語>-NN`) は、bdd-coder が実装するときに採番する。
 
@@ -151,3 +151,4 @@ source: specifications-index.md
 | 2026-11-25 | 1.6.0   | Add T-08-15 (`MockNotificationEnvironment.isRegistered`, 4 cases; follows implementation-environment v1.2.0)                                                                 |
 | 2026-11-26 | 1.7.0   | Add T-09-15 (3 cases): a `記載なし` record with surrounding whitespace is `unclear` in all three W5 fields                                                                   |
 | 2026-11-26 | 1.8.0   | Add T-09-16 (1 case): an unregistered AUMID recorded with surrounding whitespace is trimmed before the lookup, and the mismatch reports the trimmed value                    |
+| 2026-11-28 | 1.9.0   | Add T-09-08-02: a rejected permission value throws without calling `probe.current` (follows implementation-environment v1.4.0)                                               |

@@ -21,7 +21,7 @@ version: 1.0.0
 | Test Target                                | Scenarios | Cases | Status  |
 | ------------------------------------------ | --------- | ----- | ------- |
 | T-08: evaluateAvailability (AVL)           | 15        | 43    | done    |
-| T-09: w5Check (W5C)                        | 14        | 40    | pending |
+| T-09: w5Check (W5C)                        | 16        | 45    | done    |
 | T-13: DefaultNotificationEnvironment (NEV) | 10        | 13    | pending |
 | T-20: notificationSettingFromValue (NSV)   | 3         | 8     | done    |
 | T-21: RegistryException (ERR)              | 2         | 2     | done    |
@@ -289,46 +289,46 @@ version: 1.0.0
 
 #### T-09-01: Given 3 欄が明確で記録が実態と一致 (user), When w5Check を呼ぶ
 
-- [ ] **T-09-01-01**: AUMID 欄は登録があれば match とする (ENV-R-015, ENV-R-011)
+- [x] **T-09-01-01**: AUMID 欄は登録があれば match とする (ENV-R-015, ENV-R-011)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` の結果が `status=match`
 
-- [ ] **T-09-01-02**: 実行権限欄は記録と観測が同じなら match とする (ENV-R-015)
+- [x] **T-09-01-02**: 実行権限欄は記録と観測が同じなら match とする (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` の結果が `status=match`
 
-- [ ] **T-09-01-03**: インストール方式欄は照合せず notChecked とし、記録した値を表示する (ENV-DD-04, ENV-R-015, ENV-E-19)
+- [x] **T-09-01-03**: インストール方式欄は照合せず notChecked とし、記録した値を表示する (ENV-DD-04, ENV-R-015, ENV-E-19)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` の結果が `status=notChecked`、`recorded=unpackaged`、`observed=null`
 
-- [ ] **T-09-01-04**: 全欄が match / notChecked のとき exitCode は 0 (ENV-R-019)
+- [x] **T-09-01-04**: 全欄が match / notChecked のとき exitCode は 0 (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 0
 
-- [ ] **T-09-01-05**: 結果は aumid、permission、install-method の 3 欄を、この順で返す (ENV-R-019)
+- [x] **T-09-01-05**: 結果は aumid、permission、install-method の 3 欄を、この順で返す (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `fields` が 3 件で、`field` が順に `aumid`、`permission`、`install-method`
 
 #### T-09-02: Given 実行権限が administrator で記録と一致, When w5Check を呼ぶ
 
-- [ ] **T-09-02-01**: administrator の記録と観測が同じなら permission は match とする (ENV-DD-12)
+- [x] **T-09-02-01**: administrator の記録と観測が同じなら permission は match とする (ENV-DD-12)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `administrator` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` の結果が `status=match`
 
-- [ ] **T-09-02-02**: administrator で全欄が一致するとき exitCode は 0 (ENV-R-019)
+- [x] **T-09-02-02**: administrator で全欄が一致するとき exitCode は 0 (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `administrator` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 0
 
 #### T-09-14: Given: 記録した aumid の前後に空白がある (契約。specifications-index 3.1)
 
-- [ ] **T-09-14-01**: 前後の空白を削除した記録の aumid で登録を照合する
+- [x] **T-09-14-01**: 前後の空白を削除した記録の aumid で登録を照合する
   - Target: `w5Check`
   - Scenario: Given `recordedAumid` が `" com.kallr.app "`、`env.isRegistered('com.kallr.app')` は真, When `w5Check` を呼ぶ
   - Expected: Then `env.isRegistered` が `com.kallr.app` で呼ばれ、aumid 欄が `match` である
@@ -337,187 +337,216 @@ version: 1.0.0
 
 #### T-09-03: Given 記録した AUMID が HKCU に登録されていない, When w5Check を呼ぶ
 
-- [ ] **T-09-03-01**: AUMID が未登録なら mismatch とし、記録した値と観測した値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
+- [x] **T-09-03-01**: AUMID が未登録なら mismatch とし、記録した値と観測した値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered('com.kallr.app')` が false を返す Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=mismatch`、`recorded=com.kallr.app`、`observed=登録なし`
 
-- [ ] **T-09-03-02**: AUMID の不一致があれば exitCode は 2 (ENV-R-019, ENV-DD-05, ENV-E-17)
+- [x] **T-09-03-02**: AUMID の不一致があれば exitCode は 2 (ENV-R-019, ENV-DD-05, ENV-E-17)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered('com.kallr.app')` が false を返す Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
-- [ ] **T-09-03-03**: AUMID の不一致があっても記録の完備は変わらず、unclear の欄が 0 件 (ENV-E-28, ENV-DD-04)
+- [x] **T-09-03-03**: AUMID の不一致があっても記録の完備は変わらず、unclear の欄が 0 件 (ENV-E-28, ENV-DD-04)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered('com.kallr.app')` が false を返す Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then どの欄も `status=unclear` でなく、`permission` は `match`、`install-method` は `notChecked` のまま
 
 #### T-09-04: Given 記録した実行権限が観測した権限と異なる, When w5Check を呼ぶ
 
-- [ ] **T-09-04-01**: 記録 administrator・観測 user のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
+- [x] **T-09-04-01**: 記録 administrator・観測 user のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=mismatch`、`recorded=administrator`、`observed=user`
 
-- [ ] **T-09-04-02**: 実行権限の不一致があれば exitCode は 2 (ENV-R-019, ENV-E-18)
+- [x] **T-09-04-02**: 実行権限の不一致があれば exitCode は 2 (ENV-R-019, ENV-E-18)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
-- [ ] **T-09-04-03**: 記録 user・観測 administrator のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
+- [x] **T-09-04-03**: 記録 user・観測 administrator のとき mismatch とし、両方の値を報告する (ENV-R-015, ENV-R-016, ENV-E-18)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `administrator` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=mismatch`、`recorded=user`、`observed=administrator`
 
 #### T-09-05: Given AUMID 欄が未明確, When w5Check を呼ぶ
 
-- [ ] **T-09-05-01**: AUMID 欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
+- [x] **T-09-05-01**: AUMID 欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-02**: AUMID 欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-05-02**: AUMID 欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`''`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-03**: AUMID 欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-05-03**: AUMID 欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'   '`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-04**: AUMID 欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
+- [x] **T-09-05-04**: AUMID 欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'記載なし'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=unclear`
 
-- [ ] **T-09-05-05**: AUMID 欄が未明確のとき、登録の照合をしない (ENV-R-015)
+- [x] **T-09-05-05**: AUMID 欄が未明確のとき、登録の照合をしない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`isRegistered` の呼び出しを記録する Mock、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.isRegistered` は 1 度も呼ばれない
 
-- [ ] **T-09-05-06**: AUMID 欄が `記載なし` のとき exitCode は 2 (ENV-R-019, ENV-E-29)
+- [x] **T-09-05-06**: AUMID 欄が `記載なし` のとき exitCode は 2 (ENV-R-019, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'記載なし'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
 #### T-09-06: Given 実行権限欄が未明確, When w5Check を呼ぶ
 
-- [ ] **T-09-06-01**: 実行権限欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
+- [x] **T-09-06-01**: 実行権限欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-02**: 実行権限欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-06-02**: 実行権限欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`''`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-03**: 実行権限欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-06-03**: 実行権限欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'   '`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-04**: 実行権限欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
+- [x] **T-09-06-04**: 実行権限欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'記載なし'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`
 
-- [ ] **T-09-06-05**: 実行権限欄が未明確のとき、観測した権限と比べない (ENV-R-015)
+- [x] **T-09-06-05**: 実行権限欄が未明確のとき、観測した権限と比べない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` の呼び出しを記録する Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `probe.current` は 1 度も呼ばれず、`field=permission` の `observed` は `null`
 
-- [ ] **T-09-06-06**: 実行権限欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
+- [x] **T-09-06-06**: 実行権限欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
 #### T-09-07: Given インストール方式欄が未明確, When w5Check を呼ぶ
 
-- [ ] **T-09-07-01**: インストール方式欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
+- [x] **T-09-07-01**: インストール方式欄が指定なし (null) のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`null` (指定なし))、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-02**: インストール方式欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-07-02**: インストール方式欄が空文字のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`''`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-03**: インストール方式欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
+- [x] **T-09-07-03**: インストール方式欄が空白だけのとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'   '`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-04**: インストール方式欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
+- [x] **T-09-07-04**: インストール方式欄の値が `記載なし` のとき unclear とする (ENV-R-019, ENV-DD-13, ENV-E-16, ENV-E-29)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'記載なし'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=unclear`
 
-- [ ] **T-09-07-05**: インストール方式欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
+- [x] **T-09-07-05**: インストール方式欄が指定なしのとき exitCode は 2 (ENV-R-019, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`null` (指定なし))、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、Fake PermissionProbe の `current()` が `user` を返す, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `exitCode` が 2
 
 #### T-09-08: Given 実行権限の値が `user` / `administrator` 以外, When w5Check を呼ぶ
 
-- [ ] **T-09-08-01**: 権限の値が `root` のとき UsageException で拒否する (ENV-DD-12)
+- [x] **T-09-08-01**: 権限の値が `root` のとき UsageException で拒否する (ENV-DD-12)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'root'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `UsageException` を投げ、W5Report を返さない
+
+- [x] **T-09-08-02**: 権限の値が `root` のとき、観測した権限を取得せずに拒否する (ENV-DD-12)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'root'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` の呼び出しを記録する Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `UsageException` を投げ、`probe.current` は 1 度も呼ばれない
+
+#### T-09-16: Given 前後に空白のある記録の AUMID が HKCU に登録されていない, When w5Check を呼ぶ
+
+- [x] **T-09-16-01**: 前後の空白を削除した AUMID で登録を照合し、mismatch の記録した値も削除後の値を報告する (ENV-R-015, ENV-R-016, ENV-E-17)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`' com.kallr.app '`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock (`isRegistered` が false)、`current()` が `user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `env.isRegistered` が `com.kallr.app` で呼ばれ、`field=aumid` が `status=mismatch`、`recorded=com.kallr.app`、`observed=登録なし`
 
 ### [エッジケース] Edge Cases
 
 #### T-09-09: Given インストール方式欄に任意の値を記録した, When w5Check を呼ぶ
 
-- [ ] **T-09-09-01**: インストール方式の値の良し悪しは問わず、mismatch にしない (ENV-R-014, ENV-E-19)
+- [x] **T-09-09-01**: インストール方式の値の良し悪しは問わず、mismatch にしない (ENV-R-014, ENV-E-19)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'msix'`)、AUMID と権限が一致する Mock と Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=install-method` が `status=notChecked`、`recorded=msix`、`mismatch` でなく、`exitCode` が 0
 
 #### T-09-10: Given 不一致と未明確が別の欄に同時にある, When w5Check を呼ぶ
 
-- [ ] **T-09-10-01**: AUMID の mismatch が、他の欄の判定に影響されない (ENV-R-015)
+- [x] **T-09-10-01**: AUMID の mismatch が、他の欄の判定に影響されない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`isRegistered` が false の Mock, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=aumid` が `status=mismatch`
 
-- [ ] **T-09-10-02**: 実行権限の unclear が、他の欄の不一致で上書きされず exitCode は 2 (ENV-R-019)
+- [x] **T-09-10-02**: 実行権限の unclear が、他の欄の不一致で上書きされず exitCode は 2 (ENV-R-019)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`null` (指定なし), recordedInstallMethod=`'unpackaged'`)、`isRegistered` が false の Mock, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `field=permission` が `status=unclear`、`exitCode` が 2
 
 #### T-09-11: Given 3 欄すべてが指定なし, When w5Check を呼ぶ
 
-- [ ] **T-09-11-01**: 3 欄すべてが unclear で exitCode は 2 (ENV-R-019, ENV-E-27)
+- [x] **T-09-11-01**: 3 欄すべてが unclear で exitCode は 2 (ENV-R-019, ENV-E-27)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`null` (指定なし), recordedInstallMethod=`null` (指定なし)), When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then 3 欄すべてが `status=unclear` で、`exitCode` が 2
 
-- [ ] **T-09-11-02**: 3 欄すべてが未明確のとき、登録と権限を照合しない (ENV-R-015)
+- [x] **T-09-11-02**: 3 欄すべてが未明確のとき、登録と権限を照合しない (ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`null` (指定なし), recordedPermission=`null` (指定なし), recordedInstallMethod=`null` (指定なし))、呼び出しを記録する Mock と Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.isRegistered` と `probe.current` は 1 度も呼ばれない
 
 #### T-09-12: Given 整合チェックが読み取り専用でなければならない, When w5Check を呼ぶ
 
-- [ ] **T-09-12-01**: 記録した AUMID で isRegistered を 1 回だけ呼ぶ (ENV-R-011, ENV-R-015)
+- [x] **T-09-12-01**: 記録した AUMID で isRegistered を 1 回だけ呼ぶ (ENV-R-011, ENV-R-015)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock (`isRegistered` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.isRegistered` が `com.kallr.app` で 1 回だけ呼ばれる
 
-- [ ] **T-09-12-02**: register と unregister を呼ばず、書き込まない (ENV-R-012, ENV-DD-02)
+- [x] **T-09-12-02**: register と unregister を呼ばず、書き込まない (ENV-R-012, ENV-DD-02)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `env.register` と `env.unregister` は 1 度も呼ばれない
 
 #### T-09-13: Given 実行権限の値が大文字を含む, When w5Check を呼ぶ
 
-- [ ] **T-09-13-01**: 権限の値 `Administrator` (大文字始まり) は UsageException で拒否する (ENV-DD-12。値は小文字の `user` / `administrator` のみ)
+- [x] **T-09-13-01**: 権限の値 `Administrator` (大文字始まり) は UsageException で拒否する (ENV-DD-12。値は小文字の `user` / `administrator` のみ)
   - Target: `w5Check`
   - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'Administrator'`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`current()` が `administrator` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
   - Expected: Then `UsageException` を投げ、W5Report を返さない
+
+#### T-09-15: Given 記録の欄が前後に空白のある `記載なし`, When w5Check を呼ぶ
+
+- [x] **T-09-15-01**: 前後に空白のある `記載なし` の AUMID 欄は unclear とし、登録を照合しない (ENV-R-019, ENV-R-015, ENV-DD-13, ENV-E-29)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`' 記載なし '`, recordedPermission=`'user'`, recordedInstallMethod=`'unpackaged'`)、呼び出しを記録する Mock (`isRegistered` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `field=aumid` が `status=unclear` で、`env.isRegistered` は 1 度も呼ばれない
+
+- [x] **T-09-15-02**: 前後に空白のある `記載なし` の実行権限欄は unclear とし、UsageException にしない (ENV-R-019, ENV-DD-13, ENV-E-29)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`' 記載なし '`, recordedInstallMethod=`'unpackaged'`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `UsageException` を投げず、`field=permission` が `status=unclear`
+
+- [x] **T-09-15-03**: 前後に空白のある `記載なし` のインストール方式欄は unclear とする (ENV-R-019, ENV-R-014, ENV-DD-13, ENV-E-29)
+  - Target: `w5Check`
+  - Scenario: Given W5Input(recordedAumid=`'com.kallr.app'`, recordedPermission=`'user'`, recordedInstallMethod=`' 記載なし '`)、`MockNotificationEnvironment` (`isRegistered('com.kallr.app')` が true)、`user` を返す Fake PermissionProbe, When `w5Check(input, env, probe)` を呼ぶ
+  - Expected: Then `field=install-method` が `status=unclear`
 
 ## T-13: DefaultNotificationEnvironment (NEV)
 
@@ -697,60 +726,60 @@ version: 1.0.0
 
 ## Coverage Check
 
-| Source item                                                          | Task ID(s)                                                                                                                         |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| ENV-R-001 (AUMID 空 → UsageException)                                | T-08-05-01, T-08-05-02, T-08-05-03                                                                                                 |
-| ENV-R-002 (未登録)                                                   | T-08-06-01, T-08-06-02, T-08-09-01, T-08-13-01                                                                                     |
-| ENV-R-003 (DisplayName 空)                                           | T-08-07-01, T-08-07-02, T-08-07-03, T-08-07-04, T-08-13-02                                                                         |
-| ENV-R-004 (無効 4 種)                                                | T-08-02-01 〜 T-08-02-04                                                                                                           |
-| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04, T-20-01-01 〜 T-20-03-02                                                                                               |
-| ENV-R-006 (ok=true)                                                  | T-08-01-01, T-08-10-01                                                                                                             |
-| ENV-R-007 (読み取り失敗 → 再スロー)                                  | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
-| ENV-R-011 (登録の確認。w5Check からの利用)                           | T-09-01-01, T-09-12-01                                                                                                             |
-| ENV-R-012 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                               |
-| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02, T-08-15-01 〜 T-08-15-04                                                         |
-| ENV-R-014 (3 欄の完備判定)                                           | T-09-05-01 〜 T-09-07-05, T-09-09-01                                                                                               |
-| ENV-R-015 (欄ごとの整合チェック)                                     | T-09-01-01, T-09-01-02, T-09-01-03, T-09-02-01, T-09-03-01, T-09-04-01, T-09-05-05, T-09-06-05, T-09-10-01, T-09-11-02, T-09-12-01 |
-| ENV-R-016 (不一致の報告)                                             | T-09-03-01, T-09-04-01, T-09-04-03                                                                                                 |
-| ENV-R-019 (w5Check の判定。exitCode と 3 欄の結果)                   | T-09-01-04, T-09-01-05, T-09-02-02, T-09-03-02, T-09-05-01〜06, T-09-06-01〜06, T-09-07-01〜05, T-09-10-02, T-09-11-01             |
-| 識別子の正規化 (specifications-index 3.1。implementation-index §3.3) | T-13-01-01〜T-13-10-01                                                                                                             |
-| ENV-E-01 (未登録で add) の確認部分                                   | T-08-06-01 (add の終了コード 3 は対象外。下表)                                                                                     |
-| ENV-E-02 (DisplayName の値なし)                                      | T-08-07-01                                                                                                                         |
-| ENV-E-03 (DisplayName 空文字・空白)                                  | T-08-07-02, T-08-07-03                                                                                                             |
-| ENV-E-04 (無効 4 種)                                                 | T-08-02-01 〜 T-08-02-04                                                                                                           |
-| ENV-E-05 (マニフェスト無効)                                          | T-08-02-04                                                                                                                         |
-| ENV-E-06 (未知の値)                                                  | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
-| ENV-E-07 (読み取り失敗)                                              | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                 |
-| ENV-E-08 (AUMID 空)                                                  | T-08-05-01, T-08-05-03                                                                                                             |
-| ENV-E-11 (削除後も設定が有効)                                        | T-08-09-01                                                                                                                         |
-| ENV-E-12 (登録の直後)                                                | T-08-10-01                                                                                                                         |
-| ENV-E-14 (非 ASCII) の判定ロジック部分                               | T-08-12-01, T-08-12-02                                                                                                             |
-| ENV-E-15 (Mock の戻り値に従う) の Mock 部分                          | T-08-03-01 〜 T-08-03-07                                                                                                           |
-| ENV-E-16 (W5 の記録が空・記載なし)                                   | T-09-05-02, T-09-05-03, T-09-05-04, T-09-06-02, T-09-06-03, T-09-06-04, T-09-07-02, T-09-07-03, T-09-07-04                         |
-| ENV-E-17 (AUMID 欄が未登録)                                          | T-09-03-01, T-09-03-02                                                                                                             |
-| ENV-E-18 (権限の不一致)                                              | T-09-04-01, T-09-04-02, T-09-04-03                                                                                                 |
-| ENV-E-19 (インストール方式は対象外)                                  | T-09-01-03, T-09-09-01                                                                                                             |
-| ENV-E-25 (未評価の通知設定)                                          | T-08-06-01, T-08-07-02                                                                                                             |
-| ENV-E-27 (指定の無い `--recorded-*`)                                 | T-09-05-01, T-09-06-01, T-09-06-06, T-09-07-01, T-09-07-05, T-09-11-01                                                             |
-| ENV-E-28 (完備だが不一致)                                            | T-09-03-03                                                                                                                         |
-| ENV-E-29 (`記載なし`)                                                | T-09-05-04, T-09-05-06, T-09-06-04, T-09-07-04                                                                                     |
-| ENV-DD-01 (不可は値、失敗は例外)                                     | T-08-06-01, T-08-07-01, T-08-08-01                                                                                                 |
-| ENV-DD-02 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                               |
-| ENV-DD-03 (登録なし・DisplayName 空で打ち切り)                       | T-08-06-02, T-08-07-04, T-08-09-01, T-08-13-01                                                                                     |
-| ENV-DD-04 (インストール方式は照合しない)                             | T-09-01-03, T-09-03-03, T-09-09-01                                                                                                 |
-| ENV-DD-05 (不一致は exitCode 2、W5 の合否は変えない)                 | T-09-03-02, T-09-03-03, T-09-04-02                                                                                                 |
-| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                     |
-| ENV-DD-10 (未評価は null)                                            | T-08-06-01, T-08-07-02, T-08-13-02                                                                                                 |
-| ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-13-01                                                                                                 |
-| ENV-DD-13 (`記載なし` の機械検査)                                    | T-09-05-01 〜 T-09-07-04                                                                                                           |
-| IDX-DD-04 (終了コード 0 / 2。w5Check の exitCode)                    | T-09-01-04, T-09-03-02                                                                                                             |
-| IDX-DD-05 (例外と値の使い分け)                                       | T-08-06-01, T-08-08-01, T-08-08-03                                                                                                 |
-| IDX §3.1, §4.3 (RegistryException の値と表示)                        | T-21-01-01, T-21-02-01                                                                                                             |
-| IDX-DD-10 (空の AUMID は使い方の誤り)                                | T-08-05-01, T-08-05-03                                                                                                             |
-| IDX-DD-12 (w5-check の exitCode 2。W5 の合否は変えない)              | T-09-03-02, T-09-03-03, T-09-05-06                                                                                                 |
-| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-08-15-01 〜 T-08-15-04, T-09-12-01, T-09-12-02                                                         |
-| DR-03 (W5 の合否は記録の完備だけ)                                    | T-09-03-03, T-09-05-01 〜 T-09-07-05                                                                                               |
-| DR-01 (HKCU 登録・管理者権限不要)                                    | 該当なし (観測できる振る舞いは `windows/` の FFI 実装にあり、手動検証で確かめる)                                                   |
+| Source item                                                          | Task ID(s)                                                                                                                                                 |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ENV-R-001 (AUMID 空 → UsageException)                                | T-08-05-01, T-08-05-02, T-08-05-03                                                                                                                         |
+| ENV-R-002 (未登録)                                                   | T-08-06-01, T-08-06-02, T-08-09-01, T-08-13-01                                                                                                             |
+| ENV-R-003 (DisplayName 空)                                           | T-08-07-01, T-08-07-02, T-08-07-03, T-08-07-04, T-08-13-02                                                                                                 |
+| ENV-R-004 (無効 4 種)                                                | T-08-02-01 〜 T-08-02-04                                                                                                                                   |
+| ENV-R-005 (未知の値 → 失敗)                                          | T-08-08-04, T-20-01-01 〜 T-20-03-02                                                                                                                       |
+| ENV-R-006 (ok=true)                                                  | T-08-01-01, T-08-10-01                                                                                                                                     |
+| ENV-R-007 (読み取り失敗 → 再スロー)                                  | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                                         |
+| ENV-R-011 (登録の確認。w5Check からの利用)                           | T-09-01-01, T-09-12-01                                                                                                                                     |
+| ENV-R-012 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                                                       |
+| ENV-R-013 (Mock は OS を呼ばない)                                    | T-08-03-01 〜 T-08-03-07, T-08-04-01, T-08-04-02, T-08-15-01 〜 T-08-15-04                                                                                 |
+| ENV-R-014 (3 欄の完備判定)                                           | T-09-05-01 〜 T-09-07-05, T-09-09-01, T-09-15-03                                                                                                           |
+| ENV-R-015 (欄ごとの整合チェック)                                     | T-09-01-01, T-09-01-02, T-09-01-03, T-09-02-01, T-09-03-01, T-09-04-01, T-09-05-05, T-09-06-05, T-09-10-01, T-09-11-02, T-09-12-01, T-09-15-01, T-09-16-01 |
+| ENV-R-016 (不一致の報告)                                             | T-09-03-01, T-09-04-01, T-09-04-03, T-09-16-01                                                                                                             |
+| ENV-R-019 (w5Check の判定。exitCode と 3 欄の結果)                   | T-09-01-04, T-09-01-05, T-09-02-02, T-09-03-02, T-09-05-01〜06, T-09-06-01〜06, T-09-07-01〜05, T-09-10-02, T-09-11-01, T-09-15-01〜03                     |
+| 識別子の正規化 (specifications-index 3.1。implementation-index §3.3) | T-13-01-01〜T-13-10-01                                                                                                                                     |
+| ENV-E-01 (未登録で add) の確認部分                                   | T-08-06-01 (add の終了コード 3 は対象外。下表)                                                                                                             |
+| ENV-E-02 (DisplayName の値なし)                                      | T-08-07-01                                                                                                                                                 |
+| ENV-E-03 (DisplayName 空文字・空白)                                  | T-08-07-02, T-08-07-03                                                                                                                                     |
+| ENV-E-04 (無効 4 種)                                                 | T-08-02-01 〜 T-08-02-04                                                                                                                                   |
+| ENV-E-05 (マニフェスト無効)                                          | T-08-02-04                                                                                                                                                 |
+| ENV-E-06 (未知の値)                                                  | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                                             |
+| ENV-E-07 (読み取り失敗)                                              | T-08-08-01, T-08-08-02, T-08-08-03                                                                                                                         |
+| ENV-E-08 (AUMID 空)                                                  | T-08-05-01, T-08-05-03                                                                                                                                     |
+| ENV-E-11 (削除後も設定が有効)                                        | T-08-09-01                                                                                                                                                 |
+| ENV-E-12 (登録の直後)                                                | T-08-10-01                                                                                                                                                 |
+| ENV-E-14 (非 ASCII) の判定ロジック部分                               | T-08-12-01, T-08-12-02                                                                                                                                     |
+| ENV-E-15 (Mock の戻り値に従う) の Mock 部分                          | T-08-03-01 〜 T-08-03-07                                                                                                                                   |
+| ENV-E-16 (W5 の記録が空・記載なし)                                   | T-09-05-02, T-09-05-03, T-09-05-04, T-09-06-02, T-09-06-03, T-09-06-04, T-09-07-02, T-09-07-03, T-09-07-04                                                 |
+| ENV-E-17 (AUMID 欄が未登録)                                          | T-09-03-01, T-09-03-02, T-09-16-01                                                                                                                         |
+| ENV-E-18 (権限の不一致)                                              | T-09-04-01, T-09-04-02, T-09-04-03                                                                                                                         |
+| ENV-E-19 (インストール方式は対象外)                                  | T-09-01-03, T-09-09-01                                                                                                                                     |
+| ENV-E-25 (未評価の通知設定)                                          | T-08-06-01, T-08-07-02                                                                                                                                     |
+| ENV-E-27 (指定の無い `--recorded-*`)                                 | T-09-05-01, T-09-06-01, T-09-06-06, T-09-07-01, T-09-07-05, T-09-11-01                                                                                     |
+| ENV-E-28 (完備だが不一致)                                            | T-09-03-03                                                                                                                                                 |
+| ENV-E-29 (`記載なし`)                                                | T-09-05-04, T-09-05-06, T-09-06-04, T-09-07-04, T-09-15-01〜03                                                                                             |
+| ENV-DD-01 (不可は値、失敗は例外)                                     | T-08-06-01, T-08-07-01, T-08-08-01                                                                                                                         |
+| ENV-DD-02 (読み取り専用)                                             | T-08-11-01 〜 T-08-11-03, T-09-12-02                                                                                                                       |
+| ENV-DD-03 (登録なし・DisplayName 空で打ち切り)                       | T-08-06-02, T-08-07-04, T-08-09-01, T-08-13-01                                                                                                             |
+| ENV-DD-04 (インストール方式は照合しない)                             | T-09-01-03, T-09-03-03, T-09-09-01                                                                                                                         |
+| ENV-DD-05 (不一致は exitCode 2、W5 の合否は変えない)                 | T-09-03-02, T-09-03-03, T-09-04-02                                                                                                                         |
+| ENV-DD-06 (未知の値は失敗)                                           | T-08-08-04, T-20-02-01, T-20-03-01, T-20-03-02                                                                                                             |
+| ENV-DD-10 (未評価は null)                                            | T-08-06-01, T-08-07-02, T-08-13-02                                                                                                                         |
+| ENV-DD-12 (権限の値は user / administrator)                          | T-09-02-01, T-09-08-01, T-09-08-02, T-09-13-01                                                                                                             |
+| ENV-DD-13 (`記載なし` の機械検査)                                    | T-09-05-01 〜 T-09-07-04, T-09-15-01〜03                                                                                                                   |
+| IDX-DD-04 (終了コード 0 / 2。w5Check の exitCode)                    | T-09-01-04, T-09-03-02                                                                                                                                     |
+| IDX-DD-05 (例外と値の使い分け)                                       | T-08-06-01, T-08-08-01, T-08-08-03                                                                                                                         |
+| IDX §3.1, §4.3 (RegistryException の値と表示)                        | T-21-01-01, T-21-02-01                                                                                                                                     |
+| IDX-DD-10 (空の AUMID は使い方の誤り)                                | T-08-05-01, T-08-05-03                                                                                                                                     |
+| IDX-DD-12 (w5-check の exitCode 2。W5 の合否は変えない)              | T-09-03-02, T-09-03-03, T-09-05-06                                                                                                                         |
+| DR-06 (本体はインターフェースだけを使う / Mock 差し替え)             | T-08-03-01 〜 T-08-04-02, T-08-15-01 〜 T-08-15-04, T-09-12-01, T-09-12-02                                                                                 |
+| DR-03 (W5 の合否は記録の完備だけ)                                    | T-09-03-03, T-09-05-01 〜 T-09-07-05                                                                                                                       |
+| DR-01 (HKCU 登録・管理者権限不要)                                    | 該当なし (観測できる振る舞いは `windows/` の FFI 実装にあり、手動検証で確かめる)                                                                           |
 
 ### 対象外 (この文書では扱わない)
 
@@ -768,7 +797,7 @@ version: 1.0.0
 | Test Target                                | Normal / Error / Edge              | Result |
 | ------------------------------------------ | ---------------------------------- | ------ |
 | T-08: evaluateAvailability (AVL)           | Normal: 21 \| Error: 13 \| Edge: 9 | [OK]   |
-| T-09: w5Check (W5C)                        | Normal: 8 \| Error: 24 \| Edge: 8  | [OK]   |
+| T-09: w5Check (W5C)                        | Normal: 8 \| Error: 26 \| Edge: 11 | [OK]   |
 | T-13: DefaultNotificationEnvironment (NEV) | Normal: 4 \| Error: 8 \| Edge: 1   | [OK]   |
 | T-20: notificationSettingFromValue (NSV)   | Normal: 5 \| Error: 1 \| Edge: 2   | [OK]   |
 | T-21: RegistryException (ERR)              | Normal: 1 \| Error: 0 \| Edge: 1   | [OK]   |

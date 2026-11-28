@@ -2,7 +2,7 @@
 title: "Implementation Specification: Windows Distribution Verify (Environment)"
 based-on: specifications-environment.md v1.1.0
 status: Draft
-version: 1.3.0
+version: 1.4.0
 created: "2026-11-22"
 ---
 
@@ -147,6 +147,7 @@ W5Report w5Check(W5Input input, NotificationEnvironment env, PermissionProbe pro
    真なら `match`、偽なら `mismatch` (`recorded` に `normalizeId` した値、`observed` に「登録なし」)。
 3. permission 欄が明確なら、`user` / `administrator` 以外の値は `UsageException`。
    照合は大文字小文字を区別する完全一致とし、`Administrator` も `UsageException` (ENV-DD-12)。
+   `UsageException` にする値のときは、`probe.current()` を呼ばない。
    それ以外は `probe.current()` と比べて `match` / `mismatch`。
 4. install-method 欄が明確なら `status = notChecked` とし、記録した値を `recorded` に入れて「照合していない」と報告する (ENV-DD-04)。
 5. `exitCode` は、`unclear` または `mismatch` が 1 つでもあれば 2、そうでなければ 0。W5 の合否は変えず、報告するだけ (ENV-DD-05)。
@@ -267,3 +268,4 @@ advapi32 の関数を FFI で呼ぶ。外部コマンドには頼らない。使
 | 2026-11-25 | 1.1.0   | Put the value conversion in `notificationSettingFromValue` (test target NSV); an unknown value has a null `win32Code` (2.1, 4.2, 5); use the actual directory `environment/` and the full `RegistryException` constructor form (2, 4) |
 | 2026-11-25 | 1.2.0   | The Mock also implements `isRegistered`: it returns `Availability.registered` and records the call (2.3, MNE)                                                                                                                         |
 | 2026-11-26 | 1.3.0   | Compare the trimmed value with 記載なし; an AUMID mismatch holds the normalized value in `recorded` (2.4; specifications-environment v1.1.0)                                                                                          |
+| 2026-11-28 | 1.4.0   | A rejected permission value throws without calling `probe.current()` (2.4)                                                                                                                                                            |

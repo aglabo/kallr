@@ -486,6 +486,16 @@ void main() {
               );
             },
           );
+
+          test('[Error] T-WDV-W5C-45: 実行権限欄の値が root なら権限を観測せずに UsageException を送出する', () {
+            final probe = RecordingPermissionProbe('user');
+
+            expect(
+              () => _checkRecordedPermission('root', probe: probe),
+              throwsA(isA<UsageException>()),
+            );
+            expect(probe.calls, 0);
+          });
         });
       });
 
